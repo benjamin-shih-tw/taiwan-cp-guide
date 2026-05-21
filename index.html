@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣競程修練指南 | Taiwan CP Guide</title>
+    <meta name="description" content="結合 USACO Guide, OI Wiki 與 NTUCPC Guide 的精華，為台灣高中生及大學生選手打造的競賽程式 (Competitive Programming) 一站式系統化修練指南。支援 APCS、TOI 與 ICPC 學習地圖、進度追蹤及常用模板。">
+    
+    <!-- SVG Favicon 解決 404 與增加極客標示 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+    
+    <!-- 樣式表 -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PWA Manifest 與 Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#07080e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- KaTeX 數學公式離線快取/渲染引擎 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Header 區域 -->
+        <header>
+            <div class="brand-wrapper">
+                <span class="badge-tag" id="main-badge">APCS / TOI / ICPC / IOI</span>
+                <h1>台灣競程修練指南</h1>
+                <p class="subtitle">結合 USACO Guide 系統、OI Wiki 深度與 NTUCPC 台灣經驗的極客修練平台</p>
+            </div>
+        </header>
+
+        <!-- Dashboard Panel (即時進度統計) -->
+        <section class="dashboard-panel" aria-label="進度儀表板">
+            <!-- 已讀主題 -->
+            <div class="stat-item">
+                <div class="stat-icon" aria-hidden="true">🗺️</div>
+                <div class="stat-info">
+                    <span class="stat-label">已修讀主題</span>
+                    <div class="stat-val-wrapper">
+                        <span class="stat-value" id="stat-read-text">0 / 0</span>
+                        <span class="stat-percent" id="stat-read-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress-read-fill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 已刷習題 -->
+            <div class="stat-item">
+                <div class="stat-icon" aria-hidden="true">🏆</div>
+                <div class="stat-info">
+                    <span class="stat-label">已解決習題</span>
+                    <div class="stat-val-wrapper">
+                        <span class="stat-value" id="stat-solved-text">0 / 0</span>
+                        <span class="stat-percent" id="stat-solved-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress-solved-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 導航分頁 Tabs -->
+        <nav class="tabs-navigation" aria-label="主要選單">
+            <button class="tab-btn active" data-tab="roadmap" id="tab-btn-roadmap">
+                <span class="tab-icon">🗺️</span> 學習地圖
+            </button>
+            <button class="tab-btn" data-tab="templates" id="tab-btn-templates">
+                <span class="tab-icon">⚡</span> 演算法模板
+            </button>
+            <button class="tab-btn" data-tab="utilities" id="tab-btn-utilities">
+                <span class="tab-icon">🛠️</span> 競程工具箱
+            </button>
+        </nav>
+
+        <!-- 主內容區域 -->
+        <main>
+            
+            <!-- 1. 學習地圖分頁 (Roadmap Panel) -->
+            <section class="tab-content-panel active" id="roadmap-panel" aria-labelledby="tab-btn-roadmap">
+                <!-- 難度過濾列 -->
+                <div class="filters-bar">
+                    <div class="filter-group" role="group" aria-label="難度篩選">
+                        <button class="filter-btn active" data-level-filter="all" id="filter-all">🌟 全部</button>
+                        <button class="filter-btn" data-level-filter="apcs-basic" id="filter-apcs">🟢 啟航 (APCS/Bronze)</button>
+                        <button class="filter-btn" data-level-filter="toi-silver" id="filter-silver">🔵 突破 (TOI複選/Silver)</button>
+                        <button class="filter-btn" data-level-filter="toi-gold" id="filter-gold">🟡 榮耀 (選訓/Gold)</button>
+                        <button class="filter-btn" data-level-filter="icpc-platinum" id="filter-platinum">🔴 巔峰Ⅰ (Platinum)</button>
+                        <button class="filter-btn" data-level-filter="icpc-advanced" id="filter-advanced">⚡ 巔峰Ⅱ (IOI/WF)</button>
+                    </div>
+                    <div class="view-controls">
+                        <!-- 隱藏已解決開關 -->
+                        <label class="toggle-switch-wrapper" title="隱藏已經標記為「已解決✓」的題目">
+                            <input type="checkbox" id="hide-solved-toggle">
+                            <span class="custom-checkbox">✓</span>
+                            <span class="toggle-label" style="font-size: 0.8rem; color: #94a3b8; user-select: none;">隱藏已通關</span>
+                        </label>
+                        
+                        <button class="action-btn" id="export-progress-btn" title="備份學習進度為 JSON 檔案">📤 匯出進度</button>
+                        <label class="action-btn" for="import-progress-input" title="從 JSON 檔案還原學習進度" style="cursor:pointer;">📥 匯入進度</label>
+                        <input type="file" id="import-progress-input" accept=".json" style="display:none;" aria-label="選擇進度備份檔案">
+                    </div>
+                </div>
+
+                <!-- 學習地圖動態加載目標 -->
+                <div id="roadmap-container">
+                    <!-- 由 app.js 動態渲染 -->
+                </div>
+            </section>
+
+            <!-- 2. 演算法模板分頁 (Templates Panel) -->
+            <section class="tab-content-panel" id="templates-panel" aria-labelledby="tab-btn-templates">
+                <div class="templates-layout">
+                    
+                    <!-- 側邊欄列表 -->
+                    <aside class="templates-sidebar" aria-label="模板導覽">
+                        <!-- 搜尋框 -->
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="template-search" placeholder="搜尋模板或演算法...">
+                        </div>
+                        
+                        <!-- 分類過濾按鈕 -->
+                        <div class="filter-group" style="gap: 0.35rem;" role="group" aria-label="模板分類">
+                            <button class="filter-btn active" data-cat-filter="all" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">All</button>
+                            <button class="filter-btn" data-cat-filter="Basic" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">基礎</button>
+                            <button class="filter-btn" data-cat-filter="Data Structure" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">資料結構</button>
+                            <button class="filter-btn" data-cat-filter="Graph Theory" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">圖論</button>
+                        </div>
+                        
+                        <!-- 模板菜單 -->
+                        <nav class="template-menu-list" id="template-menu" aria-label="模板清單">
+                            <!-- 由 app.js 動態載入 -->
+                        </nav>
+                    </aside>
+
+                    <!-- 右側展示面板 -->
+                    <article class="template-viewer" aria-label="模板詳情">
+                        <div class="viewer-header">
+                            <div class="viewer-title-area">
+                                <span class="viewer-cat-tag" id="viewer-cat">Basic</span>
+                                <h2 class="viewer-title" id="viewer-title">起手式與快速 I/O</h2>
+                                <p class="viewer-desc" id="viewer-desc">競程常用起手模板...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 代碼展示視窗 -->
+                        <div class="code-window">
+                            <div class="code-window-header">
+                                <div class="code-dots">
+                                    <div class="code-dot red" aria-hidden="true"></div>
+                                    <div class="code-dot yellow" aria-hidden="true"></div>
+                                    <div class="code-dot green" aria-hidden="true"></div>
+                                </div>
+                                <span class="code-lang-label">C++ (STD 17)</span>
+                                <button class="code-copy-btn" id="code-copy-btn" title="複製代碼">
+                                    <span>📋 Copy</span>
+                                </button>
+                            </div>
+                            <div class="code-content-wrapper">
+                                <pre><code id="code-display" class="language-cpp">
+                                    <!-- 由 app.js 動態填寫與高亮 -->
+                                </code></pre>
+                            </div>
+                        </div>
+                    </article>
+                    
+                </div>
+            </section>
+
+            <!-- 3. 競程工具箱分頁 (Utilities Panel) -->
+            <section class="tab-content-panel" id="utilities-panel" aria-labelledby="tab-btn-utilities">
+                <div class="utilities-grid">
+                    
+                    <!-- 卡片 A: 競程倒數計時器 -->
+                    <article class="utility-card" aria-labelledby="util-timer-title">
+                        <div class="utility-header">
+                            <h2 class="utility-title" id="util-timer-title">⏱️ 競程計時沙漏</h2>
+                            <p class="utility-desc">模擬實戰賽制時間壓力，支援經典的 5 小時 ICPC/NPSC 規格</p>
+                        </div>
+                        
+                        <div class="timer-display-wrapper">
+                            <!-- 模式切換 -->
+                            <div class="timer-mode-badges" role="group" aria-label="計時模式">
+                                <button class="timer-mode-btn active" data-mode="pomodoro">🍅 番茄鐘 (25m)</button>
+                                <button class="timer-mode-btn" data-mode="practice">📝 題目演練 (90m)</button>
+                                <button class="timer-mode-btn" data-mode="mock">🏆 五小時模擬賽 (5h)</button>
+                            </div>
+                            
+                            <!-- 時鐘 -->
+                            <div class="timer-clock" id="timer-clock" aria-live="polite">25:00</div>
+                            
+                            <!-- 控制按鈕 -->
+                            <div class="timer-controls">
+                                <button class="timer-btn start" id="timer-start">▶ 開始倒數</button>
+                                <button class="timer-btn pause" id="timer-pause" style="display: none;">⏸ 暫停</button>
+                                <button class="timer-btn reset" id="timer-reset">🔄 重置</button>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- 卡片 B: APCS 實作題估分預測器 -->
+                    <article class="utility-card" aria-labelledby="util-calc-title">
+                        <div class="utility-header">
+                            <h2 class="utility-title" id="util-calc-title">📊 APCS 實作模擬計分</h2>
+                            <p class="utility-desc">依據教育部 APCS 官方實作題計分規則，模擬實作級分 (1~5 級)</p>
+                        </div>
+                        
+                        <div class="calculator-container">
+                            <!-- 第一題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第一題 (基礎語法/模擬)</span>
+                                <select class="calc-select" id="p1-score" aria-label="第一題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第二題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第二題 (陣列與基本枚舉)</span>
+                                <select class="calc-select" id="p2-score" aria-label="第二題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第三題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第三題 (遞迴/回溯/經典 DP)</span>
+                                <select class="calc-select" id="p3-score" aria-label="第三題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第四題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第四題 (高難度演算法/綜合)</span>
+                                <select class="calc-select" id="p4-score" aria-label="第四題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="calc-divider" aria-hidden="true"></div>
+                            
+                            <!-- 級分結果 -->
+                            <div class="calc-result-box" aria-live="polite">
+                                <span class="result-label" id="result-label">🌱 基礎級</span>
+                                <div class="result-score-wrapper">
+                                    <span class="result-score" id="result-score">1</span>
+                                    <span class="result-unit">級分</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer 區域 -->
+        <footer>
+            <p>© 2026 台灣競程修練指南. Designed with 💜 by Antigravity.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">
+                參考與致敬資源：
+                <a href="https://usaco.guide/" target="_blank">USACO Guide</a> | 
+                <a href="https://oi-wiki.org/" target="_blank">OI Wiki</a> | 
+                <a href="https://ntucpc.org/" target="_blank">NTUCPC Guide</a>
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- 主題詳情全螢幕切分對話框 (Modal Overlay) -->
+    <aside class="modal-overlay" id="topic-modal-overlay" aria-hidden="true" role="dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span class="modal-level-badge" id="modal-level-badge">啟航級</span>
+                    <h2 class="modal-title" id="modal-title">主題標題</h2>
+                </div>
+                <button class="modal-close-btn" id="modal-close-btn" aria-label="關閉詳情">✕ 返回地圖</button>
+            </div>
+            
+            <!-- 雙欄切分主體 -->
+            <div class="modal-body-split">
+                <!-- 左欄：觀念教學與重點整理 -->
+                <div class="modal-left-pane">
+                    <p class="modal-desc" id="modal-desc">主題內容簡述...</p>
+                    
+                    <section class="modal-section" id="modal-tutorial-section" style="display: none;">
+                        <h3 class="modal-section-title"><span>📖</span> 觀念教學與修練重點</h3>
+                        <div class="tutorial-content" id="modal-tutorial">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- 右欄：推薦習題與修練資源 -->
+                <div class="modal-right-pane">
+                    <!-- 💻 推薦習題 -->
+                    <section class="modal-section">
+                        <h3 class="modal-section-title"><span>💻</span> 實戰推薦習題</h3>
+                        <div class="problem-list" id="modal-problems">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+                    
+                    <!-- 📚 講義與資源 -->
+                    <section class="modal-section">
+                        <h3 class="modal-section-title"><span>📚</span> 推薦講義與修練教材</h3>
+                        <div class="resource-list" id="modal-resources">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 全域 Toast 微提示 -->
+    <div class="toast-msg" id="toast-msg" aria-live="assertive">
+        <span class="toast-icon">✨</span>
+        <span id="toast-text">提示訊息</span>
+    </div>
+
+    <!-- 載入數據與應用邏輯 -->
+    <script src="data/roadmap.js"></script>
+    <script src="data/templates.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>

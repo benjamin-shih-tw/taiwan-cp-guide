@@ -1,0 +1,22 @@
+{
+  "name": "台灣競程修練指南",
+  "short_name": "台灣競程修練",
+  "description": "結合 USACO Guide, OI Wiki 與 NTUCPC Guide 的精華，為台灣高中生及大學生選手打造的競賽程式修練指南。",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#07080e",
+  "theme_color": "#07080e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
