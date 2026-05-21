@@ -354,7 +354,7 @@ void getPermutations() {
         problems: [
           { id: "zj-c295", name: "ZeroJudge c295: 2. 最大和", platform: "ZeroJudge", url: "https://zerojudge.tw/ShowProblem?problemid=c295", difficulty: "Medium" },
           { id: "zj-f640", name: "ZeroJudge f640: 3. 遞迴函數求值", platform: "ZeroJudge", url: "https://zerojudge.tw/ShowProblem?problemid=f640", difficulty: "Medium" },
-          { id: "cses-1623", name: "CSES 1623: Apple Division", platform: "CSES", url: "https://cses.fi/problemset/task/1623", difficulty: "Easy" }
+          { id: "cses-1623", name: "CSES 1623: Apple Division", platform: "CSES", url: "https://cses.fi/problemset/task/1623", difficulty: "Easy", editorialUrl: "https://cp.wiwiho.me/recursion/" }
         ]
       },
       {
@@ -556,7 +556,7 @@ int sum = pref[R] - pref[L - 1];</code></pre>
           { name: "AP325 - 第一章中段：前綴和", url: "https://sites.google.com/site/apcs325/", type: "book" }
         ],
         problems: [
-          { id: "cses-1646", name: "CSES 1646: Static Range Sum Queries", platform: "CSES", url: "https://cses.fi/problemset/task/1646", difficulty: "Easy" },
+          { id: "cses-1646", name: "CSES 1646: Static Range Sum Queries", platform: "CSES", url: "https://cses.fi/problemset/task/1646", difficulty: "Easy", editorialUrl: "https://cp.wiwiho.me/prefix-sum/" },
           { id: "zj-g597", name: "ZeroJudge g597: 3. 生產線優化", platform: "ZeroJudge", url: "https://zerojudge.tw/ShowProblem?problemid=g597", difficulty: "Medium" },
           { id: "cf-295a", name: "Codeforces 295A: Greg and Array", platform: "Codeforces", url: "https://codeforces.com/problemset/problem/295/A", difficulty: "Medium" }
         ]
@@ -577,6 +577,7 @@ int sum = pref[R] - pref[L - 1];</code></pre>
       },
       {
         id: "two-pointers",
+        prerequisites: ["prefix-sums", "intro-ds"],
         title: "雙指針與滑動視窗 (Two Pointers)",
         desc: "兩個指針同向或異向滑動，將原本 $O(N^2)$ 的暴力區間問題優化至 $O(N)$。應用：最長不重複子字串、兩數之和、最小覆蓋子陣列。",
         tutorial: `
@@ -657,13 +658,14 @@ pair&lt;int, int&gt; two_sum(const vector&lt;int&gt;&amp; a, int target) {
           { name: "OI Wiki - 雙指針", url: "https://oi-wiki.org/basic/two-pointer/", type: "wiki" }
         ],
         problems: [
-          { id: "cses-1640", name: "CSES 1640: Sum of Two Values", platform: "CSES", url: "https://cses.fi/problemset/task/1640", difficulty: "Easy" },
+          { id: "cses-1640", name: "CSES 1640: Sum of Two Values", platform: "CSES", url: "https://cses.fi/problemset/task/1640", difficulty: "Easy", editorialUrl: "https://cp.wiwiho.me/two-pointer/" },
           { id: "cses-1660", name: "CSES 1660: Subarray Sums I", platform: "CSES", url: "https://cses.fi/problemset/task/1660", difficulty: "Medium" },
           { id: "cf-1041b", name: "Codeforces 1041B: Strings Equalizer", platform: "Codeforces", url: "https://codeforces.com/problemset/problem/1041/B", difficulty: "Easy" }
         ]
       },
       {
         id: "binary-search",
+        prerequisites: ["time-complexity"],
         title: "二分搜尋 (Binary Search on Answer)",
         desc: "對數時間複雜度的極致搜索。除搜尋有序陣列外，「對答案二分搜」更是競程中極重要的思路：先設定答案範圍，再用 check 函式驗證可行性。",
         tutorial: `
@@ -751,7 +753,7 @@ long long solve_binary_answer(const vector&lt;int&gt;&amp; items, int K) {
           { name: "OI Wiki - 二分", url: "https://oi-wiki.org/basic/binary/", type: "wiki" }
         ],
         problems: [
-          { id: "cses-1620", name: "CSES 1620: Factory Machines", platform: "CSES", url: "https://cses.fi/problemset/task/1620", difficulty: "Medium" },
+          { id: "cses-1620", name: "CSES 1620: Factory Machines", platform: "CSES", url: "https://cses.fi/problemset/task/1620", difficulty: "Medium", editorialUrl: "https://cp.wiwiho.me/binary-search/" },
           { id: "zj-f608", name: "ZeroJudge f608: 4. 飛過城市", platform: "ZeroJudge", url: "https://zerojudge.tw/ShowProblem?problemid=f608", difficulty: "Hard" },
           { id: "cf-1213g", name: "Codeforces 1213G: Distinctification (二分搜應用)", platform: "Codeforces", url: "https://codeforces.com/problemset/problem/1034/C", difficulty: "Medium" }
         ]
@@ -786,6 +788,7 @@ long long solve_binary_answer(const vector&lt;int&gt;&amp; items, int K) {
       },
       {
         id: "graph-traversal",
+        prerequisites: ["intro-graphs"],
         title: "圖的遍歷：DFS 與 BFS",
         desc: "圖論核心基石。DFS 用於連通性分析、環路偵測與拓撲序；BFS 用於計算無權圖最短路徑與層次結構。",
         tutorial: `
@@ -998,6 +1001,7 @@ vector&lt;int&gt; bfs(int start, int n) {
       },
       {
         id: "basic-dp",
+        prerequisites: ["complete-rec"],
         title: "動態規劃入門 (Intro to DP)",
         desc: "記憶化搜索與遞推兩種 DP 實現方式。理解「狀態定義、轉移方程、邊界條件」三要素。經典題型：最長遞增子序列 LIS、硬幣兌換、背包問題。",
         tutorial: `
@@ -1130,6 +1134,7 @@ int knapsack_1D(int N, int W, const vector&lt;int&gt;&amp; weight, const vector&
     topics: [
       {
         id: "dsu",
+        prerequisites: ["intro-graphs", "intro-ds"],
         title: "並查集 (Disjoint Set Union, DSU)",
         desc: "高效維護動態不相交集合的合併與查詢。路徑壓縮與啟發式合併使操作攤還時間複雜度近似 $O(\\alpha(N))$，為最小生成樹（Kruskal）的核心元件。",
         resources: [
@@ -1145,6 +1150,7 @@ int knapsack_1D(int N, int W, const vector&lt;int&gt;&amp; weight, const vector&
       },
       {
         id: "mst",
+        prerequisites: ["dsu"],
         title: "最小生成樹 (Minimum Spanning Tree)",
         desc: "求無向加權圖的最小生成樹。Kruskal 演算法結合 DSU，時間複雜度 $O(M \\log M)$；Prim 演算法以 priority queue 實現。",
         resources: [

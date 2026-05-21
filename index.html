@@ -299,6 +299,7 @@
                 <div class="modal-header-left">
                     <span class="modal-level-badge" id="modal-level-badge">啟航級</span>
                     <h2 class="modal-title" id="modal-title">主題標題</h2>
+                    <a href="#" target="_blank" class="github-edit-btn" id="github-edit-btn" title="在 GitHub 上編輯此篇教學">✍️ 編輯教學</a>
                 </div>
                 <button class="modal-close-btn" id="modal-close-btn" aria-label="關閉詳情">✕ 返回地圖</button>
             </div>
@@ -313,6 +314,35 @@
                         <h3 class="modal-section-title"><span>📖</span> 觀念教學與修練重點</h3>
                         <div class="tutorial-content" id="modal-tutorial">
                             <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+
+                    <!-- 📝 個人筆記與學術討論 -->
+                    <section class="modal-section" id="modal-notes-section">
+                        <div class="section-tabs-header">
+                            <button class="section-tab-btn active" data-sec-tab="notes">📝 個人學習筆記</button>
+                            <button class="section-tab-btn" data-sec-tab="comments">💡 選手討論區</button>
+                        </div>
+                        
+                        <div class="section-tab-content active" id="sec-tab-notes">
+                            <div class="notes-header">
+                                <span class="notes-hint">支援 Markdown-like 格式，隨寫隨存，離線自動同步儲存</span>
+                                <span class="save-status" id="notes-save-status">💾 已儲存</span>
+                            </div>
+                            <textarea class="notes-textarea" id="notes-textarea" placeholder="在這裡記錄你的學習筆記、思路分析、或是卡關的心得...（自動存檔）"></textarea>
+                        </div>
+                        
+                        <div class="section-tab-content" id="sec-tab-comments">
+                            <!-- 留言清單 -->
+                            <div class="comment-list" id="modal-comments-list">
+                                <!-- 由 app.js 動態渲染置頂與本地留言 -->
+                            </div>
+                            
+                            <!-- 留言輸入框 -->
+                            <form class="comment-form" id="comment-form">
+                                <input type="text" class="comment-input" id="comment-input" placeholder="輸入你想分享的解題思路或提問..." required>
+                                <button type="submit" class="comment-submit-btn">發布</button>
+                            </form>
                         </div>
                     </section>
                 </div>
