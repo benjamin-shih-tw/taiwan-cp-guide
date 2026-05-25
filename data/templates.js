@@ -33,7 +33,42 @@ signed main() {
     // 在此開始您的解題邏輯
     
     return 0;
-}`
+}`,
+    codeJava: `import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        // BufferedReader 與 StringTokenizer 提供超快速輸入讀取
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+        // PrintWriter 提供高效的輸出緩衝
+        PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
+        
+        // 範例：讀取一行資料
+        String line = br.readLine();
+        if (line != null) {
+            st = new StringTokenizer(line);
+            // 在此開始您的解題邏輯
+        }
+        
+        // 結束時必須 flush() 否則可能遺漏輸出
+        out.flush();
+    }
+}`,
+    codePython: `import sys
+
+def solve():
+    # sys.stdin.read 實作極速檔案整包讀取
+    input_data = sys.stdin.read().split()
+    if not input_data:
+        return
+    
+    # 在此開始您的解題邏輯
+    # 範例：print(input_data[0])
+    
+if __name__ == '__main__':
+    solve()`
   },
   {
     id: "disjoint-set-union",
@@ -71,7 +106,63 @@ struct DSU {
         }
         return false; // 已在同一個集合中
     }
-};`
+};`,
+    codeJava: `import java.io.*;
+import java.util.*;
+
+class DSU {
+    int[] parent;
+    int[] sz;
+
+    public DSU(int n) {
+        parent = new int[n + 1];
+        sz = new int[n + 1];
+        for (int i = 0; i <= n; i++) {
+            parent[i] = i;
+            sz[i] = 1;
+        }
+    }
+
+    public int find(int v) {
+        if (v == parent[v]) return v;
+        return parent[v] = find(parent[v]); // 路徑壓縮
+    }
+
+    public boolean union(int a, int b) {
+        a = find(a);
+        b = find(b);
+        if (a != b) {
+            if (sz[a] < sz[b]) {
+                int temp = a; a = b; b = temp; // 按大小啟發式合併
+            }
+            parent[b] = a;
+            sz[a] += sz[b];
+            return true;
+        }
+        return false;
+    }
+}`,
+    codePython: `class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        self.sz = [1] * (n + 1)
+
+    def find(self, v):
+        if v == self.parent[v]:
+            return v
+        self.parent[v] = self.find(self.parent[v]) # 路徑壓縮
+        return self.parent[v]
+
+    def union(self, a, b):
+        a = self.find(a)
+        b = self.find(b)
+        if a != b:
+            if self.sz[a] < self.sz[b]:
+                a, b = b, a # 按大小啟發式合併
+            self.parent[b] = a
+            self.sz[a] += self.sz[b]
+            return True
+        return False`
   },
   {
     id: "segment-tree-lazy",
@@ -136,7 +227,98 @@ struct SegmentTree {
         if (qr > mid) sum += query(2 * node + 1, mid + 1, r, ql, qr);
         return sum;
     }
-};`
+};`,
+    codeJava: `class SegmentTree {
+    int n;
+    long[] tree;
+    long[] lazy;
+
+    public SegmentTree(int n) {
+        this.n = n;
+        tree = new long[4 * n];
+        lazy = new long[4 * n];
+    }
+
+    private void pull(int node) {
+        tree[node] = tree[2 * node] + tree[2 * node + 1];
+    }
+
+    private void push(int node, int l, int r) {
+        if (lazy[node] == 0) return;
+        int mid = (l + r) / 2;
+        tree[2 * node] += lazy[node] * (mid - l + 1);
+        lazy[2 * node] += lazy[node];
+        tree[2 * node + 1] += lazy[node] * (r - mid);
+        lazy[2 * node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+
+    public void update(int node, int l, int r, int ql, int qr, long val) {
+        if (ql <= l && r <= qr) {
+            tree[node] += val * (r - l + 1);
+            lazy[node] += val;
+            return;
+        }
+        push(node, l, r);
+        int mid = (l + r) / 2;
+        if (ql <= mid) update(2 * node, l, mid, ql, qr, val);
+        if (qr > mid) update(2 * node + 1, mid + 1, r, ql, qr, val);
+        pull(node);
+    }
+
+    public long query(int node, int l, int r, int ql, int qr) {
+        if (ql <= l && r <= qr) return tree[node];
+        push(node, l, r);
+        int mid = (l + r) / 2;
+        long sum = 0;
+        if (ql <= mid) sum += query(2 * node, l, mid, ql, qr);
+        if (qr > mid) sum += query(2 * node + 1, mid + 1, r, ql, qr);
+        return sum;
+    }
+}`,
+    codePython: `class SegmentTree:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (4 * n)
+        self.lazy = [0] * (4 * n)
+
+    def pull(self, node):
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
+
+    def push(self, node, l, r):
+        if self.lazy[node] == 0:
+            return
+        mid = (l + r) // 2
+        self.tree[2 * node] += self.lazy[node] * (mid - l + 1)
+        self.lazy[2 * node] += self.lazy[node]
+        self.tree[2 * node + 1] += self.lazy[node] * (r - mid)
+        self.lazy[2 * node + 1] += self.lazy[node]
+        self.lazy[node] = 0
+
+    def update(self, node, l, r, ql, qr, val):
+        if ql <= l and r <= qr:
+            self.tree[node] += val * (r - l + 1)
+            self.lazy[node] += val
+            return
+        self.push(node, l, r)
+        mid = (l + r) // 2
+        if ql <= mid:
+            self.update(2 * node, l, mid, ql, qr, val)
+        if qr > mid:
+            self.update(2 * node + 1, mid + 1, r, ql, qr, val)
+        self.pull(node)
+
+    def query(self, node, l, r, ql, qr):
+        if ql <= l and r <= qr:
+            return self.tree[node]
+        self.push(node, l, r)
+        mid = (l + r) // 2
+        res = 0
+        if ql <= mid:
+            res += self.query(2 * node, l, mid, ql, qr)
+        if qr > mid:
+            res += self.query(2 * node + 1, mid + 1, r, ql, qr)
+        return res`
   },
   {
     id: "fenwick-tree",
@@ -180,7 +362,63 @@ struct FenwickTree {
         if (l > r) return 0;
         return query(r) - query(l - 1);
     }
-};`
+};`,
+    codeJava: `class FenwickTree {
+    int n;
+    long[] bit;
+
+    public FenwickTree(int n) {
+        this.n = n;
+        bit = new long[n + 1];
+    }
+
+    private int lowbit(int x) {
+        return x & (-x);
+    }
+
+    public void add(int idx, long val) {
+        for (; idx <= n; idx += lowbit(idx)) {
+            bit[idx] += val;
+        }
+    }
+
+    public long query(int idx) {
+        long sum = 0;
+        for (; idx > 0; idx -= lowbit(idx)) {
+            sum += bit[idx];
+        }
+        return sum;
+    }
+
+    public long query(int l, int r) {
+        if (l > r) return 0;
+        return query(r) - query(l - 1);
+    }
+}`,
+    codePython: `class FenwickTree:
+    def __init__(self, n):
+        self.n = n
+        self.bit = [0] * (n + 1)
+
+    def lowbit(self, x):
+        return x & (-x)
+
+    def add(self, idx, val):
+        while idx <= self.n:
+            self.bit[idx] += val
+            idx += self.lowbit(idx)
+
+    def query(self, idx):
+        s = 0
+        while idx > 0:
+            s += self.bit[idx]
+            idx -= self.lowbit(idx)
+        return s
+
+    def query_range(self, l, r):
+        if l > r:
+            return 0
+        return self.query(r) - self.query(l - 1)`
   },
   {
     id: "monotonic-queue",
@@ -663,5 +901,588 @@ struct Dinic {
         return flow;
     }
 };`
+  },
+  {
+    id: "sparse-table",
+    title: "稀疏表 (Sparse Table / RMQ)",
+    category: "Data Structure",
+    desc: "用於靜態區間極值查詢 (RMQ) 的高效演算法。在 $O(N \\log N)$ 時間內完成預處理後，能以 $O(1)$ 時間回答任何區間的最值查詢，在無修改的情況下效率遠勝線段樹。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct SparseTable {
+    int n;
+    vector<vector<int>> st;
+    vector<int> lg;
+
+    SparseTable(const vector<int>& a) {
+        n = a.size();
+        int max_log = 32 - __builtin_clz(n);
+        st.assign(n, vector<int>(max_log));
+        lg.assign(n + 1, 0);
+        
+        for (int i = 2; i <= n; i++) lg[i] = lg[i / 2] + 1;
+        for (int i = 0; i < n; i++) st[i][0] = a[i];
+        
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                st[i][j] = max(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    // 查詢 [L, R] 區間最大值 (0-indexed)
+    int query(int L, int R) {
+        int len = R - L + 1;
+        int k = lg[len];
+        return max(st[L][k], st[R - (1 << k) + 1][k]);
+    }
+};`
+  },
+  {
+    id: "lca-binary-lifting",
+    title: "最近公共祖先 (LCA - 倍增法)",
+    category: "Graph Theory",
+    desc: "利用倍增法 (Binary Lifting) 計算樹上兩個節點的最近公共祖先。在 $O(N \\log N)$ 時間內完成 DFS 與倍增表預處理後，每次查詢僅需 $O(\\log N)$。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct LCA {
+    int n, l;
+    vector<vector<int>> adj;
+    int timer;
+    vector<int> tin, tout;
+    vector<vector<int>> up;
+
+    LCA(int n, int root) : n(n), adj(n + 1) {
+        l = Math.ceil(log2(n + 1)) + 1;
+        tin.resize(n + 1);
+        tout.resize(n + 1);
+        up.assign(n + 1, vector<int>(l + 1));
+        timer = 0;
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    void dfs(int v, int p) {
+        tin[v] = ++timer;
+        up[v][0] = p;
+        for (int i = 1; i <= l; ++i) {
+            up[v][i] = up[up[v][i - 1]][i - 1];
+        }
+        for (int to : adj[v]) {
+            if (to != p) dfs(to, v);
+        }
+        tout[v] = ++timer;
+    }
+
+    bool is_ancestor(int u, int v) {
+        return tin[u] <= tin[v] && tout[u] >= tout[v];
+    }
+
+    int get_lca(int u, int v) {
+        if (is_ancestor(u, v)) return u;
+        if (is_ancestor(v, u)) return v;
+        for (int i = l; i >= 0; --i) {
+            if (!is_ancestor(up[u][i], v)) {
+                u = up[u][i];
+            }
+        }
+        return up[u][0];
+    }
+
+    void init(int root) {
+        dfs(root, root);
+    }
+};`
+  },
+  {
+    id: "mo-algorithm",
+    title: "莫隊算法 (Mo's Algorithm)",
+    category: "Basic",
+    desc: "經典的區間查詢離線優化算法。當無單點修改且能以 $O(1)$ 從 $[l, r]$ 擴展至鄰近區間時，莫隊算法透過將詢問離線分塊排序，能將單次查詢平均降至 $O(N\\sqrt{N})$。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+// 莫隊詢問結構體
+struct Query {
+    int l, r, id, block;
+    bool operator<(const Query& other) const {
+        if (block != other.block) return block < other.block;
+        return (block & 1) ? (r < other.r) : (r > other.r); // 奇偶化排序優化
+    }
+};
+
+int main() {
+    int n, q;
+    cin >> n >> q;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    int block_sz = max(1, (int)(n / sqrt(q)));
+    vector<Query> queries(q);
+    for (int i = 0; i < q; i++) {
+        cin >> queries[i].l >> queries[i].r;
+        queries[i].l--; queries[i].r--; // 轉 0-indexed
+        queries[i].id = i;
+        queries[i].block = queries[i].l / block_sz;
+    }
+    
+    sort(queries.begin(), queries.end());
+
+    int cur_l = 0, cur_r = -1;
+    long long current_ans = 0; // 維護區間當前的答案
+    vector<long long> ans(q);
+    vector<int> freq(1000005, 0); // 頻率計數
+
+    auto add = [&](int idx) {
+        // 區間擴展邏輯：加入 a[idx] 到區間中並更新答案
+        freq[a[idx]]++;
+        if (freq[a[idx]] == 1) current_ans++; // 範例：計算相異數個數
+    };
+
+    auto remove = [&](int idx) {
+        // 區間收縮邏輯：將 a[idx] 從區間中移除並更新答案
+        freq[a[idx]]--;
+        if (freq[a[idx]] == 0) current_ans--;
+    };
+
+    for (const auto& qry : queries) {
+        while (cur_l > qry.l) add(--cur_l);
+        while (cur_r < qry.r) add(++cur_r);
+        while (cur_l < qry.l) remove(cur_l++);
+        while (cur_r > qry.r) remove(cur_r--);
+        ans[qry.id] = current_ans;
+    }
+
+    for (int i = 0; i < q; i++) cout << ans[i] << "\\n";
+    return 0;
+}`
+  },
+  {
+    id: "dsu-on-tree",
+    title: "樹上啟發式合併 (DSU on Tree)",
+    category: "Graph Theory",
+    desc: "用於解決樹上子樹查詢問題的高效算法。利用輕重子樹的概念，每次遍歷完輕子樹後清空資訊，保留重子樹資訊不予清空，使得每個節點被統計的次數降至 $O(\\log N)$，整體時間複雜度為 $O(N \\log N)$，空間複雜度為 $O(N)$。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+// 樹上啟發式合併 (小到大合併)
+struct DSUonTree {
+    int n;
+    vector<vector<int>> adj;
+    vector<int> sz, col, cnt, ans;
+    int max_cnt, val_sum; // 維護子樹內部的統計資訊
+    vector<int> big;      // 標記重兒子
+
+    DSUonTree(int n, const vector<int>& c) : n(n), adj(n + 1), col(c), sz(n + 1), cnt(100005, 0), ans(n + 1), big(n + 1, 0) {}
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // 第一遍 DFS：計算重兒子 big 與子樹大小 sz
+    void dfs_sz(int v, int p) {
+        sz[v] = 1;
+        int max_s = -1;
+        for (int to : adj[v]) {
+            if (to != p) {
+                dfs_sz(to, v);
+                sz[v] += sz[to];
+                if (sz[to] > max_s) {
+                    max_s = sz[to];
+                    big[v] = to;
+                }
+            }
+        }
+    }
+
+    // 新增/移除節點資訊
+    void add(int v, int p, int x, int keep_val) {
+        cnt[col[v]] += x;
+        // 在此根據 cnt[col[v]] 更新當前的統計資訊 (如 max_cnt 等)
+        for (int to : adj[v]) {
+            if (to != p && to != keep_val) {
+                add(to, v, x, keep_val);
+            }
+        }
+    }
+
+    // 第二遍 DFS：啟發式統計
+    void dfs_solve(int v, int p, bool keep) {
+        // 1. 先遞迴解決所有輕兒子，且不保留其資訊 (keep = false)
+        for (int to : adj[v]) {
+            if (to != p && to != big[v]) {
+                dfs_solve(to, v, false);
+            }
+        }
+        // 2. 遞迴解決重兒子，並保留其資訊 (keep = true)
+        if (big[v]) {
+            dfs_solve(big[v], v, true);
+        }
+        // 3. 再次遍歷所有輕兒子，將其資訊加入當前統計
+        add(v, p, 1, big[v]);
+        
+        // 4. 此時已收集完子樹 v 的所有資訊，記錄答案
+        ans[v] = max_cnt; // 範例：記錄該子樹最大頻率等資訊
+        
+        // 5. 若此節點是輕兒子，需要將其所有貢獻在統計陣列中扣除
+        if (!keep) {
+            add(v, p, -1, 0);
+            max_cnt = 0; // 重置統計狀態
+        }
+    }
+
+    void solve(int root) {
+        dfs_sz(root, 0);
+        dfs_solve(root, 0, true);
+    }
+};`
+  },
+  {
+    id: "aho-corasick",
+    title: "AC 自動機 (Aho-Corasick Automaton)",
+    category: "Data Structure",
+    desc: "用於多模式字串匹配的經典演算法。結合了 Trie 字典樹與 KMP 的 fail 指標思想，在 $O(\\sum \\|P_i\\|)$ 的時間內建構出狀態自動機，能以 $O(\\|T\\|)$ 的時間完成對文本串中所有模式串的搜尋。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct AhoCorasick {
+    static const int ALPHABET_SIZE = 26;
+    struct Node {
+        int next[ALPHABET_SIZE];
+        int fail;
+        int cnt; // 此節點代表的字串出現次數
+        Node() {
+            fill(next, next + ALPHABET_SIZE, 0);
+            fail = 0;
+            cnt = 0;
+        }
+    };
+
+    vector<Node> trie;
+
+    AhoCorasick() {
+        trie.push_back(Node()); // 根節點
+    }
+
+    // 插入字串
+    void insert(const string& s) {
+        int u = 0;
+        for (char c : s) {
+            int idx = c - 'a';
+            if (!trie[u].next[idx]) {
+                trie[u].next[idx] = trie.size();
+                trie.push_back(Node());
+            }
+            u = trie[u].next[idx];
+        }
+        trie[u].cnt++;
+    }
+
+    // 建構 fail 指標 (BFS)
+    void build() {
+        queue<int> q;
+        for (int i = 0; i < ALPHABET_SIZE; i++) {
+            if (trie[0].next[i]) {
+                q.push(trie[0].next[i]);
+            }
+        }
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int i = 0; i < ALPHABET_SIZE; i++) {
+                if (trie[u].next[i]) {
+                    trie[trie[u].next[i]].fail = trie[trie[u].fail].next[i];
+                    q.push(trie[u].next[i]);
+                } else {
+                    trie[u].next[i] = trie[trie[u].fail].next[i]; // 路徑壓縮優化
+                }
+            }
+        }
+    }
+
+    // 查詢文本串 s 中模式串的匹配總次數
+    int query(const string& s) {
+        int u = 0, ans = 0;
+        for (char c : s) {
+            int idx = c - 'a';
+            u = trie[u].next[idx];
+            int temp = u;
+            while (temp && trie[temp].cnt != -1) {
+                ans += trie[temp].cnt;
+                trie[temp].cnt = -1; // 避免重複統計
+                temp = trie[temp].fail;
+            }
+        }
+        return ans;
+    }
+};`
+  },
+  {
+    id: "convex-hull-andrew",
+    title: "二維凸包 (Andrew's Monotone Chain)",
+    category: "Basic",
+    desc: "計算二維平面點集最小凸多邊形的 Andrew 演算法（單調鏈法）。其效率與穩定性優於 Graham Scan。先按 $x$ 座標、再按 $y$ 座標排序，分別構造上下凸包。時間複雜度為 $O(N \\log N)$。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct Point {
+    double x, y;
+    bool operator<(const Point& other) const {
+        if (x != other.x) return x < other.x;
+        return y < other.y;
+    }
+};
+
+// 叉積 (Cross Product)：計算向量 AB 與 AC 的轉向
+// 回傳正值代表逆時針（左轉），負值代表順時針（右轉），0 代表共線
+double cross_product(const Point& O, const Point& A, const Point& B) {
+    return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+}
+
+// 構造凸包
+vector<Point> convex_hull(vector<Point>& pts) {
+    int n = pts.size(), k = 0;
+    if (n <= 3) return pts;
+    vector<Point> hull(2 * n);
+
+    sort(pts.begin(), pts.end());
+
+    // 1. 構造下凸包
+    for (int i = 0; i < n; ++i) {
+        while (k >= 2 && cross_product(hull[k - 2], hull[k - 1], pts[i]) <= 0) {
+            k--;
+        }
+        hull[k++] = pts[i];
+    }
+
+    // 2. 構造上凸包
+    for (int i = n - 2, t = k + 1; i >= 0; i--) {
+        while (k >= t && cross_product(hull[k - 2], hull[k - 1], pts[i]) <= 0) {
+            k--;
+        }
+        hull[k++] = pts[i];
+    }
+
+    hull.resize(k - 1); // 移除重複的起點
+    return hull;
+};`
+  },
+  {
+    id: "xor-basis",
+    title: "XOR 線性基 (XOR Basis)",
+    category: "Data Structure",
+    desc: "用於解決子集 XOR 異或最大值/最小值/第 K 小值的高效工具。線性基是一組數的集合，它們可以通過 XOR 運算組合出原數組所有子集所能 XOR 出的所有值，且大小最大僅為 64（對應 64 位整數）。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct LinearBasis {
+    vector<long long> basis;
+    int max_bit;
+
+    LinearBasis(int max_b = 62) : max_bit(max_b) {
+        basis.assign(max_b + 1, 0);
+    }
+
+    // 插入一個數到線性基中。若成功插入回傳 true，代表該數與現有基線性無關
+    bool insert(long long val) {
+        for (int i = max_bit; i >= 0; i--) {
+            if ((val >> i) & 1) {
+                if (!basis[i]) {
+                    basis[i] = val;
+                    return true;
+                }
+                val ^= basis[i];
+            }
+        }
+        return false;
+    }
+
+    // 查詢子集最大 XOR 和
+    long long query_max() {
+        long long ans = 0;
+        for (int i = max_bit; i >= 0; i--) {
+            if ((ans ^ basis[i]) > ans) {
+                ans ^= basis[i];
+            }
+        }
+        return ans;
+    }
+
+    // 查詢子集最小 XOR 和 (排除 0)
+    long long query_min() {
+        for (int i = 0; i <= max_bit; i++) {
+            if (basis[i]) return basis[i];
+        }
+        return 0;
+    }
+};`
+  },
+  {
+    id: "gaussian-elimination",
+    title: "高斯消去法 (Gaussian Elimination)",
+    category: "Basic",
+    desc: "求解多元一次方程組的經典代數演算法。通過矩陣的初等行變換，在 $O(N^3)$ 時間內將係數矩陣化為簡化行階梯形矩陣，從而判定方程組是唯一解、無解還是無窮多解。此模板支援實數域運算。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-9;
+
+// 求解 N 元方程組，A 為 N x (N+1) 的增廣矩陣
+// 回傳：0 代表無解，1 代表唯一解，2 代表有無限多個解
+int gauss(vector<vector<double>>& a, vector<double>& ans) {
+    int n = a.size();
+    int m = a[0].size() - 1; // 變數數量
+    
+    int row = 0;
+    for (int col = 0; col < m && row < n; ++col) {
+        int pivot = row;
+        for (int i = row + 1; i < n; ++i) {
+            if (abs(a[i][col]) > abs(a[pivot][col])) {
+                pivot = i;
+            }
+        }
+        
+        if (abs(a[pivot][col]) < EPS) continue;
+        
+        swap(a[pivot], a[row]);
+        
+        // 將 row 的首項係數變為 1
+        for (int i = m; i >= col; --i) {
+            a[row][i] /= a[row][col];
+        }
+        
+        // 消去其它行的 col 列
+        for (int i = 0; i < n; ++i) {
+            if (i != row) {
+                double factor = a[i][col];
+                for (int j = col; j <= m; ++j) {
+                    a[i][j] -= factor * a[row][j];
+                }
+            }
+        }
+        row++;
+    }
+    
+    ans.assign(m, 0);
+    for (int i = 0; i < row; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (abs(a[i][j] - 1.0) < EPS) {
+                ans[j] = a[i][m];
+                break;
+            }
+        }
+    }
+    
+    // 檢查是否有 0 = 非零 的無解情況
+    for (int i = row; i < n; ++i) {
+        if (abs(a[i][m]) > EPS) return 0;
+    }
+    
+    if (row < m) return 2; // 變數數大於獨立方程數，有無窮解
+    return 1; // 唯一解
+}`
+  },
+  {
+    id: "tarjan-scc",
+    title: "Tarjan 強連通分量 (SCC / 有向圖縮點)",
+    category: "Graph Theory",
+    desc: "在有向圖中，如果兩個節點能互相到達，說明它們強連通。Tarjan 演算法利用一次 DFS 遍歷以及棧，在 $O(V + E)$ 時間內找出所有強連通分量 (SCC)。常用於將有向圖「縮點」轉化為 DAG，以便進行動態規劃等後續分析。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct Tarjan {
+    int n;
+    vector<vector<int>> adj;
+    vector<int> dfn, low, scc;
+    vector<bool> in_stack;
+    stack<int> st;
+    int timer, scc_cnt;
+    vector<vector<int>> scc_nodes; // 儲存每個 SCC 內部的所有節點
+
+    Tarjan(int n) : n(n), adj(n + 1), dfn(n + 1, 0), low(n + 1, 0), scc(n + 1, 0), in_stack(n + 1, false) {
+        timer = scc_cnt = 0;
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+    }
+
+    void dfs(int u) {
+        dfn[u] = low[u] = ++timer;
+        st.push(u);
+        in_stack[u] = true;
+
+        for (int v : adj[u]) {
+            if (!dfn[v]) {
+                dfs(v);
+                low[u] = min(low[u], low[v]);
+            } else if (in_stack[v]) {
+                low[u] = min(low[u], dfn[v]);
+            }
+        }
+
+        // 找到一個 SCC 的根節點
+        if (dfn[u] == low[u]) {
+            scc_cnt++;
+            vector<int> nodes;
+            while (true) {
+                int v = st.top();
+                st.pop();
+                in_stack[v] = false;
+                scc[v] = scc_cnt;
+                nodes.push_back(v);
+                if (u == v) break;
+            }
+            scc_nodes.push_back(nodes);
+        }
+    }
+
+    void solve() {
+        for (int i = 1; i <= n; ++i) {
+            if (!dfn[i]) dfs(i);
+        }
+    }
+};`
+  },
+  {
+    id: "segment-tree-basic",
+    title: "基礎線段樹 (單點修改、區間查詢)",
+    category: "Data Structure",
+    desc: "最基本的線段樹實現。支援單點修改 (Point Update) 與區間求和/極值查詢 (Range Query)。由於沒有區間修改，因此不需要延遲標記 (Lazy Tag)，程式碼極為簡短且常數極小。時間複雜度為 $O(\\log N)$。",
+    code: `#include <bits/stdc++.h>
+using namespace std;
+
+struct BasicSegTree {
+    int n;
+    vector<int> tree;
+
+    BasicSegTree(int n) : n(n) {
+        tree.assign(2 * n, 0);
+    }
+
+    // 單點修改：將位置 pos 的值修改為 val (0-indexed)
+    void update(int pos, int val) {
+        for (tree[pos += n] = val; pos > 1; pos >>= 1) {
+            tree[pos >> 1] = tree[pos] + tree[pos ^ 1];
+        }
+    }
+
+    // 區間求和查詢：計算 [l, r] 的區間和 (0-indexed, 閉區間)
+    int query(int l, int r) {
+        int res = 0;
+        for (l += n, r += n + 1; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) res += tree[l++];
+            if (r & 1) res += tree[--r];
+        }
+        return res;
+    }
+};`
   }
 ];
+

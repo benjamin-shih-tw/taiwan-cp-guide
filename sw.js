@@ -6,6 +6,8 @@ const ASSETS_TO_CACHE = [
   "./app.js",
   "./data/roadmap.js",
   "./data/templates.js",
+  "./data/coach_db.js",
+  "./data/contest_db.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
