@@ -454,7 +454,71 @@ vector<int> max_sliding_window(const vector<int>& nums, int k) {
         }
     }
     return res;
-}`
+}`,
+    codeJava: `import java.util.*;
+
+class MonotonicQueue {
+    // 滑動視窗最大值 (Sliding Window Maximum)
+    // 使用 Deque (雙端佇列) 儲存索引，並維持對應數值單調遞減
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        if (nums == null || nums.length == 0 || k <= 0) return new int[0];
+        int n = nums.length;
+        int[] res = new int[n - k + 1];
+        int idx = 0;
+        Deque<Integer> dq = new LinkedList<>(); // 儲存數值的索引
+        
+        for (int i = 0; i < n; i++) {
+            // 1. 移除超出當前滑動視窗左端的過期索引
+            if (!dq.isEmpty() && dq.peekFirst() < i - k + 1) {
+                dq.pollFirst();
+            }
+            
+            // 2. 維護單調性：彈出所有小於等於當前元素的右端索引
+            while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[i]) {
+                dq.pollLast();
+            }
+            
+            // 3. 將目前索引加入右端
+            dq.offerLast(i);
+            
+            // 4. 當視窗大小達到 k 時，記錄最大值 (即左端對應元素)
+            if (i >= k - 1) {
+                res[idx++] = nums[dq.peekFirst()];
+            }
+        }
+        return res;
+    }
+}`,
+    codePython: `from collections import deque
+
+def max_sliding_window(nums, k):
+    """
+    滑動視窗最大值 (Sliding Window Maximum)
+    使用雙端佇列 (deque) 維護元素索引，使其對應值保持單調遞減。
+    """
+    if not nums or k <= 0:
+        return []
+        
+    res = []
+    dq = deque() # 儲存陣列索引
+    
+    for i in range(len(nums)):
+        # 1. 移除超出當前視窗範圍的過期索引 (左端)
+        if dq and dq[0] < i - k + 1:
+            dq.popleft()
+            
+        # 2. 維護單調性：將右端所有對應值小於等於目前元素的索引彈出
+        while dq and nums[dq[-1]] <= nums[i]:
+            dq.pop()
+            
+        # 3. 將目前索引壓入佇列右端
+        dq.append(i)
+        
+        # 4. 當視窗大小達到 k 時，記錄最大值 (即佇列首端所指元素)
+        if i >= k - 1:
+            res.append(nums[dq[0]])
+            
+    return res`
   },
   {
     id: "heavy-light-decomposition",
@@ -652,7 +716,93 @@ struct KMP {
         }
         return occurrences;
     }
-};`
+};`,
+    codeJava: `import java.util.*;
+
+class KMP {
+    private String p;
+    private int[] pi;
+    
+    public KMP(String pattern) {
+        this.p = pattern;
+        int m = p.length();
+        this.pi = new int[m];
+        if (m == 0) return;
+        
+        // 預先計算模式字串的 Pi 陣列 (最長相同前後綴長度)
+        for (int i = 1; i < m; ++i) {
+            int j = pi[i - 1];
+            while (j > 0 && p.charAt(i) != p.charAt(j)) {
+                j = pi[j - 1];
+            }
+            if (p.charAt(i) == p.charAt(j)) {
+                j++;
+            }
+            pi[i] = j;
+        }
+    }
+    
+    // 在文本 S 中尋找 P 的所有出現位置，回傳匹配起點的 0-indexed 索引列表
+    public List<Integer> search(String s) {
+        List<Integer> occurrences = new ArrayList<>();
+        int n = s.length();
+        int m = p.length();
+        if (m == 0) return occurrences;
+        
+        int j = 0; // 模式字串 P 的匹配指針
+        for (int i = 0; i < n; ++i) {
+            while (j > 0 && s.charAt(i) != p.charAt(j)) {
+                j = pi[j - 1]; // 發生失配時，利用 pi 陣列回溯指針，避免重複比較
+            }
+            if (s.charAt(i) == p.charAt(j)) {
+                j++;
+            }
+            if (j == m) {
+                occurrences.add(i - m + 1); // 成功比對出一個完整模式，記錄起始位置
+                j = pi[j - 1]; // 繼續向後比對其他可能匹配
+            }
+        }
+        return occurrences;
+    }
+}`,
+    codePython: `class KMP:
+    def __init__(self, pattern):
+        """
+        KMP 字串比對初始化：預處理模式字串的 Pi (LPS) 表
+        """
+        self.p = pattern
+        m = len(pattern)
+        self.pi = [0] * m
+        if m == 0:
+            return
+            
+        for i in range(1, m):
+            j = self.pi[i - 1]
+            while j > 0 and self.p[i] != self.p[j]:
+                j = self.pi[j - 1]
+            if self.p[i] == self.p[j]:
+                j += 1
+            self.pi[i] = j
+            
+    def search(self, s):
+        """
+        在文本字串 s 中查找模式字串的所有出現位置，回傳起始索引列表
+        """
+        occurrences = []
+        n, m = len(s), len(self.p)
+        if m == 0:
+            return []
+            
+        j = 0 # 模式字串匹配指針
+        for i in range(n):
+            while j > 0 and s[i] != self.p[j]:
+                j = self.pi[j - 1] # 失配時，回溯指針至最長匹配前後綴處
+            if s[i] == self.p[j]:
+                j += 1
+            if j == m:
+                occurrences.append(i - m + 1) # 比對成功，記錄匹配起點
+                j = self.pi[j - 1] # 繼續匹配下一個可能的起點
+        return occurrences`
   },
   {
     id: "trie",
@@ -664,6 +814,8 @@ using namespace std;
 
 // 字典樹 (Trie / 前綴樹)
 struct Trie {
+    TrieNode* root;
+    
     struct TrieNode {
         TrieNode* child[26];
         int count; // 記錄以該節點結尾的字串個數
@@ -675,8 +827,6 @@ struct Trie {
             }
         }
     };
-    
-    TrieNode* root;
     
     Trie() {
         root = new TrieNode();
@@ -717,7 +867,102 @@ struct Trie {
         }
         return curr->prefix_count > 0;
     }
-};`
+};`,
+    codeJava: `class Trie {
+    static class TrieNode {
+        TrieNode[] child = new TrieNode[26];
+        int count = 0; // 記錄以該節點結尾的字串個數
+        int prefixCount = 0; // 記錄通過該節點的字串個數 (用於前綴查詢)
+    }
+    
+    private TrieNode root;
+    
+    public Trie() {
+        root = new TrieNode();
+    }
+    
+    // 插入字串 (限小寫英文字母)
+    public void insert(String word) {
+        TrieNode curr = root;
+        for (int i = 0; i < word.length(); i++) {
+            int idx = word.charAt(i) - 'a';
+            if (curr.child[idx] == null) {
+                curr.child[idx] = new TrieNode();
+            }
+            curr = curr.child[idx];
+            curr.prefixCount++;
+        }
+        curr.count++;
+    }
+    
+    // 查詢字串是否存在
+    public boolean search(String word) {
+        TrieNode curr = root;
+        for (int i = 0; i < word.length(); i++) {
+            int idx = word.charAt(i) - 'a';
+            if (curr.child[idx] == null) return false;
+            curr = curr.child[idx];
+        }
+        return curr.count > 0;
+    }
+    
+    // 查詢是否存在以 prefix 為前綴的字串
+    public boolean startsWith(String prefix) {
+        TrieNode curr = root;
+        for (int i = 0; i < prefix.length(); i++) {
+            int idx = prefix.charAt(i) - 'a';
+            if (curr.child[idx] == null) return false;
+            curr = curr.child[idx];
+        }
+        return curr.prefixCount > 0;
+    }
+}`,
+    codePython: `class Trie:
+    class TrieNode:
+        def __init__(self):
+            self.child = [None] * 26
+            self.count = 0 # 記錄以該節點結尾的字串個數
+            self.prefix_count = 0 # 記錄通過該節點的字串個數
+            
+    def __init__(self):
+        self.root = self.TrieNode()
+        
+    def insert(self, word: str) -> None:
+        """
+        插入字串 (限小寫英文字母)
+        """
+        curr = self.root
+        for c in word:
+            idx = ord(c) - ord('a')
+            if curr.child[idx] is None:
+                curr.child[idx] = self.TrieNode()
+            curr = curr.child[idx]
+            curr.prefix_count += 1
+        curr.count += 1
+        
+    def search(self, word: str) -> bool:
+        """
+        查詢字串是否存在
+        """
+        curr = self.root
+        for c in word:
+            idx = ord(c) - ord('a')
+            if curr.child[idx] is None:
+                return False
+            curr = curr.child[idx]
+        return curr.count > 0
+        
+    def starts_with(self, prefix: str) -> bool:
+        """
+        查詢是否存在以 prefix 為前綴的字串
+        """
+        curr = self.root
+        for c in prefix:
+            idx = ord(c) - ord('a')
+            if curr.child[idx] is None:
+                return False
+            curr = curr.child[idx]
+        return curr.prefix_count > 0`
   },
   {
     id: "dijkstra-shortest-path",
@@ -762,7 +1007,97 @@ void dijkstra(int start, const vector<vector<Edge>>& graph, vector<int>& dist) {
             }
         }
     }
-}`
+}`,
+    codeJava: `import java.util.*;
+
+class Dijkstra {
+    static final long INF = Long.MAX_VALUE / 2; // 防止溢出的極大值
+
+    static class Edge {
+        int to;
+        long weight;
+        Edge(int to, long weight) {
+            this.to = to;
+            this.weight = weight;
+        }
+    }
+
+    static class Node implements Comparable<Node> {
+        int id;
+        long distance;
+        Node(int id, long distance) {
+            this.id = id;
+            this.distance = distance;
+        }
+        @Override
+        public int compareTo(Node other) {
+            return Long.compare(this.distance, other.distance);
+        }
+    }
+
+    // Dijkstra 演算法，graph: 鄰接串列，start: 起點，回傳 dist 最短距離陣列
+    public static long[] dijkstra(int start, List<List<Edge>> graph) {
+        int n = graph.size();
+        long[] dist = new long[n];
+        Arrays.fill(dist, INF);
+        
+        // 優先佇列：預設依距離由小到大排序 (最小堆積)
+        PriorityQueue<Node> pq = new PriorityQueue<>();
+        
+        dist[start] = 0;
+        pq.offer(new Node(start, 0));
+        
+        while (!pq.isEmpty()) {
+            Node curr = pq.poll();
+            int u = curr.id;
+            long d = curr.distance;
+            
+            // 剪枝：如果彈出的距離大於已知的最短距離，直接跳過
+            if (d > dist[u]) continue;
+            
+            // 鬆弛操作 (Relaxation)
+            for (Edge edge : graph.get(u)) {
+                int v = edge.to;
+                long w = edge.weight;
+                if (dist[u] + w < dist[v]) {
+                    dist[v] = dist[u] + w;
+                    pq.offer(new Node(v, dist[v]));
+                }
+            }
+        }
+        return dist;
+    }
+}`,
+    codePython: `import heapq
+
+INF = float('inf')
+
+def dijkstra(start, graph):
+    """
+    Dijkstra 演算法 (Priority Queue 優化)
+    graph 為鄰接串列，儲存 (to, weight) 元組
+    """
+    n = len(graph)
+    dist = [INF] * n
+    dist[start] = 0
+    
+    # 優先佇列：儲存 (距離, 節點編號) 元素，heapq 預設為最小堆積
+    pq = [(0, start)]
+    
+    while pq:
+        d, u = heapq.heappop(pq)
+        
+        # 剪枝：若狀態中記錄的距離已大於當前最短距離，則捨棄不處理
+        if d > dist[u]:
+            continue
+            
+        # 鬆弛操作 (Relaxation)
+        for v, w in graph[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+                
+    return dist`
   },
   {
     id: "kruskal-mst",
@@ -821,7 +1156,106 @@ int kruskal(int n, vector<Edge>& edges, vector<Edge>& mst_edges) {
     
     if (edges_used != n - 1) return -1; // 圖不連通，無法生成 MST
     return total_weight;
-}`
+}`,
+    codeJava: `import java.util.*;
+
+class Kruskal {
+    static class Edge implements Comparable<Edge> {
+        int u, v;
+        int weight;
+        Edge(int u, int v, int weight) {
+            this.u = u;
+            this.v = v;
+            this.weight = weight;
+        }
+        @Override
+        public int compareTo(Edge other) {
+            return Integer.compare(this.weight, other.weight);
+        }
+    }
+
+    static class DSU {
+        int[] parent;
+        DSU(int n) {
+            parent = new int[n + 1];
+            for (int i = 0; i <= n; i++) parent[i] = i;
+        }
+        int find(int i) {
+            if (parent[i] == i) return i;
+            return parent[i] = find(parent[i]); // 路徑壓縮
+        }
+        boolean union(int i, int j) {
+            int rootI = find(i);
+            int rootJ = find(j);
+            if (rootI != rootJ) {
+                parent[rootJ] = rootI;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    // 回傳最小生成樹的總權重，若圖不連通則回傳 -1
+    // n: 頂點數, edges: 無向邊列表, mstEdges: 用於儲存 MST 組成邊的列表
+    public static int kruskal(int n, List<Edge> edges, List<Edge> mstEdges) {
+        Collections.sort(edges);
+        DSU dsu = new DSU(n);
+        int totalWeight = 0;
+        int edgesUsed = 0;
+        
+        for (Edge edge : edges) {
+            if (dsu.union(edge.u, edge.v)) {
+                totalWeight += edge.weight;
+                mstEdges.add(edge);
+                edgesUsed++;
+                if (edgesUsed == n - 1) break;
+            }
+        }
+        
+        if (edgesUsed != n - 1) return -1; // 連通頂點數不足，無法生成 MST
+        return totalWeight;
+    }
+}`,
+    codePython: `class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        
+    def find(self, i):
+        if self.parent[i] == i:
+            return i
+        self.parent[i] = self.find(self.parent[i]) # 路徑壓縮
+        return self.parent[i]
+        
+    def union(self, i, j):
+        root_i = self.find(i)
+        root_j = self.find(j)
+        if root_i != root_j:
+            self.parent[root_j] = root_i
+            return True
+        return False
+
+def kruskal(n, edges, mst_edges):
+    """
+    Kruskal 最小生成樹 (MST) 演算法
+    edges 為 (u, v, weight) 元組的列表，mst_edges 存放選取的生成樹邊
+    """
+    # 依照邊權重從小到大排序 (貪心選擇)
+    edges.sort(key=lambda x: x[2])
+    dsu = DSU(n)
+    total_weight = 0
+    edges_used = 0
+    
+    for u, v, weight in edges:
+        if dsu.union(u, v):
+            total_weight += weight
+            mst_edges.append((u, v, weight))
+            edges_used += 1
+            if edges_used == n - 1:
+                break
+                
+    if edges_used != n - 1:
+        return -1 # 圖不連通，無生成樹
+    return total_weight`
   },
   {
     id: "dinic-max-flow",
@@ -955,7 +1389,7 @@ struct LCA {
     vector<vector<int>> up;
 
     LCA(int n, int root) : n(n), adj(n + 1) {
-        l = Math.ceil(log2(n + 1)) + 1;
+        l = ceil(log2(n + 1)) + 1;
         tin.resize(n + 1);
         tout.resize(n + 1);
         up.assign(n + 1, vector<int>(l + 1));
@@ -997,7 +1431,122 @@ struct LCA {
     void init(int root) {
         dfs(root, root);
     }
-};`
+};`,
+    codeJava: `import java.util.*;
+
+class LCA {
+    private int n, l;
+    private List<List<Integer>> adj;
+    private int timer;
+    private int[] tin, tout;
+    private int[][] up;
+
+    // n: 頂點數，初始化鄰接串列與倍增陣列
+    public LCA(int n) {
+        this.n = n;
+        this.l = (int) (Math.log(n + 1) / Math.log(2)) + 2;
+        this.adj = new ArrayList<>();
+        for (int i = 0; i <= n; i++) {
+            adj.add(new ArrayList<>());
+        }
+        this.tin = new int[n + 1];
+        this.tout = new int[n + 1];
+        this.up = new int[n + 1][l + 1];
+        this.timer = 0;
+    }
+
+    public void addEdge(int u, int v) {
+        adj.get(u).add(v);
+        adj.get(v).add(u);
+    }
+
+    // DFS 預處理進出時間 (tin/tout) 與 2^0 的父節點
+    private void dfs(int v, int p) {
+        tin[v] = ++timer;
+        up[v][0] = p;
+        for (int i = 1; i <= l; ++i) {
+            up[v][i] = up[up[v][i - 1]][i - 1]; // 2^i 祖先是其 2^(i-1) 祖先的 2^(i-1) 祖先
+        }
+        for (int to : adj.get(v)) {
+            if (to != p) dfs(to, v);
+        }
+        tout[v] = ++timer;
+    }
+
+    // 判斷 u 是否為 v 的祖先
+    public boolean isAncestor(int u, int v) {
+        return tin[u] <= tin[v] && tout[u] >= tout[v];
+    }
+
+    // 獲取最近公共祖先 (LCA)
+    public int getLca(int u, int v) {
+        if (isAncestor(u, v)) return u;
+        if (isAncestor(v, u)) return v;
+        for (int i = l; i >= 0; --i) {
+            if (!isAncestor(up[u][i], v)) {
+                u = up[u][i]; // 若上跳後的節點仍非 v 的祖先，則向上移動
+            }
+        }
+        return up[u][0]; // 回傳其父節點，即為最近公共祖先
+    }
+
+    public void init(int root) {
+        dfs(root, root);
+    }
+}`,
+    codePython: `import math
+
+class LCA:
+    def __init__(self, n):
+        """
+        最近公共祖先 (LCA) 倍增表初始化
+        """
+        self.n = n
+        self.l = int(math.log2(n + 1)) + 2
+        self.adj = [[] for _ in range(n + 1)]
+        self.timer = 0
+        self.tin = [0] * (n + 1)
+        self.tout = [0] * (n + 1)
+        self.up = [[0] * (self.l + 1) for _ in range(n + 1)]
+        
+    def add_edge(self, u, v):
+        self.adj[u].append(v)
+        self.adj[v].append(u)
+        
+    def dfs(self, v, p):
+        self.timer += 1
+        self.tin[v] = self.timer
+        self.up[v][0] = p
+        
+        # 預處理倍增表：2^i 祖先為 2^(i-1) 祖先的 2^(i-1) 祖先
+        for i in range(1, self.l + 1):
+            self.up[v][i] = self.up[self.up[v][i - 1]][i - 1]
+            
+        for to in self.adj[v]:
+            if to != p:
+                self.dfs(to, v)
+                
+        self.timer += 1
+        self.tout[v] = self.timer
+        
+    def is_ancestor(self, u, v):
+        return self.tin[u] <= self.tin[v] and self.tout[u] >= self.tout[v]
+        
+    def get_lca(self, u, v):
+        if self.is_ancestor(u, v):
+            return u
+        if self.is_ancestor(v, u):
+            return v
+            
+        # 從最大步長往上跳，若跳到的節點仍非 v 的祖先，則往上跳
+        for i in range(self.l, -1, -1):
+            if not self.is_ancestor(self.up[u][i], v):
+                u = self.up[u][i]
+                
+        return self.up[u][0]
+        
+    def init(self, root):
+        self.dfs(root, root)`
   },
   {
     id: "mo-algorithm",
@@ -1482,7 +2031,69 @@ struct BasicSegTree {
         }
         return res;
     }
-};`
+};`,
+    codeJava: `class BasicSegTree {
+    private int n;
+    private int[] tree;
+
+    public BasicSegTree(int n) {
+        this.n = n;
+        this.tree = new int[2 * n]; // 1-indexed 樹狀儲存，大小為 2N
+    }
+
+    // 單點修改：將位置 pos 的值修改為 val (0-indexed)
+    public void update(int pos, int val) {
+        for (tree[pos += n] = val; pos > 1; pos >>= 1) {
+            tree[pos >> 1] = tree[pos] + tree[pos ^ 1]; // 合併左右子節點
+        }
+    }
+
+    // 區間求和查詢：計算 [l, r] 的區間和 (0-indexed, 閉區間)
+    public int query(int l, int r) {
+        int res = 0;
+        for (l += n, r += n + 1; l < r; l >>= 1, r >>= 1) {
+            if ((l & 1) == 1) res += tree[l++]; // 若為右子節點，累加並右移
+            if ((r & 1) == 1) res += tree[--r]; // 若為左子節點的右兄弟，左移並累加
+        }
+        return res;
+    }
+}`,
+    codePython: `class BasicSegTree:
+    def __init__(self, n):
+        """
+        高效反向疊代基礎線段樹 (z-tree 疊代式實作)
+        """
+        self.n = n
+        self.tree = [0] * (2 * n)
+        
+    def update(self, pos, val):
+        """
+        單點修改：將位置 pos 的值修改為 val (0-indexed)
+        """
+        pos += self.n
+        self.tree[pos] = val
+        pos >>= 1
+        while pos > 0:
+            self.tree[pos] = self.tree[2 * pos] + self.tree[2 * pos + 1]
+            pos >>= 1
+            
+    def query(self, l, r):
+        """
+        區間求和查詢：計算 [l, r] 的區間和 (0-indexed, 閉區間)
+        """
+        res = 0
+        l += self.n
+        r += self.n + 1
+        while l < r:
+            if l & 1:
+                res += self.tree[l]
+                l += 1
+            if r & 1:
+                r -= 1
+                res += self.tree[r]
+            l >>= 1
+            r >>= 1
+        return res`
   }
 ];
 

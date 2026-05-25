@@ -1344,12 +1344,51 @@ code {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: var(--transition-smooth);
 }
+
+/* APCS 級分動態配色與霓虹發光樣式 */
+.calc-result-box.lvl-1 {
+    background: rgba(148, 163, 184, 0.05);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+}
+.calc-result-box.lvl-1 .result-label { color: #94a3b8; }
+.calc-result-box.lvl-1 .result-score { text-shadow: none; }
+
+.calc-result-box.lvl-2 {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+}
+.calc-result-box.lvl-2 .result-label { color: #60a5fa; }
+.calc-result-box.lvl-2 .result-score { text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+
+.calc-result-box.lvl-3 {
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.calc-result-box.lvl-3 .result-label { color: #34d399; }
+.calc-result-box.lvl-3 .result-score { text-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+
+.calc-result-box.lvl-4 {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.calc-result-box.lvl-4 .result-label { color: #fbbf24; }
+.calc-result-box.lvl-4 .result-score { text-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+
+.calc-result-box.lvl-5 {
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.1), inset 0 0 10px rgba(139, 92, 246, 0.05);
+}
+.calc-result-box.lvl-5 .result-label { color: #c084fc; font-weight: 700; }
+.calc-result-box.lvl-5 .result-score { text-shadow: 0 0 15px rgba(139, 92, 246, 0.6); color: #ffffff; }
 
 .result-label {
     font-size: 0.95rem;
     font-weight: 600;
     color: #a78bfa;
+    transition: var(--transition-smooth);
 }
 
 .result-score-wrapper {
@@ -1363,6 +1402,7 @@ code {
     font-weight: 800;
     color: #ffffff;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+    transition: var(--transition-smooth);
 }
 
 .result-unit {

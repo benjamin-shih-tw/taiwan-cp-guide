@@ -410,10 +410,29 @@ function openTopicModal(topic, level) {
     // 設定當前選中的主題 ID
     APP_STATE.activeTopicId = topic.id;
     
+    // 🛡️ 容錯與安全配對機制：若未傳入 level，自動從 ROADMAP_DATA 中尋找對應難度級別
+    if (!level && typeof ROADMAP_DATA !== "undefined") {
+        for (let i = 0; i < ROADMAP_DATA.length; i++) {
+            const lvl = ROADMAP_DATA[i];
+            if (lvl.topics.some(t => t.id === topic.id)) {
+                level = lvl;
+                break;
+            }
+        }
+    }
+    
     // 設定基礎資訊
-    badge.innerText = level.levelName;
-    badge.style.backgroundColor = level.color;
-    badge.style.color = "#ffffff";
+    if (level) {
+        badge.innerText = level.levelName;
+        badge.style.backgroundColor = level.color;
+        badge.style.color = "#ffffff";
+        badge.style.display = "inline-block";
+    } else {
+        badge.innerText = "競程修練";
+        badge.style.backgroundColor = "var(--color-accent)";
+        badge.style.color = "#ffffff";
+        badge.style.display = "inline-block";
+    }
     title.innerText = topic.title;
     desc.innerText = topic.desc;
     
@@ -1014,6 +1033,13 @@ function initAPCSCalculator() {
         if (grade) {
             resultScore.innerText = grade.level;
             resultLabel.innerText = `${grade.label} (總分: ${totalScore}/400)`;
+            
+            // 動態切換結果框配色樣式 (1~5 級分)
+            const resultBox = document.querySelector(".calc-result-box");
+            if (resultBox) {
+                resultBox.classList.remove("lvl-1", "lvl-2", "lvl-3", "lvl-4", "lvl-5");
+                resultBox.classList.add(`lvl-${grade.level}`);
+            }
         }
     }
     
@@ -1743,8 +1769,9 @@ function jumpToRoadmapTopic(topicId) {
         roadmapTabBtn.click();
     }
     
-    // 2. 在數據中搜尋對應的主題
+    // 2. 在數據中搜尋對應的主題與單元難度級別
     let foundTopic = null;
+    let foundLevel = null;
     if (typeof ROADMAP_DATA !== "undefined") {
         for (let i = 0; i < ROADMAP_DATA.length; i++) {
             const lvl = ROADMAP_DATA[i];
@@ -1752,6 +1779,7 @@ function jumpToRoadmapTopic(topicId) {
                 const tp = lvl.topics[j];
                 if (tp.id === topicId) {
                     foundTopic = tp;
+                    foundLevel = lvl;
                     break;
                 }
             }
@@ -1762,12 +1790,12 @@ function jumpToRoadmapTopic(topicId) {
     // 3. 觸開 Modal 彈窗
     if (foundTopic) {
         setTimeout(() => {
-            // 先捲動至對應卡片
-            const cardEl = document.querySelector(`.topic-card[data-topic-id="${topicId}"]`);
+            // 先捲動至對應卡片 (已修正為 .usaco-node-item 時間軸卡片結構)
+            const cardEl = document.querySelector(`.usaco-node-item[data-topic-id="${topicId}"]`);
             if (cardEl) {
                 cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
             }
-            openTopicModal(foundTopic);
+            openTopicModal(foundTopic, foundLevel);
         }, 200);
     } else {
         showToast("已成功跳轉，請在學習地圖中閱讀此單元！");
