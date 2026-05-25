@@ -16,3 +16,6 @@ npm-debug.log*
 
 # Node modules (if any are installed in the future)
 node_modules/
+
+# Local scratch directory
+scratch/
