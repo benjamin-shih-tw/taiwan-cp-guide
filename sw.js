@@ -8,6 +8,10 @@ const ASSETS_TO_CACHE = [
   "./data/templates.js",
   "./data/coach_db.js",
   "./data/contest_db.js",
+  "./tutorials/binary-lifting.md",
+  "./tutorials/two-pointers.md",
+  "./tutorials/prefix-sums.md",
+  "./tutorials/binary-search.md",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
