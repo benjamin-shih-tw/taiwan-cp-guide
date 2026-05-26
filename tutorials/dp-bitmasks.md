@@ -1,15 +1,103 @@
-# 狀態壓縮 DP (Bitmask DP) (單元教材)
+# 狀態壓縮 DP (Bitmask DP)
 
-本單元 **「狀態壓縮 DP (Bitmask DP)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+當面對某些指數級規模的問題（如 TSP 旅行推銷員問題，集合大小 $N \le 20$），我們可以使用一個二進位整數來代表集合狀態，這就是**狀態壓縮 DP (Bitmask DP)**。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：用整數的位元表示集合狀態，在 $O(2^N \cdot N)$ 或 $O(2^N \cdot N^2)$ 內解決需要追蹤子集選取情況的 DP 問題。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **狀態表示與轉移**：
+    狀態通常定義為 $dp[mask][i]$，表示當前走訪過的節點子集為 $mask$，且當前停留在節點 $i$ 的最優解。
+*   **狀態壓縮轉移式**：
+    如果我們要從當前節點 $i$ 轉移到一個不在當前集合 $mask$ 中的相鄰新節點 $u$：
+    $$dp[mask \mid (1 << u)][u] = \min(dp[mask \mid (1 << u)][u], dp[mask][i] + \text{Cost}(i, u))$$
+    位元遮罩的大小為 $2^N$，將狀態轉移最佳化至快速的位元底層運算。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+// 經典 TSP 問題 (起點為 0，遍歷所有點回到 0 的最少花費)
+int tsp(int n, const vector<vector<int>>& dist) {
+    int num_states = 1 << n;
+    vector<vector<int>> dp(num_states, vector<int>(n, 1e9));
+    dp[1][0] = 0; // 起點在 0
+    
+    for (int mask = 1; mask < num_states; mask++) {
+        for (int u = 0; u < n; u++) {
+            if (dp[mask][u] == 1e9) continue;
+            for (int v = 0; v < n; v++) {
+                if (!(mask & (1 << v))) { // v 不在當前集合中
+                    dp[mask | (1 << v)][v] = min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v]);
+                }
+            }
+        }
+    }
+    
+    int ans = 1e9;
+    for (int i = 1; i < n; i++) {
+        ans = min(ans, dp[num_states - 1][i] + dist[i][0]);
+    }
+    return ans;
+}
+```
+
+```java
+import java.util.*;
+
+class BitmaskDP {
+    public static int tsp(int n, int[][] dist) {
+        int numStates = 1 << n;
+        int[][] dp = new int[numStates][n];
+        for (int[] row : dp) Arrays.fill(row, 1_000_000_000);
+        dp[1][0] = 0;
+        
+        for (int mask = 1; mask < numStates; mask++) {
+            for (int u = 0; u < n; u++) {
+                if (dp[mask][u] == 1_000_000_000) continue;
+                for (int v = 0; v < n; v++) {
+                    if ((mask & (1 << v)) == 0) {
+                        dp[mask | (1 << v)][v] = Math.min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v]);
+                    }
+                }
+            }
+        }
+        int ans = 1_000_000_000;
+        for (int i = 1; i < n; i++) {
+            ans = Math.min(ans, dp[numStates - 1][i] + dist[i][0]);
+        }
+        return ans;
+    }
+}
+```
+
+```python
+def tsp(n, dist):
+    num_states = 1 << n
+    dp = [[10**9] * n for _ in range(num_states)]
+    dp[1][0] = 0
+    
+    for mask in range(1, num_states):
+        for u in range(n):
+            if dp[mask][u] == 10**9: continue
+            for v in range(n):
+                if not (mask & (1 << v)):
+                    dp[mask | (1 << v)][v] = min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v])
+                    
+    ans = 10**9
+    for i in range(1, n):
+        ans = min(ans, dp[-1][i] + dist[i][0])
+    return ans
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間與空間複雜度**：時間 $\mathcal{O}(N^2 \cdot 2^N)$，空間 $\mathcal{O}(N \cdot 2^N)$。
+*   **防禦要點**：
+    *   **移位溢位**：在大於 30 個頂點的超大規模集合下，不能直接使用 `1 << n`。

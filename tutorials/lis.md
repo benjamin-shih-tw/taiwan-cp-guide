@@ -1,15 +1,72 @@
-# 最長遞增子序列 (LIS) 進階 (單元教材)
+# 最長遞增子序列 (Longest Increasing Subsequence - LIS)
 
-本單元 **「最長遞增子序列 (LIS) 進階」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+給定一個序列，**最長遞增子序列 (LIS)** 是指在不改變元素相對順序的情況下，能挑選出的最長嚴格單調遞增的子序列。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：LIS 的 $O(N^2)$ 基礎 DP 到 $O(N \log N)$ 二分搜優化（patience sorting），以及最長公共子序列 LCS 的 DP 定義與還原路徑。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **樸素 DP 法 — $\mathcal{O}(N^2)$**：
+    設 $dp[i]$ 表示以 $nums[i]$ 結尾的最長遞增子序列長度。轉移式為：
+    $$dp[i] = \max_{0 \le j < i, nums[j] < nums[i]} (dp[j] + 1)$$
+*   **二分搜尋優化法 — $\mathcal{O}(N \log N)$**：
+    我們維護一個輔支陣列 $g$，其中 $g[len]$ 儲存了所有目前長度為 $len$ 的遞增子序列中最小的末尾元素。
+    當遍歷到新元素 $x$ 時，利用二分搜尋在 $g$ 中尋找第一個大於等於 $x$ 的元素並用 $x$ 替換它。若 $x$ 大於所有元素，則將 $x$ 追加到末尾。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int lis(const vector<int>& nums) {
+    vector<int> g;
+    for (int x : nums) {
+        auto it = lower_bound(g.begin(), g.end(), x); // 嚴格遞增用 lower_bound，非遞減用 upper_bound
+        if (it == g.end()) g.push_back(x);
+        else *it = x;
+    }
+    return g.size();
+}
+```
+
+```java
+import java.util.*;
+
+class LIS {
+    public static int lis(int[] nums) {
+        List<Integer> g = new ArrayList<>();
+        for (int x : nums) {
+            int idx = Collections.binarySearch(g, x);
+            if (idx < 0) idx = -(idx + 1);
+            if (idx == g.size()) g.add(x);
+            else g.set(idx, x);
+        }
+        return g.size();
+    }
+}
+```
+
+```python
+from bisect import bisect_left
+
+def lis(nums):
+    g = []
+    for x in nums:
+        idx = bisect_left(g, x)
+        if idx == len(g):
+            g.append(x)
+        else:
+            g[idx] = x
+    return len(g)
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間複雜度**：$\mathcal{O}(N \log N)$。
+*   **防禦要點**：
+    *   **嚴格與非嚴格單調性**：嚴格單調遞增在二分搜尋時要用 `lower_bound`；非嚴格遞增（可重複值）必須改用 `upper_bound` 進行查找替換。

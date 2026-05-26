@@ -1,15 +1,59 @@
-# 掃描線 (Sweep Line / Range Sweep) (單元教材)
+# 掃描線演算法 (Sweep Line Algorithm)
 
-本單元 **「掃描線 (Sweep Line / Range Sweep)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+**掃描線演算法 (Sweep Line Algorithm)** 是一種將「二維幾何求和/交集問題」轉化為「一維動態線段維護」的幾何降維技術。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：想像一條垂直線從左到右掃過平面，配合事件佇列處理幾何問題（矩形面積聯集、線段相交計數、最近點對）。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **降維與事件點激發**：
+    *   設想一根垂直於 $x$ 軸的虛擬掃描線，從左向右水平滑動。
+    *   **事件點 (Event points)**：當掃描線遇到一個矩形的「左邊界」時，將該區間的 $y$ 範圍加入維護；當遇到「右邊界」時，將該區間從維護中移出。
+    *   **線段樹維護縱向長度**：利用**線段樹**配合離散化，在掃描線從左到右滑動的過程中，動態更新與查詢目前 $y$ 軸上有多少長度被覆蓋，從而求出矩形面積聯集。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+struct Event {
+    int x, y1, y2, type; // type: +1 (左邊), -1 (右邊)
+    bool operator<(const Event& other) const { return x < other.x; }
+};
+
+// 掃描線求矩形聯集面積的核心框架
+long long sweep_line_area(vector<Event>& events, const vector<int>& y_coords) {
+    sort(events.begin(), events.end());
+    // 實務上在此處使用「線段樹」動態維護被覆蓋的 y_coords 區間長度
+    return 0; // 示意框架
+}
+```
+
+```java
+import java.util.*;
+
+class SweepLine {
+    static class Event implements Comparable<Event> {
+        int x, y1, y2, type;
+        public int compareTo(Event o) { return Integer.compare(this.x, o.x); }
+    }
+}
+```
+
+```python
+def sweep_line_area(events):
+    events.sort(key=lambda x: x[0]) # 依 x 座標排序
+    # 離散化 y 座標後配合線段樹維護
+    pass
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間與空間複雜度**：時間 $\mathcal{O}(N \log N)$。
+*   **防禦要點**：
+    *   **座標離散化**：幾何座標的值域通常極大，在將 $y$ 軸區間加入線段樹前，一律必須對 $y$ 座標進行離散化（去重並排序），否則無法建構線段樹。

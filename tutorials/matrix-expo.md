@@ -1,15 +1,88 @@
-# 矩陣快速冪 (Matrix Exponentiation) (單元教材)
+# 矩陣快速冪 (Matrix Exponentiation)
 
-本單元 **「矩陣快速冪 (Matrix Exponentiation)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+**矩陣快速冪 (Matrix Exponentiation)** 是一種在 **$\mathcal{O}(\log N)$ 時間**內，求解大規模遞迴關係式（如費氏數列第 $10^{18}$ 項）的強大代數演算法。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：以矩陣表達線性遞推關係式，利用快速冪在 $O(k^3 \log N)$ 時間內計算第 N 項（$k$ 為狀態維度）。常用於費氏數列、路徑計數等。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **遞迴式的矩陣乘法轉換**：
+    將遞迴關係式寫成向量與矩陣相乘的形式：
+    $$\begin{bmatrix} F_{n} \\ F_{n-1} \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & 0 \end{bmatrix} \cdot \begin{bmatrix} F_{n-1} \\ F_{n-2} \end{bmatrix}$$
+*   **對數級冪次加速**：
+    透過代數遞推，將求解第 $N$ 項轉換為矩陣的 $N$ 次方乘法：
+    $$\begin{bmatrix} F_{n} \\ F_{n-1} \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & 0 \end{bmatrix}^{n-1} \cdot \begin{bmatrix} F_{1} \\ F_{0} \end{bmatrix}$$
+    利用**快速冪（二分乘法）**，可以在對數時間內求得矩陣冪次，突破線性轉移瓶頸。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <vector>
+using namespace std;
+
+typedef vector<vector<long long>> Matrix;
+long long MOD = 1000000007;
+
+Matrix multiply(const Matrix& A, const Matrix& B) {
+    int r = A.size(), c = B[0].size(), k = B.size();
+    Matrix C(r, vector<long long>(c, 0));
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            for (int p = 0; p < k; p++) {
+                C[i][j] = (C[i][j] + A[i][p] * B[p][j]) % MOD;
+            }
+        }
+    }
+    return C;
+}
+
+Matrix power(Matrix A, long long exp) {
+    int n = A.size();
+    Matrix res(n, vector<long long>(n, 0));
+    for (int i = 0; i < n; i++) res[i][i] = 1; // 單位矩陣
+    while (exp > 0) {
+        if (exp % 2 == 1) res = multiply(res, A);
+        A = multiply(A, A);
+        exp /= 2;
+    }
+    return res;
+}
+```
+
+```java
+class MatrixExpo {
+    static long MOD = 1000000007;
+    public static long[][] multiply(long[][] A, long[][] B) {
+        int r = A.length, c = B[0].length, k = B.length;
+        long[][] C = new long[r][c];
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                for (int p = 0; p < k; p++) {
+                    C[i][j] = (C[i][j] + A[i][p] * B[p][j]) % MOD;
+                }
+            }
+        }
+        return C;
+    }
+}
+```
+
+```python
+def multiply(A, B, mod=1000000007):
+    r, c, k = len(A), len(B[0]), len(B)
+    C = [[0] * c for _ in range(r)]
+    for i in range(r):
+        for j in range(c):
+            for p in range(k):
+                C[i][j] = (C[i][j] + A[i][p] * B[p][j]) % mod
+    return C
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間複雜度**：$\mathcal{O}(K^3 \log N)$，其中 $K$ 為矩陣大小（通常 $K \le 5$）。
+*   **防禦要點**：
+    *   **溢位防護**：矩陣乘法中包含多次 `A[i][p] * B[p][j]` 乘法，必須使用 64 位元長整數，且在每次乘法後立即取模。

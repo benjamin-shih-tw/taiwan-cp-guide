@@ -1,15 +1,150 @@
-# 線段樹與懶標記 (Segment Tree & Lazy Propagation) (單元教材)
+# 線段樹 (Segment Tree)
 
-本單元 **「線段樹與懶標記 (Segment Tree & Lazy Propagation)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+**線段樹 (Segment Tree)** 是一種極為強大且通用的區間資料結構。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：區間查詢與區間修改的標準資料結構。Lazy Propagation 延遲標記下放確保每次操作在 $O(\log N)$ 時間內完成，空間複雜度 $O(4N)$。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+它主要解決「區間查詢（如區間和、最大值）」與「區間修改」問題。
+*   **結構性質**：將一個區間 $[1, N]$ 分治成二叉樹結構。每個樹節點代表一個子區間。
+*   **懶標記懶惰傳播 (Lazy Propagation)**：當我們進行區間修改時，不需要立即遞迴更新到所有葉子節點，而是在被覆蓋的區間節點上打上一個「懶標記 (Lazy tag)」，直到下次訪問該子區間時才向下傳播，從而將區間修改的複雜度最佳化至 **$\mathcal{O}(\log N)$**。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <vector>
+using namespace std;
+
+class SegTree {
+private:
+    int n;
+    vector<long long> tree, lazy;
+    void push(int node, int start, int end) {
+        if (lazy[node] == 0) return;
+        int mid = (start + end) / 2;
+        tree[2 * node] += lazy[node] * (mid - start + 1);
+        lazy[2 * node] += lazy[node];
+        tree[2 * node + 1] += lazy[node] * (end - mid);
+        lazy[2 * node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+    void update(int node, int start, int end, int l, int r, long long val) {
+        if (r < start || end < l) return;
+        if (l <= start && end <= r) {
+            tree[node] += val * (end - start + 1);
+            lazy[node] += val;
+            return;
+        }
+        push(node, start, end);
+        int mid = (start + end) / 2;
+        update(2 * node, start, mid, l, r, val);
+        update(2 * node + 1, mid + 1, end, l, r, val);
+        tree[node] = tree[2 * node] + tree[2 * node + 1];
+    }
+    long long query(int node, int start, int end, int l, int r) {
+        if (r < start || end < l) return 0;
+        if (l <= start && end <= r) return tree[node];
+        push(node, start, end);
+        int mid = (start + end) / 2;
+        return query(2 * node, start, mid, l, r) + query(2 * node + 1, mid + 1, end, l, r);
+    }
+public:
+    SegTree(int n) : n(n) {
+        tree.assign(4 * n, 0);
+        lazy.assign(4 * n, 0);
+    }
+    void range_add(int l, int r, long long val) { update(1, 0, n - 1, l, r, val); }
+    long long range_sum(int l, int r) { return query(1, 0, n - 1, l, r); }
+};
+```
+
+```java
+class SegTree {
+    private int n;
+    private long[] tree, lazy;
+    public SegTree(int n) {
+        this.n = n;
+        tree = new long[4 * n];
+        lazy = new long[4 * n];
+    }
+    private void push(int node, int start, int end) {
+        if (lazy[node] == 0) return;
+        int mid = (start + end) / 2;
+        tree[2 * node] += lazy[node] * (mid - start + 1);
+        lazy[2 * node] += lazy[node];
+        tree[2 * node + 1] += lazy[node] * (end - mid);
+        lazy[2 * node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+    public void update(int node, int start, int end, int l, int r, long val) {
+        if (r < start || end < l) return;
+        if (l <= start && end <= r) {
+            tree[node] += val * (end - start + 1);
+            lazy[node] += val;
+            return;
+        }
+        push(node, start, end);
+        int mid = (start + end) / 2;
+        update(2 * node, start, mid, l, r, val);
+        update(2 * node + 1, mid + 1, end, l, r, val);
+        tree[node] = tree[2 * node] + tree[2 * node + 1];
+    }
+    public long query(int node, int start, int end, int l, int r) {
+        if (r < start || end < l) return 0;
+        if (l <= start && end <= r) return tree[node];
+        push(node, start, end);
+        int mid = (start + end) / 2;
+        return query(2 * node, start, mid, l, r) + query(2 * node + 1, mid + 1, end, l, r);
+    }
+}
+```
+
+```python
+class SegTree:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (4 * n)
+        self.lazy = [0] * (4 * n)
+        
+    def _push(self, node, start, end):
+        if self.lazy[node] == 0:
+            return
+        mid = (start + end) // 2
+        self.tree[2 * node] += self.lazy[node] * (mid - start + 1)
+        self.lazy[2 * node] += self.lazy[node]
+        self.tree[2 * node + 1] += self.lazy[node] * (end - mid)
+        self.lazy[2 * node + 1] += self.lazy[node]
+        self.lazy[node] = 0
+
+    def update(self, node, start, end, l, r, val):
+        if r < start or end < l:
+            return
+        if l <= start and end <= r:
+            self.tree[node] += val * (end - start + 1)
+            self.lazy[node] += val
+            return
+        self._push(node, start, end)
+        mid = (start + end) // 2
+        self.update(2 * node, start, mid, l, r, val)
+        self.update(2 * node + 1, mid + 1, end, l, r, val)
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
+
+    def query(self, node, start, end, l, r):
+        if r < start or end < l:
+            return 0
+        if l <= start and end <= r:
+            return self.tree[node]
+        self._push(node, start, end)
+        mid = (start + end) // 2
+        return self.query(2 * node, start, mid, l, r) + self.query(2 * node + 1, mid + 1, end, l, r)
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間複雜度**：建表 $\mathcal{O}(N)$，區間更新與查詢皆為 $\mathcal{O}(\log N)$。
+*   **防禦要點**：
+    *   **空間倍數**：線段樹陣列必須開到 **$4 \times N$** 以上，否則容易發生 Out of Bounds 記憶體崩潰。

@@ -1,15 +1,76 @@
-# 有序集合的進階應用 (Sorted Sets / Policy Tree) (單元教材)
+# 平衡樹與有序集合 (Introduction to Sorted Sets)
 
-本單元 **「有序集合的進階應用 (Sorted Sets / Policy Tree)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+在需要進行**動態排序、範圍查詢（如查詢第一個大於等於 $x$ 的元素）**的場景中，基本的 `hashmap` 或 `vector` 將無能為力。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：利用 `std::set`、`std::multiset`、`std::map` 或 C++ Policy-Based Data Structure 維護有序元素集合，實現動態排名查詢（Order Statistic Tree）。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **自平衡二叉搜尋樹 (Balanced BST)**：
+    有序集合的底層是紅黑樹等平衡樹結構，所有基本操作（插入、刪除、尋找）的時間複雜度皆為穩定優秀的 **$\mathcal{O}(\log N)$**。
+*   **迭代器與範圍檢索**：
+    動態維護元素的有序性，讓我們能直接使用迭代器雙向搜尋，或是以對數時間查詢某個元素的前驅（Predecessor）與後繼（Successor）節點。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <iostream>
+#include <set>
+using namespace std;
+
+void sorted_sets_demo() {
+    set<int> s;
+    s.insert(10);
+    s.insert(20);
+    
+    // 尋找第一個大於等於 15 的元素 (Successor)
+    auto it = s.lower_bound(15);
+    if (it != s.end()) {
+        cout << "Successor >= 15: " << *it << endl;
+    }
+}
+```
+
+```java
+import java.util.TreeSet;
+
+class SortedSetsDemo {
+    public static void demo() {
+        TreeSet<Integer> set = new TreeSet<>();
+        set.add(10);
+        set.add(20);
+        
+        // 尋找第一個大於等於 15 的元素 (ceiling)
+        Integer val = set.ceiling(15);
+        if (val != null) {
+            System.out.println("Successor >= 15: " + val);
+        }
+    }
+}
+```
+
+```python
+from bisect import bisect_left
+
+class SortedListDummy:
+    def __init__(self):
+        # 由於 Python 沒有原生內建的平衡樹結構
+        # 我們可用一個保持排序的陣列與 bisect 進行動態二分插值
+        self.arr = []
+    def add(self, x):
+        idx = bisect_left(self.arr, x)
+        self.arr.insert(idx, x)
+    def ceiling(self, x):
+        idx = bisect_left(self.arr, x)
+        return self.arr[idx] if idx < len(self.arr) else None
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間複雜度**：平衡樹的插入與查找均為 $\mathcal{O}(\log N)$。
+*   **防禦要點**：
+    *   Python 沒有原生平衡樹。在大量動態插入的題型中，使用 `list.insert()` 會退化成線性時間 $\mathcal{O}(N)$ 導致超時。
+    *   **防禦策略**：在 Python 中建議安裝第三方庫 `sortedcontainers` 的 `SortedList`，或手寫 Treep/Splay。

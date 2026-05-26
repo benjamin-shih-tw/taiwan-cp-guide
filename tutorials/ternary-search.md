@@ -1,15 +1,88 @@
-# 三分搜與凸函數優化 (Ternary Search) (單元教材)
+# 三分搜尋 (Ternary Search)
 
-本單元 **「三分搜與凸函數優化 (Ternary Search)」** 專屬客製化教材目前正在全力撰寫與校對中！
-
-為了讓您能立即開始學習，我們已為您與 **OI Wiki** 的高質量演算法百科進行了精準匹配。請點擊學習面板上方的 **「⚡ 切換至 OI Wiki 繁中鏡像」** 頁籤，即可閱讀詳盡的觀念說明、遞推公式與實作細節。
+當我們需要尋找一個**單峰函數 (Unimodal Function)** 的極值（最大值或最小值）時，二分搜尋將不再適用。此時應採用**三分搜尋 (Ternary Search)**。
 
 ---
 
-## 🎯 本單元核心學習目標
+## 1. 核心觀念與基本原理
 
-1. **掌握單元核心概念**：在凸函數（單峰函數）上用三分搜找最大值/最小值，時間複雜度 $O(\log N)$ 或 $O(\log(1/\epsilon))$。
-2. **完成精選練習題**：挑戰本單元右側推薦的 APCS / USACO / ZeroJudge 經典題型，累積實戰經驗。
-3. **搭配推薦外部資源**：參考右側的「推薦講義與資源」連結，對照多方觀點以加深理解。
+*   **雙決策分割點**：
+    *   對於當前搜尋區間 $[L, R]$，我們將其均勻分割為三段：
+        $$m_1 = L + \frac{R - L}{3}$$
+        $$m_2 = R - \frac{R - L}{3}$$
+    *   **區間收縮**（尋找極大值為例）：
+        *   若 $f(m_1) < f(m_2)$，說明極值一定不在左側第一段中，收縮區間 $L = m_1$。
+        *   若 $f(m_1) > f(m_2)$，說明極值一定不在右側第三段中，收縮區間 $R = m_2$。
+    每次更新後，搜尋範圍縮小為原來的 $2/3$，時間複雜度為優秀的 **$\mathcal{O}(\log N)$**。
 
-我們致力於打造最適合台灣學生的競賽程式（CP）學習路徑，感謝您的耐心等待！
+---
+
+## 2. 三種語言實作範本 (C++ / Java / Python)
+
+```cpp
+#include <iostream>
+using namespace std;
+
+// 範例：凸函數 f(x) = -(x-3)^2 + 10 在 [0, 10] 上求最大值 (答案 x=3)
+double f(double x) {
+    return -(x - 3.0) * (x - 3.0) + 10.0;
+}
+
+double ternary_search(double l, double r) {
+    double eps = 1e-9;
+    while (r - l > eps) {
+        double m1 = l + (r - l) / 3.0;
+        double m2 = r - (r - l) / 3.0;
+        if (f(m1) < f(m2)) {
+            l = m1;
+        } else {
+            r = m2;
+        }
+    }
+    return l; // 極值點 x
+}
+```
+
+```java
+class TernarySearch {
+    private static double f(double x) {
+        return -(x - 3.0) * (x - 3.0) + 10.0;
+    }
+    public static double search(double l, double r) {
+        double eps = 1e-9;
+        while (r - l > eps) {
+            double m1 = l + (r - l) / 3.0;
+            double m2 = r - (r - l) / 3.0;
+            if (f(m1) < f(m2)) {
+                l = m1;
+            } else {
+                r = m2;
+            }
+        }
+        return l;
+    }
+}
+```
+
+```python
+def f(x):
+    return -(x - 3.0) ** 2 + 10.0
+
+def ternary_search(l, r):
+    eps = 1e-9
+    while r - l > eps:
+        m1 = l + (r - l) / 3.0
+        m2 = r - (r - l) / 3.0
+        if f(m1) < f(m2):
+            l = m1
+        else:
+            r = m2
+    return l
+```
+
+---
+
+## 3. 複雜度與防禦要點
+*   **時間複雜度**：$\mathcal{O}(\log_{1.5}(N))$。
+*   **防禦要點**：
+    *   **平台平坦區間**：如果單峰函數中含有**一段完全平坦（值相同）的區域**，三分搜尋將無法判斷收縮方向，可能會陷入死路或取得錯誤解答。
