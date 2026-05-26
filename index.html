@@ -34,10 +34,28 @@
         
         <!-- Header 區域 -->
         <header>
-            <div class="brand-wrapper">
-                <span class="badge-tag" id="main-badge">APCS / TOI / ICPC / IOI</span>
-                <h1>台灣競程修練指南</h1>
-                <p class="subtitle">結合 USACO Guide 系統、OI Wiki 深度與 NTUCPC 台灣經驗的極客修練平台</p>
+            <div class="header-main-layout" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; width: 100%;">
+                <div class="brand-wrapper">
+                    <span class="badge-tag" id="main-badge">APCS / TOI / ICPC / IOI</span>
+                    <h1>台灣競程修練指南</h1>
+                    <p class="subtitle">結合 USACO Guide 系統、OI Wiki 深度與 NTUCPC 台灣經驗的極客修練平台</p>
+                </div>
+                <!-- 👤 用戶登入/登出狀態面板 -->
+                <div class="user-auth-widget" id="user-auth-widget" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; backdrop-filter: blur(10px); transition: all 0.3s ease;">
+                    <!-- 未登入狀態 -->
+                    <div id="auth-logged-out" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span style="font-size: 0.85rem; color: #94a3b8;">👤 訪客模式</span>
+                        <button class="action-btn" id="auth-login-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: 700; transition: opacity 0.2s;">登入帳號</button>
+                    </div>
+                    <!-- 已登入狀態 -->
+                    <div id="auth-logged-in" style="display: none; align-items: center; gap: 0.8rem;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span id="auth-user-name" style="font-size: 0.85rem; color: #fff; font-weight: 700;">選手名稱</span>
+                            <span id="auth-user-handle" style="font-size: 0.75rem; color: #64748b;">CF: 未綁定</span>
+                        </div>
+                        <button class="action-btn" id="auth-logout-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #f87171; cursor: pointer; transition: all 0.2s;">登出</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -565,6 +583,30 @@
                     </section>
                 </div>
             </div>
+        </div>
+    </aside>
+
+    <!-- 👤 登入對話框 (Login Modal Overlay) -->
+    <aside class="modal-overlay" id="login-modal-overlay" aria-hidden="true" role="dialog" style="display: none; justify-content: center; align-items: center; z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(7, 8, 14, 0.85); backdrop-filter: blur(8px);">
+        <div class="modal-content" style="max-width: 420px; width: 90%; height: auto; padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: #0c0f1d; box-shadow: 0 20px 40px rgba(0,0,0,0.5); box-sizing: border-box; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; font-size: 1.3rem; color: #fff; display: flex; align-items: center; gap: 0.5rem; font-weight: 700;"><span>👤</span> 選手登入</h2>
+                <button id="login-modal-close" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0.2rem; display: flex; align-items: center; justify-content: center; line-height: 1;">✕</button>
+            </div>
+            
+            <form id="login-form" onsubmit="event.preventDefault();">
+                <div style="margin-bottom: 1.2rem; text-align: left;">
+                    <label for="login-username" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">選手姓名 / 暱稱</label>
+                    <input type="text" id="login-username" required placeholder="例如：tourist" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                </div>
+                
+                <div style="margin-bottom: 1.5rem; text-align: left;">
+                    <label for="login-cf-handle" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">Codeforces ID (選填，自動同步 AC 進度)</label>
+                    <input type="text" id="login-cf-handle" placeholder="例如：tourist" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                </div>
+                
+                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff; font-weight: 700; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; font-size: 0.95rem;">登入並同步進度</button>
+            </form>
         </div>
     </aside>
 

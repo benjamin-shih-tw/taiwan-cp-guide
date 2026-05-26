@@ -146,6 +146,9 @@ function initApp() {
             c.classList.toggle("active", c.getAttribute("data-tab-idx") === tabIdx);
         });
     });
+
+    // 9.5. 初始化用戶端登入登出狀態管理
+    initUserAuthentication();
 }
 
 // ==========================================================================
@@ -2451,6 +2454,133 @@ function groupCodeBlocksIntoTabs(html) {
     }
     
     return doc.body.innerHTML;
+}
+
+// ==========================================================================
+// 用戶端登入/登出狀態管理系統 (PWA Serverless)
+// ==========================================================================
+function initUserAuthentication() {
+    const loginBtn = document.getElementById("auth-login-btn");
+    const logoutBtn = document.getElementById("auth-logout-btn");
+    const loginModal = document.getElementById("login-modal-overlay");
+    const loginModalClose = document.getElementById("login-modal-close");
+    const loginForm = document.getElementById("login-form");
+    
+    const loggedOutDiv = document.getElementById("auth-logged-out");
+    const loggedInDiv = document.getElementById("auth-logged-in");
+    const authUserName = document.getElementById("auth-user-name");
+    const authUserHandle = document.getElementById("auth-user-handle");
+    
+    // 更新 UI 狀態
+    function updateAuthUI() {
+        const username = localStorage.getItem("taiwan_cp_username");
+        const cfHandle = localStorage.getItem("cf_handle");
+        
+        if (username) {
+            authUserName.textContent = `👤 ${username}`;
+            if (cfHandle) {
+                authUserHandle.textContent = `CF: ${cfHandle}`;
+                authUserHandle.style.color = "#a855f7"; // active CF purple
+            } else {
+                authUserHandle.textContent = "CF: 未綁定";
+                authUserHandle.style.color = "#64748b";
+            }
+            loggedOutDiv.style.display = "none";
+            loggedInDiv.style.display = "flex";
+        } else {
+            loggedOutDiv.style.display = "flex";
+            loggedInDiv.style.display = "none";
+        }
+    }
+    
+    // 開啟登入彈窗
+    if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+            loginModal.style.display = "flex";
+            loginModal.setAttribute("aria-hidden", "false");
+            
+            // 預填當前可能存在的資訊
+            const currentCF = localStorage.getItem("cf_handle") || "";
+            document.getElementById("login-cf-handle").value = currentCF;
+        });
+    }
+    
+    // 關閉登入彈窗
+    if (loginModalClose) {
+        loginModalClose.addEventListener("click", () => {
+            loginModal.style.display = "none";
+            loginModal.setAttribute("aria-hidden", "true");
+        });
+    }
+    
+    // 點擊外部關閉彈窗
+    if (loginModal) {
+        loginModal.addEventListener("click", (e) => {
+            if (e.target === loginModal) {
+                loginModal.style.display = "none";
+                loginModal.setAttribute("aria-hidden", "true");
+            }
+        });
+    }
+    
+    // 登入表單提交
+    if (loginForm) {
+        loginForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById("login-username");
+            const cfInput = document.getElementById("login-cf-handle");
+            
+            const username = usernameInput ? usernameInput.value.trim() : "";
+            const cfHandle = cfInput ? cfInput.value.trim() : "";
+            
+            if (!username) {
+                showToast("⚠️ 請輸入選手名稱！");
+                return;
+            }
+            
+            localStorage.setItem("taiwan_cp_username", username);
+            
+            // 如果填寫了 CF handle，同步到 CF 輸入欄與 API 同步
+            if (cfHandle) {
+                localStorage.setItem("cf_handle", cfHandle);
+                const handleInput = document.getElementById("cf-handle-input");
+                if (handleInput) handleInput.value = cfHandle;
+                
+                // 異步同步 Codeforces 進度
+                syncCodeforcesProgress(cfHandle);
+            }
+            
+            updateAuthUI();
+            loginModal.style.display = "none";
+            loginModal.setAttribute("aria-hidden", "true");
+            
+            showToast(`✨ 登入成功！歡迎 ${username} 選手開始修練`);
+        });
+    }
+    
+    // 登出
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            const username = localStorage.getItem("taiwan_cp_username") || "選手";
+            localStorage.removeItem("taiwan_cp_username");
+            localStorage.removeItem("cf_handle");
+            
+            // 清除 CF 相關 UI 輸入
+            const handleInput = document.getElementById("cf-handle-input");
+            if (handleInput) handleInput.value = "";
+            const syncStatus = document.getElementById("cf-sync-status");
+            if (syncStatus) {
+                syncStatus.innerText = "未同步。點擊同步拉取 AC 進度";
+                syncStatus.style.color = "#64748b";
+            }
+            
+            updateAuthUI();
+            showToast(`✨ 已成功登出，選手 ${username} 下次見！`);
+        });
+    }
+    
+    // 初始化 UI
+    updateAuthUI();
 }
 
 
