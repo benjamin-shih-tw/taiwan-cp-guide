@@ -222,6 +222,11 @@ function updateDashboardStats() {
     
     document.getElementById("progress-read-fill").style.width = `${readPercent}%`;
     document.getElementById("progress-solved-fill").style.width = `${solvedPercent}%`;
+
+    // 自動背景同步到 Supabase 雲端
+    if (typeof syncProgressToCloud === "function") {
+        syncProgressToCloud();
+    }
 }
 
 // ==========================================================================
@@ -2457,27 +2462,153 @@ function groupCodeBlocksIntoTabs(html) {
 }
 
 // ==========================================================================
-// 用戶端登入/登出狀態管理系統 (PWA Serverless)
 // ==========================================================================
+// 用戶端登入/登出狀態管理系統 (支援本地快速登入與 Supabase 雲端資料庫同步)
+// ==========================================================================
+let supabaseClient = null;
+
+function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+    
+    let url = document.getElementById("db-url") ? document.getElementById("db-url").value.trim() : "";
+    let key = document.getElementById("db-key") ? document.getElementById("db-key").value.trim() : "";
+    
+    if (!url || !key) {
+        url = localStorage.getItem("taiwan_cp_db_url") || "";
+        key = localStorage.getItem("taiwan_cp_db_key") || "";
+    }
+    
+    if (!url || !key) {
+        return null;
+    }
+    
+    localStorage.setItem("taiwan_cp_db_url", url);
+    localStorage.setItem("taiwan_cp_db_key", key);
+    
+    const dbUrlInput = document.getElementById("db-url");
+    const dbKeyInput = document.getElementById("db-key");
+    if (dbUrlInput) dbUrlInput.value = url;
+    if (dbKeyInput) dbKeyInput.value = key;
+    
+    try {
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(url, key);
+            return supabaseClient;
+        }
+    } catch (err) {
+        console.error("Supabase init error:", err);
+    }
+    return null;
+}
+
+// 動態同步進度至雲端資料庫
+async function syncProgressToCloud() {
+    const client = getSupabaseClient();
+    if (!client) return;
+    
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        const user = session?.user;
+        if (!user) return;
+        
+        const username = localStorage.getItem("taiwan_cp_username") || "匿名選手";
+        const cfHandle = localStorage.getItem("cf_handle") || "";
+        
+        const { error } = await client.from('profiles').upsert({
+            id: user.id,
+            username: username,
+            cf_handle: cfHandle,
+            solved_problems: APP_STATE.solvedProblems,
+            read_topics: APP_STATE.readTopics,
+            topic_status: APP_STATE.topicStatus,
+            updated_at: new Date().toISOString()
+        });
+        
+        if (error) {
+            console.warn("[Cloud Sync] Upsert failed:", error.message);
+        } else {
+            console.log("[Cloud Sync] 進度已成功同步至 Supabase 雲端！");
+        }
+    } catch (err) {
+        console.warn("[Cloud Sync] 背景同步失敗，請確認 profiles 資料表是否存在:", err);
+    }
+}
+
 function initUserAuthentication() {
     const loginBtn = document.getElementById("auth-login-btn");
     const logoutBtn = document.getElementById("auth-logout-btn");
     const loginModal = document.getElementById("login-modal-overlay");
     const loginModalClose = document.getElementById("login-modal-close");
-    const loginForm = document.getElementById("login-form");
+    
+    // Tab 控制
+    const tabLocal = document.getElementById("auth-tab-local");
+    const tabCloud = document.getElementById("auth-tab-cloud");
+    const formLocal = document.getElementById("login-form-local");
+    const formCloud = document.getElementById("login-form-cloud");
+    
+    // 摺疊設定
+    const btnToggleDb = document.getElementById("btn-toggle-db-settings");
+    const dbFields = document.getElementById("db-settings-fields");
+    
+    // 雲端按鈕
+    const btnCloudRegister = document.getElementById("btn-cloud-register");
     
     const loggedOutDiv = document.getElementById("auth-logged-out");
     const loggedInDiv = document.getElementById("auth-logged-in");
     const authUserName = document.getElementById("auth-user-name");
     const authUserHandle = document.getElementById("auth-user-handle");
     
+    // 1. Tab 切換事件
+    if (tabLocal && tabCloud) {
+        tabLocal.addEventListener("click", () => {
+            tabLocal.classList.add("active");
+            tabLocal.style.background = "rgba(255,255,255,0.08)";
+            tabLocal.style.color = "#fff";
+            
+            tabCloud.classList.remove("active");
+            tabCloud.style.background = "transparent";
+            tabCloud.style.color = "#94a3b8";
+            
+            formLocal.style.display = "block";
+            formCloud.style.display = "none";
+        });
+        
+        tabCloud.addEventListener("click", () => {
+            tabCloud.classList.add("active");
+            tabCloud.style.background = "rgba(255,255,255,0.08)";
+            tabCloud.style.color = "#fff";
+            
+            tabLocal.classList.remove("active");
+            tabLocal.style.background = "transparent";
+            tabLocal.style.color = "#94a3b8";
+            
+            formCloud.style.display = "block";
+            formLocal.style.display = "none";
+            
+            // 載入預存的 DB 設定
+            getSupabaseClient();
+        });
+    }
+    
+    // 2. 摺疊自訂資料庫設定
+    if (btnToggleDb) {
+        btnToggleDb.addEventListener("click", () => {
+            if (dbFields.style.display === "none" || !dbFields.style.display) {
+                dbFields.style.display = "block";
+            } else {
+                dbFields.style.display = "none";
+            }
+        });
+    }
+    
     // 更新 UI 狀態
     function updateAuthUI() {
         const username = localStorage.getItem("taiwan_cp_username");
         const cfHandle = localStorage.getItem("cf_handle");
+        const isCloud = localStorage.getItem("taiwan_cp_login_type") === "cloud";
         
         if (username) {
-            authUserName.textContent = `👤 ${username}`;
+            authUserName.textContent = `${isCloud ? "☁️" : "👤"} ${username}`;
             if (cfHandle) {
                 authUserHandle.textContent = `CF: ${cfHandle}`;
                 authUserHandle.style.color = "#a855f7"; // active CF purple
@@ -2499,39 +2630,31 @@ function initUserAuthentication() {
             loginModal.style.display = "flex";
             loginModal.setAttribute("aria-hidden", "false");
             
-            // 預填當前可能存在的資訊
             const currentCF = localStorage.getItem("cf_handle") || "";
-            document.getElementById("login-cf-handle").value = currentCF;
+            const localCFInput = document.getElementById("login-cf-handle");
+            if (localCFInput) localCFInput.value = currentCF;
         });
     }
     
     // 關閉登入彈窗
-    if (loginModalClose) {
-        loginModalClose.addEventListener("click", () => {
-            loginModal.style.display = "none";
-            loginModal.setAttribute("aria-hidden", "true");
-        });
-    }
+    const closeModal = () => {
+        loginModal.style.display = "none";
+        loginModal.setAttribute("aria-hidden", "true");
+    };
     
-    // 點擊外部關閉彈窗
+    if (loginModalClose) loginModalClose.addEventListener("click", closeModal);
     if (loginModal) {
         loginModal.addEventListener("click", (e) => {
-            if (e.target === loginModal) {
-                loginModal.style.display = "none";
-                loginModal.setAttribute("aria-hidden", "true");
-            }
+            if (e.target === loginModal) closeModal();
         });
     }
     
-    // 登入表單提交
-    if (loginForm) {
-        loginForm.addEventListener("submit", (e) => {
+    // 3. 本地快速登入提交
+    if (formLocal) {
+        formLocal.addEventListener("submit", (e) => {
             e.preventDefault();
-            const usernameInput = document.getElementById("login-username");
-            const cfInput = document.getElementById("login-cf-handle");
-            
-            const username = usernameInput ? usernameInput.value.trim() : "";
-            const cfHandle = cfInput ? cfInput.value.trim() : "";
+            const username = document.getElementById("login-username").value.trim();
+            const cfHandle = document.getElementById("login-cf-handle").value.trim();
             
             if (!username) {
                 showToast("⚠️ 請輸入選手名稱！");
@@ -2539,38 +2662,154 @@ function initUserAuthentication() {
             }
             
             localStorage.setItem("taiwan_cp_username", username);
+            localStorage.setItem("taiwan_cp_login_type", "local");
             
-            // 如果填寫了 CF handle，同步到 CF 輸入欄與 API 同步
             if (cfHandle) {
                 localStorage.setItem("cf_handle", cfHandle);
                 const handleInput = document.getElementById("cf-handle-input");
                 if (handleInput) handleInput.value = cfHandle;
-                
-                // 異步同步 Codeforces 進度
                 syncCodeforcesProgress(cfHandle);
             }
             
             updateAuthUI();
-            loginModal.style.display = "none";
-            loginModal.setAttribute("aria-hidden", "true");
-            
-            showToast(`✨ 登入成功！歡迎 ${username} 選手開始修練`);
+            closeModal();
+            showToast(`✨ 本地登入成功！歡迎 ${username} 選手`);
         });
     }
     
-    // 登出
+    // 4. 雲端資料庫註冊
+    if (btnCloudRegister) {
+        btnCloudRegister.addEventListener("click", async () => {
+            const email = document.getElementById("cloud-email").value.trim();
+            const password = document.getElementById("cloud-password").value.trim();
+            
+            if (!email || !password) {
+                showToast("⚠️ 請填寫 Email 與密碼！");
+                return;
+            }
+            
+            let client = getSupabaseClient();
+            if (!client) {
+                // 如果未填，提示輸入
+                dbFields.style.display = "block";
+                showToast("⚠️ 請先設定您的 Supabase URL 與 Anon Key！");
+                return;
+            }
+            
+            showToast("⏳ 正在註冊雲端帳號...");
+            try {
+                const { data, error } = await client.auth.signUp({ email, password });
+                if (error) throw error;
+                
+                showToast("✅ 註冊成功！請檢查您的 Email 信箱以啟用帳號，或直接嘗試登入。");
+            } catch (err) {
+                showToast(`❌ 註冊失敗: ${err.message}`);
+            }
+        });
+    }
+    
+    // 5. 雲端資料庫登入
+    if (formCloud) {
+        formCloud.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("cloud-email").value.trim();
+            const password = document.getElementById("cloud-password").value.trim();
+            
+            if (!email || !password) {
+                showToast("⚠️ 請填寫 Email 與密碼！");
+                return;
+            }
+            
+            let client = getSupabaseClient();
+            if (!client) {
+                dbFields.style.display = "block";
+                showToast("⚠️ 請先在下方設定您的 Supabase 資料庫 URL 與 Key！");
+                return;
+            }
+            
+            showToast("⏳ 正在登入雲端資料庫...");
+            try {
+                const { data: { session }, error } = await client.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                
+                const user = session.user;
+                // 用 Email 前綴作為預設使用者名稱
+                const defaultName = email.split("@")[0];
+                
+                // 從雲端 profiles 拉取進度數據
+                const { data: profile } = await client.from('profiles').select('*').eq('id', user.id).single();
+                
+                if (profile) {
+                    localStorage.setItem("taiwan_cp_username", profile.username || defaultName);
+                    localStorage.setItem("taiwan_cp_login_type", "cloud");
+                    if (profile.cf_handle) {
+                        localStorage.setItem("cf_handle", profile.cf_handle);
+                        const handleInput = document.getElementById("cf-handle-input");
+                        if (handleInput) handleInput.value = profile.cf_handle;
+                    }
+                    if (profile.solved_problems) {
+                        APP_STATE.solvedProblems = profile.solved_problems;
+                        localStorage.setItem("taiwan_cp_solved_problems", JSON.stringify(APP_STATE.solvedProblems));
+                    }
+                    if (profile.read_topics) {
+                        APP_STATE.readTopics = profile.read_topics;
+                        localStorage.setItem("taiwan_cp_read_topics", JSON.stringify(APP_STATE.readTopics));
+                    }
+                    if (profile.topic_status) {
+                        APP_STATE.topicStatus = profile.topic_status;
+                        localStorage.setItem("taiwan_cp_topic_status", JSON.stringify(APP_STATE.topicStatus));
+                    }
+                    
+                    // 刷新頁面進度
+                    autoUpgradeTopicStatuses();
+                    renderRoadmap();
+                } else {
+                    // 若雲端無 Profile，則新建一筆
+                    localStorage.setItem("taiwan_cp_username", defaultName);
+                    localStorage.setItem("taiwan_cp_login_type", "cloud");
+                    await client.from('profiles').upsert({
+                        id: user.id,
+                        username: defaultName,
+                        cf_handle: localStorage.getItem("cf_handle") || "",
+                        solved_problems: APP_STATE.solvedProblems,
+                        read_topics: APP_STATE.readTopics,
+                        topic_status: APP_STATE.topicStatus
+                    });
+                }
+                
+                updateDashboardStats();
+                updateAuthUI();
+                closeModal();
+                showToast(`✨ 雲端同步登入成功！歡迎 ${localStorage.getItem("taiwan_cp_username")} 選手`);
+            } catch (err) {
+                showToast(`❌ 登入失敗: ${err.message}`);
+            }
+        });
+    }
+    
+    // 6. 登出
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
+        logoutBtn.addEventListener("click", async () => {
             const username = localStorage.getItem("taiwan_cp_username") || "選手";
+            const isCloud = localStorage.getItem("taiwan_cp_login_type") === "cloud";
+            
+            if (isCloud) {
+                let client = getSupabaseClient();
+                if (client) {
+                    await client.auth.signOut();
+                }
+            }
+            
             localStorage.removeItem("taiwan_cp_username");
             localStorage.removeItem("cf_handle");
+            localStorage.removeItem("taiwan_cp_login_type");
             
-            // 清除 CF 相關 UI 輸入
+            // 清除 CF 輸入框 UI
             const handleInput = document.getElementById("cf-handle-input");
             if (handleInput) handleInput.value = "";
             const syncStatus = document.getElementById("cf-sync-status");
             if (syncStatus) {
-                syncStatus.innerText = "未同步。點擊同步拉取 AC 進度";
+                syncStatus.innerText = "未同步。";
                 syncStatus.style.color = "#64748b";
             }
             
