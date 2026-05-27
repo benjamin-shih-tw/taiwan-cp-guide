@@ -149,6 +149,35 @@ function initApp() {
 
     // 9.5. 初始化用戶端登入登出狀態管理
     initUserAuthentication();
+
+    // 9.8. 初始化 Hero Highlight 點矩陣與滑鼠光暈效果
+    initHeroHighlight();
+}
+
+// ==========================================================================
+// 初始化 Hero Highlight 滑鼠光暈與背景點矩陣效果
+// ==========================================================================
+function initHeroHighlight() {
+    window.addEventListener("mousemove", (e) => {
+        document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
+        document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
+        
+        if (!document.body.classList.contains("mouse-active")) {
+            document.body.classList.add("mouse-active");
+        }
+    });
+
+    window.addEventListener("touchmove", (e) => {
+        if (e.touches && e.touches[0]) {
+            const touch = e.touches[0];
+            document.documentElement.style.setProperty("--mouse-x", `${touch.clientX}px`);
+            document.documentElement.style.setProperty("--mouse-y", `${touch.clientY}px`);
+            
+            if (!document.body.classList.contains("mouse-active")) {
+                document.body.classList.add("mouse-active");
+            }
+        }
+    }, { passive: true });
 }
 
 // ==========================================================================
