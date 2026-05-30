@@ -1,352 +1,181 @@
 # 二分搜尋進階：二分答案與單調性優化
 
-二分搜尋（Binary Search）在演算法競賽中，其應用範疇遠不止於「在有序陣列中尋找特定元素」。它的本質是在**具有單調性（Monotonicity）的決策空間中，尋找可行與不可行的邊界**。當我們將這個思想應用於求解最佳化問題時，便誕生了極具威力的技術——**二分答案（Binary Search on Answer / Bisection on Monotonic Functions）**。
+**簡介**
+提到二分搜尋（Binary Search），沒有經過競程社會毒打的人，腦袋裡浮現的通常是：「喔！就是那個在排好序的陣列裡面，每次切一半找數字的演算法嘛，C++ 裡面叫 `std::lower_bound`。」
+
+但到了競程的進階領域，二分搜尋的終極型態叫做 **「二分答案 (Binary Search on Answer)」**。
+它的核心精神非常霸道：**「與其在那邊苦苦推導最佳解是怎麼湊出來的，不如我直接『猜』一個答案，然後去驗證這個答案行不行！」**
 
 ---
 
-## 1. 核心觀念與基本原理
+## 核心通靈時刻：單調性 (Monotonicity)
 
-### 1.1 單調性（Monotonicity）與二分搜尋的本質
+為什麼我們可以「猜」答案？因為這類問題的決策空間具有**單調性**。
 
-對於一個定義在定義域 $D$ 上的判定函數 $P(x) \in \{\text{True}, \text{False}\}$，如果對於任意的 $a, b \in D$ 且 $a \le b$，皆滿足：
-$$P(b) = \text{True} \implies P(a) = \text{True}$$
-或者反之：
-$$P(a) = \text{True} \implies P(b) = \text{True}$$
-則稱函數 $P(x)$ 具有**單調性**。
+想像一下，如果題目問你：「你最少需要幾秒才能搬完這些磚塊？」
+這很難直接算對吧？但我如果換個問法：「給你 100 秒，你搬得完嗎？」你只要去模擬一次，很容易就能回答我 YES 或 NO。
 
-一旦判定問題具有單調性，答案空間就會被劃分為涇渭分明的兩個部分（例如前半段全是 $\text{True}$，後半段全是 $\text{False}$）。此時，我們不需要遍歷所有可能的答案，而是可以透過「每次折半」的方式，在 $O(\log(\text{值域}))$ 的時間複雜度內精確定位出**可行與不可行的分界點**。
+* 如果 100 秒 **可以 (YES)** $\implies$ 那 101 秒、1000 秒一定也 **可以 (YES)**。
+* 如果 99 秒 **不行 (NO)** $\implies$ 那 98 秒、1 秒一定也 **不行 (NO)**。
 
-```
-狀態空間分佈圖（最大化最小值）：
-[ True, True, True, True, True, False, False, False ]
-                            ^
-                         關鍵邊界（最後一個 True）
-```
+這就是單調性！整個答案的佈局會長得像這樣：`F F F F F T T T T T`（F = 不行，T = 可以）。
+我們要找的「最少時間」，就是**第一個出現 T 的交界點**。既然有排序過（F 在前，T 在後），我們當然可以直接對「答案」進行二分搜尋！
 
 ---
 
-### 1.2 二分答案（Binary Search on Answer）
+## 經典問題建立直覺
 
-許多最優化問題（如：「求某個指標的最大值」或「求某個指標的最小值」）很難直接一步求解，但**判定給定的答案是否可行**卻非常簡單。
+Input:
+N = 5, K = 3
+Array = [2, 4, 7, 3, 5]
 
-二分答案的核心步驟如下：
-1. **確定單調性**：證明當答案為 $x$ 可行時，所有比 $x$ 小（或大）的答案也必定可行。
-2. **確定值域區間 $[L, R]$**：找出答案的下界 $L$ 與上界 $R$，確保最優解必定落在此區間內。
-3. **撰寫判定函數 `check(mid)`**：實作一個高效的演算法（通常是貪心法、動態規劃或圖論算法），用以判斷當答案為 `mid` 時是否合法。
-4. **區間縮減**：根據 `check(mid)` 的回傳值，將搜尋區間折半，直到區間收斂。
+Output:
+8
+(切法為 [2, 4] | [7] | [3, 5]，總和分別是 6, 7, 8，最大值是 8，不可能切出更小的最大值了)
 
-#### 模式一：最大化最小值（Maximize the Minimum）
-這種問題的判定函數性質通常為 `[True, True, ..., True, False, False, ...]`。我們要尋找的是**最後一個滿足條件的合理值**。
+如果用一般的寫法會怎麼寫？
 
-*   **區間更新邏輯**：
-    *   若 `check(mid) == true`，代表 `mid` 是可行的，我們希望嘗試更大的值，故將左邊界右移：`l = mid`。
-    *   若 `check(mid) == false`，代表 `mid` 太大了不可行，我們必須嘗試更小的值，故將右邊界左移：`r = mid - 1`。
-*   **中間值計算**：由於 `l = mid` 可能會導致在區間長度為 2（即 `r = l + 1`）時陷入死迴圈，因此 `mid` 必須向上取整：
-    $$\text{mid} = l + \frac{r - l + 1}{2}$$
+### 暴力解 (Brute Force)
 
-#### 模式二：最小化最大值（Minimize the Maximum）
-這種問題的判定函數性質通常為 `[False, False, ..., True, True, True]`。我們要尋找的是**第一個滿足條件的合理值**。
+🤤：「既然要切 K 段，那我們就寫一個遞迴 DFS，枚舉所有的切點，然後把每種切法的最大值記錄下來，最後取最小值吧～」
 
-*   **區間更新邏輯**：
-    *   若 `check(mid) == true`，代表 `mid` 是可行的，但我們希望尋找更小、更優的答案，故將右邊界左移：`r = mid`。
-    *   若 `check(mid) == false`，代表 `mid` 太小了不可行，答案必然更大，故將左邊界右移：`l = mid + 1`。
-*   **中間值計算**：此時 `mid` 採用一般的向下取整即可：
-    $$\text{mid} = l + \frac{r - l}{2}$$
+複雜度：相當於從 N-1 個空隙中選 K-1 個切點，組合數 $O(\binom{N-1}{K-1})$。遇到 N = $2 \times 10^5$，保證 TLE 炸爛到你阿嬤都不認得。
+
+### DP 腦袋解
+
+開一個二維 DP：`dp[i][k]` 代表前 i 個數字切 k 段的最佳解。
+複雜度：時間 $O(N^2 K)$。N 太大一樣炸開。
 
 ---
 
-### 1.3 離散型二分搜尋 vs 連續型二分搜尋
+### 二分答案解 (Binary Search on Answer)
 
-根據答案所在的數域，二分搜尋可分為**離散型（整數）**與**連續型（實數）**：
+我們不要去想「怎麼切」，我們直接猜答案（猜那個最大的總和 `mid`）！
 
-| 特性 | 離散型二分搜尋（Discrete） | 連續型二分搜尋（Continuous） |
-| :--- | :--- | :--- |
-| **答案類型** | 整數（如：個數、索引、陣列長度） | 實數（如：幾何距離、速度、機率） |
-| **區間調整** | `l = mid + 1` 或 `r = mid - 1` (排除 `mid`) | `l = mid` 或 `r = mid` (無法排除點) |
-| **收斂條件** | `l < r` 或 `l <= r` 區間完全重合 | `r - l > eps`（精度限制）或固定迭代次數 |
-| **死迴圈風險** | 極高，需注意 `mid` 向上/向下取整 | 低，但須防範浮點數精度缺陷造成的死鎖 |
+**步驟拆解：**
 
-> [!TIP]
-> **連續型二分搜尋的「固定迭代次數法」：**
-> 在實數二分搜尋中，使用 `while (r - l > eps)` 有時會因為浮點數精度流失（如當 `l` 和 `r` 非常接近時，由於精度限制 `r - l > eps` 恆成立）而導致超時（TLE）。
-> 實戰中更推薦**固定迭代次數**（例如迴圈執行 100 次）。每次迭代區間減半，100 次迭代後的區間範圍為原來的 $2^{-100} \approx 10^{-30}$，這已遠遠超出雙精度浮點數 `double` 的有效精度（約 15-17 位有效數字），既精準又絕對安全。
-> ```cpp
-> double l = 0.0, r = 1e9;
-> for (int iter = 0; iter < 100; iter++) {
->     double mid = l + (r - l) / 2.0;
->     if (check(mid)) l = mid;
->     else r = mid;
-> }
-> ```
+1. **定義邊界：** * 最小的可能答案 `L` 是多少？極端情況下，我們切 N 段（每個數字自己一段），那最大總和就是陣列中的「最大值」。
+* 最大的可能答案 `R` 是多少？極端情況下，我們只切 1 段，那最大總和就是「整個陣列的總和」。
 
----
 
-## 2. 經典問題實作範本
+2. **撰寫 `check(mid)` 函數：**
+* 給你一個限制條件 `mid`，也就是規定「每一段的總和絕對不能超過 `mid`」。
+* 你能不能用貪心法（Greedy）由左到右掃過去，只要加上目前的數字不會超過 `mid`，就繼續塞；超過了，就狠下心切斷，開新的一段。
+* 最後看看切出來的段數有沒有 $\le K$。如果有，代表這個 `mid` 是可行的 (True)！
 
-我們以經典問題**「憤怒的牛 (Aggressive Cows)」**為例。
-*   **問題描述**：給定 $N$ 個在一直線上的牛欄位置 $x_1, x_2, \dots, x_N$。要將 $C$ 隻牛安置在這些牛欄中，使得任意兩隻牛之間的**最小距離最大化**。求這個最大的最小距離。
-*   **解題思路**：
-    *   若最小距離為 $d$ 時可以安置所有牛，則當距離小於 $d$ 時也必定可以（滿足單調性）。
-    *   `check(d)` 判定函數：使用貪心法。將第一隻牛放在第一個牛欄，依序尋找下一個距離當前牛欄 $\ge d$ 的牛欄放置下一隻牛。如果能放滿 $C$ 隻牛，則返回 `true`，否則返回 `false`。
 
-以下為 C++、Java、Python 三種語言的完整實作範本，均採用標準的 CP 競賽結構。
 
-### 2.1 C++ 實作範本
+**code**
+
+不考慮自己寫嗎…？為了防雷，這邊直接給你競程最標準、絕對不會陷入無窮迴圈的模板：
 
 ```cpp
-#include <iostream>
-#include <vector>
-#include <algorithm>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-// 判定函數：在相鄰牛隻距離至少為 d 的限制下，能否成功放入 C 隻牛
-bool check(long long d, const vector<long long>& positions, int C) {
-    int count = 1; // 第一隻牛固定放在第一個牛欄
-    long long last_position = positions[0];
-    
-    for (size_t i = 1; i < positions.size(); ++i) {
-        if (positions[i] - last_position >= d) {
-            count++;
-            last_position = positions[i];
-            if (count >= C) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+int n, k;
+vector<long long> v;
 
-void solve() {
-    int N, C;
-    if (!(cin >> N >> C)) return;
+// 核心：判斷如果每一段的總和都不超過 mid，能不能在 k 段以內切完？
+bool check(long long mid) {
+    long long current_sum = 0;
+    int chunks = 1; // 至少會有 1 段
     
-    vector<long long> positions(N);
-    for (int i = 0; i < N; ++i) {
-        cin >> positions[i];
-    }
-    
-    // 排序是進行貪心判定的前提
-    sort(positions.begin(), positions.end());
-    
-    // 二分答案的值域範圍
-    long long l = 1; // 最小可能的距離
-    long long r = positions[N - 1] - positions[0]; // 最大可能的距離
-    long long ans = 0;
-    
-    // 最大化最小值模式：尋找最後一個滿足 check 的值
-    while (l <= r) {
-        long long mid = l + (r - l) / 2;
-        if (check(mid, positions, C)) {
-            ans = mid;     // 記錄當前可行解
-            l = mid + 1;   // 嘗試尋找更大距離
+    for (int i = 0; i < n; i++) {
+        // 如果單一元素就超過 mid，代表這個 mid 根本不可能成立
+        if (v[i] > mid) return false; 
+        
+        if (current_sum + v[i] > mid) {
+            // 裝不下了，切斷！開啟新的一段
+            chunks++;
+            current_sum = v[i];
         } else {
-            r = mid - 1;   // 當前距離太大，調小區間
+            // 還裝得下，繼續塞
+            current_sum += v[i];
         }
     }
-    
-    cout << ans << "\n";
+    // 如果切出來的段數 <= k，代表這個 mid 條件夠寬鬆，是可行的
+    return chunks <= k;
 }
 
 int main() {
-    // 高效輸入輸出優化
+    // 優化標準 I/O 速度
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
+
+    if (!(cin >> n >> k)) return 0;
     
-    int t;
-    if (cin >> t) {
-        while (t--) {
-            solve();
+    v.resize(n);
+    long long max_val = 0, sum_val = 0;
+    for (int i = 0; i < n; i++) {
+        cin >> v[i];
+        max_val = max(max_val, v[i]);
+        sum_val += v[i];
+    }
+
+    // 1. 定義二分搜尋邊界
+    long long L = max_val; // 答案不可能比陣列中的最大值還小
+    long long R = sum_val; // 答案最大就是全部包成一段
+
+    long long ans = R;
+
+    // 2. 開始二分搜答案
+    while (L <= R) {
+        long long mid = L + (R - L) / 2; // 防溢位的寫法
+        
+        if (check(mid)) {
+            // mid 可行！代表我們找到了 T。
+            // 但我們想找「最小的 T」，所以先把答案記起來，然後往左邊 (更小) 逼近
+            ans = mid;
+            R = mid - 1;
+        } else {
+            // mid 不行！代表我們撞到 F 了。
+            // 條件太嚴格，必須把 mid 放寬，往右邊找
+            L = mid + 1;
         }
     }
+
+    cout << ans << "\n";
     return 0;
 }
+
 ```
 
----
+複雜度：
 
-### 2.2 Java 實作範本
+* **時間複雜度：** `check()` 跑一次是 O(N)。二分搜尋會切 O(log(Sum)) 次。總時間 O(N log(Sum))。對於十萬級別的數據也是一瞬間就算完。
+* **空間複雜度：** O(N)，只需存陣列。
 
-```java
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.StringTokenizer;
-
-public class Main {
-    // 判定函數：以距離 d 為最小限制，能否安置 C 隻牛
-    private static boolean check(long d, long[] positions, int C) {
-        int count = 1;
-        long lastPosition = positions[0];
-        
-        for (int i = 1; i < positions.length; i++) {
-            if (positions[i] - lastPosition >= d) {
-                count++;
-                lastPosition = positions[i];
-                if (count >= C) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public static void main(String[] args) throws IOException {
-        // 使用 BufferedReader 與 StringTokenizer 進行快速 I/O
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        StringTokenizer st;
-        
-        String line = br.readLine();
-        if (line == null) return;
-        int t = Integer.parseInt(line.trim());
-        
-        while (t-- > 0) {
-            // 跳過可能的空行
-            do {
-                line = br.readLine();
-            } while (line != null && line.trim().isEmpty());
-            
-            if (line == null) break;
-            st = new StringTokenizer(line);
-            int N = Integer.parseInt(st.nextToken());
-            int C = Integer.parseInt(st.nextToken());
-            
-            long[] positions = new long[N];
-            st = new StringTokenizer(br.readLine());
-            for (int i = 0; i < N; i++) {
-                positions[i] = Long.parseLong(st.nextToken());
-            }
-            
-            Arrays.sort(positions);
-            
-            long l = 1;
-            long r = positions[N - 1] - positions[0];
-            long ans = 0;
-            
-            while (l <= r) {
-                long mid = l + (r - l) / 2;
-                if (check(mid, positions, C)) {
-                    ans = mid;
-                    l = mid + 1; // 尋找更大可能
-                } else {
-                    r = mid - 1;
-                }
-            }
-            System.out.println(ans);
-        }
-    }
-}
-```
+**result**
+穩如老狗，直接 AC。
 
 ---
 
-### 2.3 Python 實作範本
+## 常見錯誤與防禦要點 (Corner Cases)
 
-```python
-import sys
+二分答案的觀念超簡單，但實作時死在 `while` 迴圈細節裡的人多到數不清。
 
-def check(d: int, positions: list, C: int) -> bool:
-    """判定函數：在兩隻牛的最小距離至少為 d 時，能否塞下 C 隻牛"""
-    count = 1
-    last_position = positions[0]
-    
-    for i in range(1, len(positions)):
-        if positions[i] - last_position >= d:
-            count += 1
-            last_position = positions[i]
-            if count >= C:
-                return True
-    return False
+| 踩坑點 | 慘痛後果 | 為什麼會這樣？ & 怎麼避免 |
+| --- | --- | --- |
+| **無窮迴圈 (Infinite Loop)** | TLE 到死 | 如果你用 `while(L < R)` 的寫法，很容易在 `L = mid` 的時候卡死（因為整數除法會無條件捨去，`mid` 永遠貼近 `L`）。<br>
 
-def solve():
-    input_data = sys.stdin.read().split()
-    if not input_data:
-        return
-    
-    iterator = iter(input_data)
-    try:
-        t_cases = int(next(iterator))
-    except StopIteration:
-        return
-    
-    out = []
-    for _ in range(t_cases):
-        N = int(next(iterator))
-        C = int(next(iterator))
-        
-        positions = []
-        for _ in range(N):
-            positions.append(int(next(iterator)))
-            
-        # 排序以進行貪心模擬
-        positions.sort()
-        
-        # 二分搜尋邊界
-        l = 1
-        r = positions[-1] - positions[0]
-        ans = 0
-        
-        # 二分答案核心
-        while l <= r:
-            mid = l + (r - l) // 2
-            if check(mid, positions, C):
-                ans = mid
-                l = mid + 1  # 嘗試更大可能
-            else:
-                r = mid - 1
-        out.append(str(ans))
-        
-    print('\n'.join(out))
-
-if __name__ == '__main__':
-    solve()
-```
+<br>**解法：** 乖乖用上面模板 `while(L <= R)` 搭配 `ans = mid; R = mid - 1;` 的寫法，邏輯最清晰，絕對不卡死。 |
+| **右邊界 `R` 沒有開 `long long**` | WA 找半天 | 陣列總和隨便都會超過 `2e9`（32-bit int 的極限），`L`, `R`, `mid` 跟 `current_sum` 請一律乖乖開 `long long`。 |
+| **左邊界 `L` 設為 0** | `check()` 爛掉 | 切陣列的問題，答案最小的極限就是陣列中的**最大元素**。如果你把 `L` 設為 0，當 `mid` 比陣列某個數字還小時，`check` 會無窮切段。記得判斷 `if (v[i] > mid) return false;`。 |
 
 ---
 
-## 3. 複雜度與防禦要點
+## 練習題地圖
 
-### 3.1 複雜度分析
-*   **時間複雜度**：
-    *   **排序階段**：$O(N \log N)$。
-    *   **二分搜尋階段**：設值域大小為 $V = X_{\max} - X_{\min}$，二分搜尋總共需要迭代 $\log_2(V)$ 次。每一次 `check(mid)` 函數內部需要 $O(N)$ 遍歷，故二分搜尋階段的時間複雜度為 $O(N \log V)$。
-    *   **總時間複雜度**：$O(N \log N + N \log V)$。通常在競賽中 $N \le 10^5$, $V \le 10^9$，此演算法可輕鬆在 1 秒內通過。
-*   **空間複雜度**：$O(1)$ 或 $O(N)$，主要取決於儲存牛欄位置的陣列以及排序演算法輔助空間，對記憶體極度友好。
+從簡單到難，去通靈吧：
 
----
+**必做題 (照順序)**
 
-### 3.2 數值溢位防範 (Numerical Overflow)
-*   **防範 `mid` 計算溢位**：
-    不要寫成 `mid = (l + r) / 2`。如果 $l$ 與 $r$ 的數量級達到 $10^9$（如坐標大範圍），兩者相加會超過 32 位元有號整數的上限（`2,147,483,647`），導致溢位變為負數。
-    > [!IMPORTANT]
-    > 應始終使用安全寫法：`mid = l + (r - l) / 2`。
-*   **64 位元整數宣告**：
-    若問題的判定過程涉及「木材總長度累加」（如木材砍伐問題）或「多個數值相加」，累加總和極易超越 32 位元整數。C++ 中必須使用 `long long`，Java 應使用 `long`。
+* CSES 1620 - Factory Machines ⇒ 經典的二分答案題，求最少時間製造出 $T$ 個產品（單調性：時間越多，能做的產品一定越多）。
+* CSES 1085 - Array Division ⇒ 就是上面講的範例題，請不看 code 自己手刻一次。
+* SPOJ AGGRCOW - Aggressive Cows ⇒ 超級經典的農場放牛題（最大化最小值）。給你幾個座標，放 $C$ 頭牛，讓牛跟牛之間的「最短距離」越大越好。
 
----
+**進階 (有空再做)**
 
-### 3.3 邊界情況與防禦設計 (Edge Cases)
-
-1.  **極端輸入 $N=2$ 或 $C=2$**：
-    確保邊界初始值安全，例如當 $C=2$ 時，最佳解顯然是兩端點位置的距離 `positions[N-1] - positions[0]`，二分搜尋應能準確收斂至該值。
-2.  **死迴圈（Infinite Loop）防範**：
-    在整數二分搜尋中，當 `l` 和 `r` 的距離為 1（例如 `l = 3`, `r = 4`）時，若程式碼中寫了 `l = mid` 且 `mid = l + (r - l) / 2`，此時 `mid = 3 + 0 = 3`。若 `check(3)` 為 `true`，區間將更新為 `l = 3`。這會導致搜尋區間毫無變化，程式陷入無窮死迴圈。
-    *   **防禦策略**：
-        1. 採用**「記錄答案型」**寫法（如本章範本所示）：
-           ```cpp
-           while (l <= r) {
-               long long mid = l + (r - l) / 2;
-               if (check(mid)) {
-                   ans = mid;   // 先行記錄可行解
-                   l = mid + 1; // 強制區間縮減，避免死迴圈
-               } else {
-                   r = mid - 1; // 強制區間縮減
-               }
-           }
-           ```
-        2. 採用**「左閉右開」**或**「精確無漏」**更新，但須根據取整方向嚴格配對。
-
-3.  **連續型二分搜尋的 $\epsilon$ (eps) 精度設定**：
-    *   如果題目要求答案精確到小數點後第 $K$ 位，通常將 `eps` 設為 $10^{-(K+2)}$ 以防浮點誤差。
-    *   **保險起見，強烈建議直接使用固定次數的迴圈（如 100 次）**，這能保證完美的精確度與執行效率，徹底杜絕浮點數死鎖。
+* LeetCode 410 - Split Array Largest Sum ⇒ 其實就是 Array Division，只是換個皮，適合拿來檢驗模板手速。
+* Codeforces 1201C - Maximum Median ⇒ 二分答案結合數學貪心，求在只能加 $K$ 次的情況下，陣列的中位數最大可以是多少。
