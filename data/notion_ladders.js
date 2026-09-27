@@ -13,7 +13,7 @@ window.NOTION_LADDERS = [
     "domain": "01 Complete Search & Simulation",
     "sourceCourseId": "38f92ab76d4080d4b7f4c56c089daf56",
     "notionUrl": "https://app.notion.com/p/38f92ab76d4080d4b7f4c56c089daf56",
-    "content": "## [c296. APCS-2016-1029-3定時K彈 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=c296)\n## [c292. APCS2017-0304-3數字龍捲風 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=c292)\n## [f581. 3. 圓環出口 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=f581)\n## [g597. 3. 生產線 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=g597)"
+    "content": "## [c296. APCS-2016-1029-3定時K彈 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=c296)\n## [c292. APCS2017-0304-3數字龍捲風 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=c292)\n## [f581. 3. 圓環出口 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=f581)\n## [g597. 3. 生產線 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=g597)\n<empty-block/>"
   },
   {
     "id": "3e892ab76d408152ab1fed571053561b",
@@ -21,7 +21,7 @@ window.NOTION_LADDERS = [
     "domain": "03 Sorting & Searching",
     "sourceCourseId": "38a92ab76d4080ad99d2ff847b5de635",
     "notionUrl": "https://app.notion.com/p/3e892ab76d408152ab1fed571053561b",
-    "content": "# 一堆題目\n其實這邊很簡單 屬於語法的部分 就會了就好 而且要記得想到要用它\n[B - Guidebook](https://atcoder.jp/contests/abc128/tasks/abc128_b) ⇒ 上面那一題\n[a915. 二维点排序 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=a915) ⇒ 不要用 pair 做"
+    "content": "其實這邊很簡單 屬於語法的部分 就會了就好 而且要記得想到要用它\n[B - Guidebook](https://atcoder.jp/contests/abc128/tasks/abc128_b) ⇒ 上面那一題\n[a915. 二维点排序 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=a915) ⇒ 不要用 pair 做"
   },
   {
     "id": "3e892ab76d408180afe2c76f78173c80",
@@ -37,7 +37,7 @@ window.NOTION_LADDERS = [
     "domain": "03 Sorting & Searching",
     "sourceCourseId": "38f92ab76d40807c8365dacdcacd8790",
     "notionUrl": "https://app.notion.com/p/3e892ab76d4081929b7ccd6ec43fe656",
-    "content": "## 題單\n## [5 二分搜尋 - HackMD](https://hackmd.io/@uein7vE4QUSJkvEnjYid8Q/HyMsrkYMze)\n<details>\n<summary>題單</summary>\n\t**一、 內建函式與基礎序列判定**\n\t- ABC 248 D\n\t- ABC 364 D\n\t- CF 1927 D\n\t**二、 經典極值問題 (Min-Max / Max-Min)**\n\t- **最大值最小化：** **3B Splitting an Array**,<br>ZeroJudge c575 (基地台), CSES Array Division, Typical 90 - 001, TIOJ 1406, JOI 2014 Final (年輪蛋糕), CF 1856 C (To Become Max)\n\t- **最小值最大化：** 2B Ropes, 3C Cows in Stalls, SPOJ AGGRCOW (憤怒的牛)\n\t<details><summary>三、 第 K 大 / 第 K 小判定</summary>\n\t\t- CF EDU A. K-th Number in the Union of Segments\n\t\t- CF EDU C. K-th Sum\n\t\t- TIOJ 1208. 第K大連續和\n\t\t- 2023 TOI 初選 pB. 裁員風暴\n\t\t- ABC 107 D\n\t\t- AGC 006 D\n\t\t- CS Academy - K Inversions\n\t</details>\n\t**四、 時間、產能與資源分配模型**\n\t- 2C Very Easy Task\n\t- 2D Children Holiday\n\t- 2G Student Councils\n\t- 2H Hamburgers\n\t- CSES Factory Machines\n\t- 2021 TOI pB. 掃地機器人\n\t- TIOJ 1598. 希爾伯特的房客\n\t**五、 浮點數與連續域**\n\t- 2E Equation\n\t- 3A Get together\n\t- TIOJ 2240\n\t<details><summary>六、 2D 網格與矩陣分割</summary>\n\t\t- TIOJ 1669. 征戰天龍國\n\t\t- JOI 2017 Final JOIOI 王国\n\t\t- USACO 2011 MAR Brownie Slicing G\n\t\t- 2019 全國賽 史蒂芬與獵人 / LeetCode 363\n\t\t- 2024 TOI 模擬賽 I pD. ⽩板擦數量\n\t\t- 2020 全國賽 pG. 矩陣相乘\n\t</details>\n\t<details><summary>七、 結合進階資料結構與 DP</summary>\n\t\t- CF 1918 D. Blocking Elements\n\t\t- CF 1923 D. Slimes\n\t\t- 2021 附中模競 II pD. 調色盤\n\t\t- LOJ #2086. 「NOI2016」区间\n\t\t- ABC 236 E\n\t</details>\n\t<details><summary>八、 複合圖論、數學與貪心模擬</summary>\n\t\t- USACO 2018 OPEN Talent Show G\n\t\t- 3D Pair Selection\n\t\t- 2021 全國賽 pD. 汽車不再繞圈圈\n\t\t- USACO 2017 DEC Greedy Gift Takers P\n\t\t- CF 1853 C. Ntarsis' Set\n\t\t- Google Code Jam 2020 Round2 P1\n\t\t- 2021 全國賽 pH. 天竺鼠遊行\n\t\t- TIOJ 1337\n\t\t- TIOJ 1597\n\t\t- 2A Packing Rectangles\n\t\t- 2F String Game\n\t</details>\n\t<details><summary>九、 互動觀念與特殊驗證</summary>\n\t\t- TIOJ 1044\n\t\t- TIOJ 1945\n\t\t- ARC 179 C\n\t\t- 面試題 - 毒藥查找\n\t</details>\n</details>"
+    "content": "## 一大堆題目 （我希望可以一小時帶完\n## [5 二分搜尋 - HackMD](https://hackmd.io/@uein7vE4QUSJkvEnjYid8Q/HyMsrkYMze)\n<details>\n<summary>題單</summary>\n\t**一、 內建函式與基礎序列判定**\n\t- ABC 248 D\n\t- ABC 364 D\n\t- CF 1927 D\n\t**二、 經典極值問題 (Min-Max / Max-Min)**\n\t- **最大值最小化：** **3B Splitting an Array**,<br>ZeroJudge c575 (基地台), CSES Array Division, Typical 90 - 001, TIOJ 1406, JOI 2014 Final (年輪蛋糕), CF 1856 C (To Become Max)\n\t- **最小值最大化：** 2B Ropes, 3C Cows in Stalls, SPOJ AGGRCOW (憤怒的牛)\n\t<details>\n\t<summary><span color=\"red\">**三、 第 K 大 / 第 K 小判定**</span></summary>\n\t\t- CF EDU A. K-th Number in the Union of Segments\n\t\t- CF EDU C. K-th Sum\n\t\t- TIOJ 1208. 第K大連續和\n\t\t- 2023 TOI 初選 pB. 裁員風暴\n\t\t- ABC 107 D\n\t\t- AGC 006 D\n\t\t- CS Academy - K Inversions\n\t</details>\n\t**四、 時間、產能與資源分配模型**\n\t- **2C Very Easy Task**\n\t- 2D Children Holiday\n\t- 2G Student Councils\n\t- 2H Hamburgers\n\t- CSES Factory Machines\n\t- 2021 TOI pB. 掃地機器人\n\t- TIOJ 1598. 希爾伯特的房客\n\t**五、 浮點數與連續域**\n\t- **2E Equation**\n\t- 3A Get together\n\t- TIOJ 2240\n\t<details>\n\t<summary>**六、 2D 網格與矩陣分割**</summary>\n\t\t- TIOJ 1669. 征戰天龍國\n\t\t- JOI 2017 Final JOIOI 王国\n\t\t- USACO 2011 MAR Brownie Slicing G\n\t\t- 2019 全國賽 史蒂芬與獵人 / LeetCode 363\n\t\t- 2024 TOI 模擬賽 I pD. ⽩板擦數量\n\t\t- 2020 全國賽 pG. 矩陣相乘\n\t</details>\n\t<details>\n\t<summary>**七、 結合進階資料結構與 DP**</summary>\n\t\t- CF 1918 D. Blocking Elements\n\t\t- CF 1923 D. Slimes\n\t\t- 2021 附中模競 II pD. 調色盤\n\t\t- LOJ #2086. 「NOI2016」区间\n\t\t- ABC 236 E\n\t</details>\n\t<details>\n\t<summary>**八、 複合圖論、數學與貪心模擬**</summary>\n\t\t- USACO 2018 OPEN Talent Show G (0-1 分數規劃)\n\t\t- 3D Pair Selection (0-1 分數規劃)\n\t\t- 2021 全國賽 pD. 汽車不再繞圈圈 (拓樸排序判環)\n\t\t- USACO 2017 DEC Greedy Gift Takers P (平移與循環模擬)\n\t\t- CF 1853 C. Ntarsis' Set (指標位移推導)\n\t\t- Google Code Jam 2020 Round2 P1. (數學推導/雙層二分搜)\n\t\t- 2021 全國賽 pH. 天竺鼠遊行\n\t\t- TIOJ 1337 (貪心與集合維護)\n\t\t- TIOJ 1597 (圖論與三分搜)\n\t\t- 2A Packing Rectangles (幾何公式)\n\t\t- 2F String Game (字串與雙指標)\n\t</details>\n\t<details>\n\t<summary>**九、 互動觀念與特殊驗證**</summary>\n\t\t- TIOJ 1044\n\t\t- TIOJ 1945\n\t\t- ARC 179 C\n\t\t- 面試題 - 毒藥查找\n\t</details>\n</details>"
   },
   {
     "id": "3e892ab76d4081eeac7af300f0d7c881",
@@ -45,7 +45,7 @@ window.NOTION_LADDERS = [
     "domain": "06 Graphs",
     "sourceCourseId": "3d492ab76d40807c8646ecb550723470",
     "notionUrl": "https://app.notion.com/p/3e892ab76d4081eeac7af300f0d7c881",
-    "content": "# 實戰題目\n[D - Coefficient Stair](https://atcoder.jp/contests/abc473/tasks/abc473_d)"
+    "content": "[D - Coefficient Stair](https://atcoder.jp/contests/abc473/tasks/abc473_d)"
   },
   {
     "id": "3e892ab76d4081d8b08ddf594b1d9995",
