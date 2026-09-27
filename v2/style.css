@@ -142,3 +142,15 @@ html[data-theme="dark"] .hljs-number,html[data-theme="dark"] .hljs-symbol,html[d
 html[data-theme="dark"] .hljs-meta,html[data-theme="dark"] .hljs-meta .hljs-keyword{color:#7ee787}
 html[data-theme="dark"] .hljs-variable,html[data-theme="dark"] .hljs-template-variable,html[data-theme="dark"] .hljs-attr{color:#ffa657}
 html[data-theme="dark"] .hljs-params{color:#c9d1d9}
+
+.migrated-ladders{margin:14px 0 18px}
+.migrated-ladder{border-bottom:1px solid var(--line)}
+.migrated-ladder:first-child{border-top:1px solid var(--line)}
+.migrated-ladder>summary{display:flex;align-items:center;gap:10px;padding:11px 2px;cursor:pointer;font-size:12px;font-weight:600;list-style:none}
+.migrated-ladder>summary::-webkit-details-marker{display:none}
+.migrated-ladder>summary:hover{background:var(--surface-2)}
+.migrated-ladder-body{padding:4px 2px 18px 34px;font-size:13px}
+.migrated-ladder-body h1,.migrated-ladder-body h2,.migrated-ladder-body h3{font-size:14px;margin:18px 0 8px}
+.migrated-ladder-body details{margin:8px 0}
+.migrated-ladder-body summary{cursor:pointer;font-weight:600}
+.migrated-ladder-body li{margin:4px 0}
