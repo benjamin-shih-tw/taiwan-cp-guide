@@ -118,6 +118,17 @@
       .replace(/"/g, "&quot;");
   }
 
+  function courseDisplayTitle(course) {
+    let title = String((course && course.title) || "").trim();
+    title = title.replace(/^Lecture_\d+(?:-\d+(?:\.\d+)?)?\s*/i, "");
+    title = title.replace(/^\|\s*[^|]+\s*\|\s*/, "");
+    return title.trim() || String((course && course.title) || "").trim();
+  }
+
+  function displayNumber(index) {
+    return String(index + 1).padStart(2, "0");
+  }
+
   function initData() {
     const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
     if (!roadmapData.length) return;
@@ -305,7 +316,7 @@
     const continueDesc = document.getElementById("continue-desc");
     const continueBtn = document.getElementById("continue-btn");
     if (next) {
-      continueTitle.textContent = next.title;
+      continueTitle.textContent = courseDisplayTitle(next);
       continueDesc.hidden = true;
       continueDesc.textContent = "";
       continueBtn.hidden = false;
@@ -355,13 +366,14 @@
 
       const nodes = document.createElement("div");
       nodes.className = "roadmap-nodes";
-      group.courses.forEach(course => {
+      group.courses.forEach((course, courseIndex) => {
         const done = state.read.includes(course.id);
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "");
         const badge = course.difficulty == null ? "" : '<span class="node-badge">難度 ' + esc(course.difficulty) + '/10</span>';
         node.innerHTML =
-          '<div class="node-top"><h3>' + esc(course.title) + "</h3>" + badge + "</div>" +
+          '<div class="node-top"><h3><span class="course-no">' + displayNumber(courseIndex) + '</span>' +
+          esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "");
         node.onclick = () => openLesson(course.id, true);
         nodes.appendChild(node);
@@ -418,6 +430,7 @@
       grid.className = "unit-course-grid";
 
       courses.forEach(course => {
+        const courseIndex = group.courses.findIndex(item => item.id === course.id);
         const card = document.createElement("article");
         card.className = "course-card";
         const diff = course.difficulty;
@@ -431,7 +444,7 @@
 
         card.innerHTML =
           ((relationTags || difficultyTag) ? '<div class="tag-row">' + relationTags + difficultyTag + '</div>' : "") +
-          "<h3>" + esc(course.title) + "</h3>" +
+          "<h3><span class=\"course-no\">" + displayNumber(courseIndex) + "</span>" + esc(courseDisplayTitle(course)) + "</h3>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
           footer;
         card.onclick = () => openLesson(course.id, true);
@@ -490,7 +503,7 @@
       row.className = "problem-course-row";
       row.innerHTML =
         '<span class="problem-course-index">' + String(index + 1).padStart(2, "0") + "</span>" +
-        '<span class="problem-course-name">' + esc(course.title) + "</span>" +
+        '<span class="problem-course-name">' + esc(courseDisplayTitle(course)) + "</span>" +
         (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
         '<span class="problem-course-arrow">→</span>';
       row.onclick = () => openLesson(course.id, true);
@@ -524,8 +537,7 @@
     const ladder = document.getElementById("problem-ladder");
     ladder.innerHTML = "";
 
-    let step = 0;
-    allEntries.forEach(({ row }) => {
+    allEntries.forEach(({ row }, entryIndex) => {
       const problems = (row.topic.problems || []).filter(problem => {
         const solvedNow = state.solved.includes(problem.id);
         const text = ((problem.name || "") + " " + (problem.platform || "")).toLowerCase();
@@ -535,7 +547,7 @@
       });
       if (!problems.length) return;
 
-      step++;
+      const step = entryIndex + 1;
       const block = document.createElement("section");
       block.className = "ladder-step";
 
@@ -604,7 +616,7 @@
     const domains = course.domains && course.domains.length ? course.domains : [];
     document.getElementById("lesson-breadcrumb").textContent =
       "Coding Course" + (domains.length ? " / " + domains.join(" / ") : "");
-    document.getElementById("lesson-title").textContent = course.title || "";
+    document.getElementById("lesson-title").textContent = courseDisplayTitle(course);
 
     const desc = document.getElementById("lesson-desc");
     if (course.details) {
@@ -766,7 +778,7 @@
         const item = document.createElement("div");
         item.className = "search-result";
         item.innerHTML =
-          "<strong>" + esc(course.title) + "</strong>" +
+          "<strong>" + esc(courseDisplayTitle(course)) + "</strong>" +
           "<small>" + ((course.domains || []).length ? esc(course.domains.join(" · ")) : "未歸類") + "</small>";
         item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
