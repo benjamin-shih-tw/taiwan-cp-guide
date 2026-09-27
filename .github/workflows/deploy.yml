@@ -25,20 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install renderer dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Build Notion renderer and recordMaps
-        env:
-          NOTION_TOKEN_V2: ${{ secrets.NOTION_TOKEN_V2 }}
-          NOTION_ACTIVE_USER: ${{ secrets.NOTION_ACTIVE_USER }}
-        run: npm run build
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

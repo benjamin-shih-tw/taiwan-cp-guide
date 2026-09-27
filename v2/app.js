@@ -248,6 +248,16 @@
     if (themeMeta) themeMeta.setAttribute("content", dark ? "#111111" : "#ffffff");
     const btn = document.getElementById("theme-toggle");
     if (btn) btn.textContent = dark ? "☀" : "◐";
+    document.querySelectorAll("iframe.notion-embed-frame").forEach(frame => {
+      try {
+        const url = new URL(frame.src);
+        const nextTheme = dark ? "dark" : "light";
+        if (url.searchParams.get("theme") !== nextTheme) {
+          url.searchParams.set("theme", nextTheme);
+          frame.src = url.toString();
+        }
+      } catch (_) {}
+    });
   }
 
   function showView(name) {
@@ -527,9 +537,15 @@
         "<span>" + esc(label) + "</span>";
       const body = document.createElement("div");
       body.className = "migrated-ladder-body markdown-body";
-      renderNotionPageInto(body, ladder.id, ladder.content || "", false);
+      const loadLadder = () => {
+        if (!details.open || body.dataset.loaded === "1") return;
+        body.dataset.loaded = "1";
+        renderNotionPageInto(body, ladder.id, ladder.content || "", false);
+      };
+      details.addEventListener("toggle", loadLadder);
       details.append(summary, body);
       migratedHost.appendChild(details);
+      loadLadder();
     });
     const platformSelect = document.getElementById("problem-platform");
     if (platformSelect.options.length <= 1) {
@@ -856,46 +872,72 @@
   }
 
   let notionRenderCounter = 0;
+  let notionEmbedMessageReady = false;
 
-  async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc) {
+  function ensureNotionEmbedMessageHandler() {
+    if (notionEmbedMessageReady) return;
+    notionEmbedMessageReady = true;
+
+    window.addEventListener("message", event => {
+      if (event.origin !== "https://benjaminshih.vercel.app") return;
+      const data = event.data || {};
+      if (data.type !== "coding-course:notion-height") return;
+
+      const height = Math.max(120, Math.min(30000, Number(data.height) || 0));
+      if (!height) return;
+
+      document.querySelectorAll("iframe.notion-embed-frame").forEach(frame => {
+        if (frame.contentWindow === event.source) {
+          frame.style.height = height + "px";
+        }
+      });
+    });
+  }
+
+  function notionEmbedUrl(pageId) {
+    const cleanId = String(pageId || "").replace(/-/g, "");
+    const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    return "https://benjaminshih.vercel.app/embed/" + encodeURIComponent(cleanId) + "?theme=" + theme;
+  }
+
+  function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc) {
+    ensureNotionEmbedMessageHandler();
+
     const token = String(++notionRenderCounter);
     host.dataset.notionRenderToken = token;
+    host.classList.remove("markdown-body", "notion-x-host");
+    host.classList.add("notion-iframe-host");
+    host.replaceChildren();
 
-    if (window.NotionXBridge && typeof window.NotionXBridge.render === "function") {
-      try {
-        const cleanId = String(pageId || "").replace(/-/g, "");
-        const response = await fetch("../data/notion-recordmaps/" + encodeURIComponent(cleanId) + ".json", {
-          cache: "no-store"
-        });
+    const iframe = document.createElement("iframe");
+    iframe.className = "notion-embed-frame";
+    iframe.dataset.pageId = String(pageId || "").replace(/-/g, "");
+    iframe.src = notionEmbedUrl(pageId);
+    iframe.title = "Notion lesson";
+    iframe.loading = "eager";
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+    iframe.setAttribute("scrolling", "no");
+    iframe.style.height = "680px";
 
-        if (response.ok) {
-          const recordMap = await response.json();
-          if (host.dataset.notionRenderToken !== token) return;
-
-          host.classList.remove("markdown-body");
-          host.classList.add("notion-x-host");
-          window.NotionXBridge.render(host, recordMap);
-
-          if (makeToc) {
-            setTimeout(() => {
-              if (host.dataset.notionRenderToken === token) buildToc(host);
-            }, 80);
-          }
-          return;
-        }
-      } catch (error) {
-        console.warn("[Notion renderer] recordMap fallback:", pageId, error);
+    let settled = false;
+    iframe.addEventListener("load", () => {
+      settled = true;
+      if (makeToc) {
+        const toc = document.getElementById("lesson-toc");
+        if (toc) toc.innerHTML = '<span style="font-size:11px;color:var(--muted)">本篇使用 Notion 原生渲染。</span>';
       }
-    }
+    });
 
-    if (host.dataset.notionRenderToken !== token) return;
-    if (window.NotionXBridge && typeof window.NotionXBridge.unmount === "function") {
-      window.NotionXBridge.unmount(host);
-    }
-    host.classList.remove("notion-x-host");
-    host.classList.add("markdown-body");
-    renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
+    iframe.addEventListener("error", () => {
+      if (settled || host.dataset.notionRenderToken !== token) return;
+      host.classList.remove("notion-iframe-host");
+      host.classList.add("markdown-body");
+      renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
+    });
+
+    host.appendChild(iframe);
   }
+
 
   function renderNotionMarkdownInto(host, markdown, makeToc) {
     const source = String(markdown || "");

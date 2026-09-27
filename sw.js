@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v15";
+const CACHE_NAME = "taiwan-cp-guide-v18";
 const CORE = [
   "./",
   "./index.html",
@@ -32,21 +32,6 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (!event.request.url.startsWith("http")) return;
-
-  if (new URL(event.request.url).pathname.includes("/data/notion-recordmaps/")) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(
