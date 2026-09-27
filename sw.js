@@ -4,6 +4,8 @@ const CORE = [
   "./index.html",
   "./v2/index.html",
   "./v2/style.css",
+  "./v2/effects.css",
+  "./v2/effects.js",
   "./v2/app.js",
   "./data/roadmap.js",
   "./data/templates.js",
