@@ -851,7 +851,9 @@
       .replace(/(^|\n)[ \t]*(<table\b)/gi, "$1\n$2")
       .replace(/<\/table>[ \t]*(?=\n|$)/gi, "</table>\n\n")
       .replace(/(^|\n)[ \t]*(<details\b)/gi, "$1\n$2")
-      .replace(/<\/details>[ \t]*(?=\n|$)/gi, "</details>\n\n");
+      .replace(/<\/details>[ \t]*(?=\n|$)/gi, "</details>\n\n")
+      .replace(/(^|\n)[ \t]*```/g, "$1```")
+      .replace(/```[ \t]*(?=\n|$)/g, "```\n");
   }
 
   function escapeNonHtmlAngles(markdown) {
@@ -872,7 +874,10 @@
   }
 
   function preprocessNotionMarkdown(markdown) {
-    const normalized = normalizeNotionMath(markdown);
+    const normalized = normalizeNotionMath(markdown)
+      .split("\n")
+      .map(line => line.replace(/^\t+/, ""))
+      .join("\n");
     const protectedCode = protectMarkdownCode(normalized);
     let text = protectedCode.text;
 
