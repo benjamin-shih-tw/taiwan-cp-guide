@@ -261,12 +261,21 @@
   }
 
   function showView(name) {
-    const valid = ["home", "roadmap", "courses", "problems", "resources"];
+    const valid = ["welcome", "home", "roadmap", "courses", "problems", "resources"];
     if (!valid.includes(name)) name = "home";
     state.baseView = name;
+    document.body.classList.toggle("welcome-active", name === "welcome");
     document.querySelectorAll(".view").forEach(el => el.classList.toggle("active", el.dataset.view === name));
     document.querySelectorAll("[data-nav]").forEach(el => el.classList.toggle("active", el.dataset.nav === name));
     window.scrollTo({ top: 0, behavior: "auto" });
+    if (name === "welcome") {
+      renderWelcome();
+      if (window.CourseFX && typeof window.CourseFX.activateWelcome === "function") {
+        window.CourseFX.activateWelcome();
+      }
+    } else if (window.CourseFX && typeof window.CourseFX.deactivateWelcome === "function") {
+      window.CourseFX.deactivateWelcome();
+    }
     if (name === "home") renderHome();
     if (name === "roadmap") renderRoadmap();
     if (name === "courses") renderCourses();
@@ -275,7 +284,7 @@
   }
 
   function router() {
-    const hash = location.hash || "#/home";
+    const hash = location.hash || "#/welcome";
     const clean = hash.replace(/^#\/?/, "");
     const parts = clean.split("/").filter(Boolean);
 
@@ -294,7 +303,40 @@
     }
 
     closeLesson(false);
-    showView(parts[0] || "home");
+    showView(parts[0] || "welcome");
+  }
+
+  function renderWelcome() {
+    const totalCourses = NOTION_COURSES.length;
+    const totalDomains = NOTION_DOMAIN_ORDER.length;
+    const totalLadders = NOTION_LADDERS.length;
+    const doneCourses = state.read.filter(id => notionCourseMap.has(id)).length;
+    const progress = totalCourses ? Math.round(doneCourses / totalCourses * 100) : 0;
+
+    const stats = [
+      ["welcome-course-count", totalCourses, ""],
+      ["welcome-domain-count", totalDomains, ""],
+      ["welcome-ladder-count", totalLadders, ""],
+      ["welcome-progress-count", progress, "%"]
+    ];
+
+    stats.forEach(([id, value, suffix]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.dataset.count = String(value);
+      el.dataset.suffix = suffix;
+    });
+
+    const track = document.getElementById("welcome-domain-track");
+    if (track) {
+      const names = NOTION_DOMAIN_ORDER.length ? NOTION_DOMAIN_ORDER : notionDomainGroups().map(group => group.domain.name);
+      const loop = [...names, ...names];
+      track.innerHTML = loop.map(name => '<span>' + esc(name) + '</span>').join("");
+    }
+
+    if (window.CourseFX && typeof window.CourseFX.refreshWelcome === "function") {
+      window.CourseFX.refreshWelcome();
+    }
   }
 
   function renderHome() {

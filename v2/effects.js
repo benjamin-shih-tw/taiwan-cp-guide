@@ -48,7 +48,10 @@
     ".course-card",
     ".problem-domain-card",
     ".problem-course-row",
-    ".resource-card"
+    ".resource-card",
+    ".welcome-cta",
+    ".welcome-feature-card",
+    ".welcome-final-link"
   ].join(",");
 
   document.addEventListener("pointerdown", event => {
@@ -108,8 +111,111 @@
     } catch (_) {}
   }
 
+  let welcomeInitialized = false;
+  let welcomeObserver = null;
+  let welcomeRaf = 0;
+  let welcomeActive = false;
+
+  function animateWelcomeCounter(el) {
+    if (!el) return;
+    const target = Number(el.dataset.count || 0);
+    const suffix = el.dataset.suffix || "";
+    if (reduceMotion) {
+      el.textContent = target + suffix;
+      return;
+    }
+
+    const start = performance.now();
+    const duration = 720;
+    const tick = now => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(target * eased) + suffix;
+      if (t < 1 && welcomeActive) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function setupWelcome() {
+    if (welcomeInitialized) return;
+    welcomeInitialized = true;
+
+    const view = document.querySelector(".welcome-view-page");
+    if (!view) return;
+
+    if (!reduceMotion) {
+      view.addEventListener("pointermove", event => {
+        if (!welcomeActive) return;
+        cancelAnimationFrame(welcomeRaf);
+        welcomeRaf = requestAnimationFrame(() => {
+          const rect = view.getBoundingClientRect();
+          view.style.setProperty("--welcome-x", ((event.clientX - rect.left) / rect.width * 100).toFixed(2) + "%");
+          view.style.setProperty("--welcome-y", ((event.clientY - rect.top) / Math.max(rect.height, 1) * 100).toFixed(2) + "%");
+        });
+      }, { passive: true });
+
+      view.querySelectorAll(".welcome-feature-card").forEach(card => {
+        card.addEventListener("pointermove", event => {
+          const rect = card.getBoundingClientRect();
+          const px = (event.clientX - rect.left) / rect.width - .5;
+          const py = (event.clientY - rect.top) / rect.height - .5;
+          card.style.setProperty("--card-rx", (-py * 2.5).toFixed(2) + "deg");
+          card.style.setProperty("--card-ry", (px * 3.5).toFixed(2) + "deg");
+        }, { passive: true });
+        card.addEventListener("pointerleave", () => {
+          card.style.setProperty("--card-rx", "0deg");
+          card.style.setProperty("--card-ry", "0deg");
+        });
+      });
+    }
+
+    if ("IntersectionObserver" in window && !reduceMotion) {
+      welcomeObserver = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            welcomeObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: .16, rootMargin: "0px 0px -7% 0px" });
+    }
+  }
+
+  function refreshWelcome() {
+    const view = document.querySelector(".welcome-view-page");
+    if (!view || !welcomeActive) return;
+
+    view.querySelectorAll("[data-welcome-reveal]").forEach(el => {
+      el.classList.remove("is-visible");
+      if (welcomeObserver) welcomeObserver.observe(el);
+      else el.classList.add("is-visible");
+    });
+
+    view.querySelectorAll("[data-count]").forEach(animateWelcomeCounter);
+  }
+
+  function activateWelcome() {
+    setupWelcome();
+    const view = document.querySelector(".welcome-view-page");
+    if (!view) return;
+
+    welcomeActive = true;
+    view.classList.remove("welcome-ready");
+    void view.offsetWidth;
+    requestAnimationFrame(() => view.classList.add("welcome-ready"));
+    refreshWelcome();
+  }
+
+  function deactivateWelcome() {
+    welcomeActive = false;
+    cancelAnimationFrame(welcomeRaf);
+  }
+
   window.CourseFX = {
     burst,
-    themeReveal
+    themeReveal,
+    activateWelcome,
+    deactivateWelcome,
+    refreshWelcome
   };
 })();

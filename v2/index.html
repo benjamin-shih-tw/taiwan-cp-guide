@@ -30,6 +30,121 @@
   </header>
 
   <main id="app">
+    <section class="view welcome-view-page" data-view="welcome">
+      <div class="welcome-spotlight" aria-hidden="true"></div>
+      <div class="welcome-grid" aria-hidden="true"></div>
+
+      <header class="welcome-nav">
+        <a class="welcome-brand" href="#/welcome">Coding Course</a>
+        <a class="welcome-skip" href="#/home">Skip intro <span>↗</span></a>
+      </header>
+
+      <section class="welcome-hero">
+        <div class="welcome-hero-copy">
+          <p class="welcome-kicker" data-welcome-reveal>Competitive Programming, organized.</p>
+          <h1 class="welcome-display" aria-label="Think. Solve. AC.">
+            <span class="welcome-word" style="--word-delay:0ms">Think.</span>
+            <span class="welcome-word" style="--word-delay:110ms">Solve.</span>
+            <span class="welcome-word welcome-word-ac" style="--word-delay:220ms">AC.</span>
+          </h1>
+          <p class="welcome-lead" data-welcome-reveal>
+            從概念、練習到題單。把競程學習需要的東西放在同一條路線上。
+          </p>
+
+          <div class="welcome-actions" data-welcome-reveal>
+            <a class="welcome-cta welcome-cta-primary" href="#/home">開始學習 <span>→</span></a>
+            <a class="welcome-cta" href="#welcome-features">看看功能</a>
+          </div>
+        </div>
+
+        <div class="welcome-stats" data-welcome-reveal>
+          <div>
+            <strong id="welcome-course-count" data-count="0">0</strong>
+            <span>課程</span>
+          </div>
+          <div>
+            <strong id="welcome-domain-count" data-count="0">0</strong>
+            <span>單元</span>
+          </div>
+          <div>
+            <strong id="welcome-ladder-count" data-count="0">0</strong>
+            <span>題單</span>
+          </div>
+          <div>
+            <strong id="welcome-progress-count" data-count="0" data-suffix="%">0%</strong>
+            <span>你的進度</span>
+          </div>
+        </div>
+
+        <a class="welcome-scroll" href="#welcome-features" aria-label="往下看功能">
+          <span>Scroll</span><i></i>
+        </a>
+      </section>
+
+      <div class="welcome-marquee" aria-hidden="true">
+        <div id="welcome-domain-track" class="welcome-domain-track"></div>
+      </div>
+
+      <section id="welcome-features" class="welcome-feature-section">
+        <div class="welcome-section-intro" data-welcome-reveal>
+          <span>01 — HOW IT WORKS</span>
+          <h2>學完，就知道<br>下一步要做什麼。</h2>
+        </div>
+
+        <div class="welcome-feature-list">
+          <a class="welcome-feature-card" href="#/courses" data-welcome-reveal>
+            <span class="welcome-feature-no">01</span>
+            <div>
+              <h3>課程</h3>
+              <p>依主題排序的教材。正文直接使用你的 Notion 內容。</p>
+            </div>
+            <span class="welcome-feature-arrow">↗</span>
+          </a>
+
+          <a class="welcome-feature-card" href="#/problems" data-welcome-reveal>
+            <span class="welcome-feature-no">02</span>
+            <div>
+              <h3>Problem Ladder</h3>
+              <p>學完一個主題，直接接著刷對應題單。</p>
+            </div>
+            <span class="welcome-feature-arrow">↗</span>
+          </a>
+
+          <a class="welcome-feature-card" href="#/home" data-welcome-reveal>
+            <span class="welcome-feature-no">03</span>
+            <div>
+              <h3>Progress</h3>
+              <p>記住完成的課程與題目，回來就從上次的位置繼續。</p>
+            </div>
+            <span class="welcome-feature-arrow">↗</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="welcome-loop">
+        <div class="welcome-section-intro" data-welcome-reveal>
+          <span>02 — LEARNING LOOP</span>
+          <h2>一條很簡單的路。</h2>
+        </div>
+
+        <div class="welcome-loop-line" data-welcome-reveal>
+          <article><span>01</span><strong>Learn</strong><p>先理解概念</p></article>
+          <i></i>
+          <article><span>02</span><strong>Practice</strong><p>做幾題確認</p></article>
+          <i></i>
+          <article><span>03</span><strong>Review</strong><p>標記要重刷的地方</p></article>
+          <i></i>
+          <article class="welcome-loop-ac"><span>04</span><strong>AC</strong><p>繼續下一個主題</p></article>
+        </div>
+      </section>
+
+      <section class="welcome-final" data-welcome-reveal>
+        <p>Ready?</p>
+        <h2>開始寫題。</h2>
+        <a class="welcome-final-link" href="#/home">Enter Coding Course <span>→</span></a>
+      </section>
+    </section>
+
     <section class="view active" data-view="home">
       <header class="home-head">
         <h1>Coding Course</h1>
