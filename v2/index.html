@@ -76,14 +76,33 @@
     </section>
 
     <section class="view" data-view="problems">
-      <div class="page-head"><h1>題庫</h1></div>
-      <div class="toolbar">
-        <label class="searchbox"><span>⌕</span><input id="problem-search" type="search" placeholder="搜尋"></label>
-        <select id="problem-platform"><option value="all">全部平台</option></select>
-        <label class="check-control"><input id="hide-solved" type="checkbox"> 隱藏完成</label>
+      <div id="problem-domain-home">
+        <div class="page-head"><h1>題庫</h1></div>
+        <div id="problem-domain-grid" class="problem-domain-grid"></div>
       </div>
-      <div id="problem-progress" class="progress-card"></div>
-      <div id="problem-ladder" class="problem-ladder"></div>
+
+      <div id="problem-domain-detail" hidden>
+        <div class="problem-detail-head">
+          <button id="problem-domain-back" class="text-button">← 題庫</button>
+          <h1 id="problem-domain-title"></h1>
+        </div>
+
+        <section class="problem-subsection">
+          <div class="problem-subsection-head"><h2>課程</h2></div>
+          <div id="problem-course-list" class="problem-course-list"></div>
+        </section>
+
+        <section class="problem-subsection">
+          <div class="problem-subsection-head"><h2>Problem Ladder</h2></div>
+          <div class="toolbar problem-toolbar">
+            <label class="searchbox"><span>⌕</span><input id="problem-search" type="search" placeholder="搜尋題目"></label>
+            <select id="problem-platform"><option value="all">全部平台</option></select>
+            <label class="check-control"><input id="hide-solved" type="checkbox"> 隱藏完成</label>
+          </div>
+          <div id="problem-progress" class="progress-card"></div>
+          <div id="problem-ladder" class="problem-ladder"></div>
+        </section>
+      </div>
     </section>
 
     <section class="view" data-view="resources">
