@@ -26,6 +26,67 @@
   const ROADMAP = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
   const TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
 
+  const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
+  const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
+
+  const NOTION_LECTURE_TO_ROADMAP = {
+    "2f392ab7-6d40-80d7-a19a-f426c0398dce":"time-complexity",
+    "2e392ab7-6d40-80f5-9f95-d0827281ae23":"complete-rec",
+    "2f092ab7-6d40-8081-a00f-e22eef47cad3":"complete-rec",
+    "2e392ab7-6d40-80e3-95f4-f494a3e8f880":"intro-ds",
+    "2e392ab7-6d40-804a-8528-e27899e46dc3":"priority-queues",
+    "2e392ab7-6d40-8002-8b6f-fbb7dc2b29ed":"intro-sets-maps",
+    "2e392ab7-6d40-803e-83b7-ec46acf28ffb":"intro-sorting",
+    "2e392ab7-6d40-806c-873a-c58c7f3d77a3":"intro-sorting",
+    "33092ab7-6d40-808c-9a81-d540a6d662a1":"two-pointers",
+    "33092ab7-6d40-8008-a0a7-c08a54a35c52":"binary-search",
+    "36e92ab7-6d40-806b-bf5a-f50e80105a2b":"enumeration-bruteforce",
+    "36e92ab7-6d40-8069-8f55-dbe8082655d6":"intro-greedy",
+    "2e392ab7-6d40-8076-acd9-d02a39ee64f3":"basic-dp",
+    "2e392ab7-6d40-8019-a704-c34f01b2ab1c":"knapsack",
+    "2e392ab7-6d40-80a8-94fe-d635920f9c3c":"intro-graphs",
+    "2e392ab7-6d40-801c-8e05-e50e3ef06c86":"intro-graphs",
+    "33092ab7-6d40-80ee-9d38-f7836636d5fa":"shortest-path-basic",
+    "33092ab7-6d40-8043-b128-e639a17c2484":"toposort",
+    "33092ab7-6d40-80b5-be7b-eaa7cd896ef1":"intro-tree",
+    "33092ab7-6d40-804a-8dda-e8a9c6090a1f":"mst",
+    "33092ab7-6d40-8080-86f8-e08bc241b356":"tree-euler",
+    "33092ab7-6d40-806a-80b9-c4a4d2d3fec0":"number-theory",
+    "33092ab7-6d40-8075-bf02-c0aecbacaf15":"combinatorics",
+    "33092ab7-6d40-80e7-9bad-f5a1f860fc8c":"prefix-sums",
+    "33092ab7-6d40-809c-9543-d94c24efa37a":"monotonic-structures",
+    "33092ab7-6d40-8019-9eaa-fc456a0f2fb7":"segment-tree",
+    "33092ab7-6d40-8052-ab69-d57ace25461e":"fenwick-tree",
+    "33092ab7-6d40-802f-813e-d4ca344b6864":"dsu",
+    "33092ab7-6d40-803f-9b93-ca26e064c1bf":"strongly-connected-components",
+    "33092ab7-6d40-802e-8b3f-e81a23b44576":"rect-geo",
+    "33092ab7-6d40-8067-a9b3-c3459edb680a":"hashing",
+    "33092ab7-6d40-80e3-96c2-d21276ba88db":"string-suffix"
+  };
+
+  const roadmapToNotion = new Map();
+  Object.entries(NOTION_LECTURE_TO_ROADMAP).forEach(([pageId, slug]) => {
+    const id = pageId.replace(/-/g, "");
+    const list = roadmapToNotion.get(slug) || [];
+    list.push(id);
+    roadmapToNotion.set(slug, list);
+  });
+
+  const NOTION_DOMAIN_META = {
+    "basic": ["{}", "basic"],
+    "APCS": ["🎯", "APCS"],
+    "STL": ["<>", "STL"],
+    "Sorting & searching": ["↕", "Search"],
+    "Greedy": ["↗", "Greedy"],
+    "DP": ["▦", "DP"],
+    "Graph": ["⌘", "Graph"],
+    "Math": ["∑", "Math"],
+    "DS": ["▤", "DS"],
+    "Computational Geometry": ["△", "Geometry"],
+    "String": ["Aa", "String"],
+    "Course": ["•", "Course"]
+  };
+
   const domainRules = [
     ["Dynamic Programming", "DP", "▦", /\bdp\b|dynamic|動態|knapsack|背包|lis|digit dp|tree dp/i],
     ["Graph", "Graph", "⌘", /graph|圖論|圖 |bfs|dfs|shortest|dijkstra|bellman|floyd|mst|topolog|scc|flow|matching/i],
@@ -107,9 +168,36 @@
   }
 
   function levelBand(score) {
+    if (score == null || Number.isNaN(Number(score))) return "unknown";
     if (score <= 3) return "beginner";
     if (score <= 6) return "intermediate";
     return "advanced";
+  }
+
+  function notionDomainMeta(name) {
+    const pair = NOTION_DOMAIN_META[name] || ["•", name || "Course"];
+    return { name: name || "Course", icon: pair[0], short: pair[1] };
+  }
+
+  function notionDomainGroups() {
+    const map = new Map();
+    NOTION_COURSES.forEach(course => {
+      const meta = notionDomainMeta(course.domain);
+      if (!map.has(meta.name)) map.set(meta.name, { domain: meta, courses: [], sample: "" });
+      const group = map.get(meta.name);
+      group.courses.push(course);
+      if (!group.sample) group.sample = course.title || "";
+    });
+    return Array.from(map.values()).sort((a, b) => b.courses.length - a.courses.length);
+  }
+
+  function courseForRoadmap(slug) {
+    const ids = roadmapToNotion.get(slug) || [];
+    for (const id of ids) {
+      const course = notionCourseMap.get(id);
+      if (course) return course;
+    }
+    return null;
   }
 
   function persist() {
@@ -164,24 +252,23 @@
 
   function renderHome() {
     const totalProblems = Array.from(problemMap.keys()).length;
-    const solvedValid = state.solved.filter(id => problemMap.has(id)).length;
-    const doneValid = state.read.filter(id => topicMap.has(id)).length;
-    const progress = allTopics.length ? Math.round(doneValid / allTopics.length * 100) : 0;
-    document.getElementById("stat-topics").textContent = allTopics.length;
+    const doneCourses = state.read.filter(id => notionCourseMap.has(id)).length;
+    const progress = NOTION_COURSES.length ? Math.round(doneCourses / NOTION_COURSES.length * 100) : 0;
+    document.getElementById("stat-topics").textContent = NOTION_COURSES.length;
     document.getElementById("stat-problems").textContent = totalProblems;
     document.getElementById("stat-progress").textContent = progress + "%";
-    document.getElementById("stat-levels").textContent = ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).length;
+    document.getElementById("stat-levels").textContent = ROADMAP.length;
 
     const pathHost = document.getElementById("path-cards");
     pathHost.innerHTML = "";
-    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).slice(0, 3).forEach((level, idx) => {
+    ROADMAP.slice(0, 3).forEach((level, idx) => {
       const div = document.createElement("article");
       div.className = "path-card";
       div.style.setProperty("--path-color", level.color || "var(--brand)");
       div.innerHTML =
         '<div class="path-icon">' + ["🌱", "🧠", "🚀"][idx] + '</div>' +
         "<h3>" + esc(level.levelName) + "</h3>" +
-        "<p>" + esc(level.levelDesc || "") + "</p>" +
+        (level.levelDesc ? "<p>" + esc(level.levelDesc) + "</p>" : "") +
         '<div class="path-meta"><span>' + (level.topics || []).length + " 個主題</span><span>開始 →</span></div>";
       div.addEventListener("click", () => {
         state.roadmapFilter = level.levelId;
@@ -190,15 +277,16 @@
       pathHost.appendChild(div);
     });
 
-    const groups = domainGroups();
+    const groups = notionDomainGroups();
     const domainHost = document.getElementById("domain-cards");
     domainHost.innerHTML = "";
     groups.slice(0, 8).forEach(group => {
       const div = document.createElement("article");
       div.className = "domain-card";
-      div.innerHTML = "<h3>" + esc(group.domain.icon + " " + group.domain.name) + "</h3>" +
-        "<p>" + esc(group.sample) + "</p>" +
-        '<div class="domain-count">' + group.rows.length + " lessons →</div>";
+      div.innerHTML =
+        "<h3>" + esc(group.domain.icon + " " + group.domain.name) + "</h3>" +
+        (group.sample ? "<p>" + esc(group.sample) + "</p>" : "") +
+        '<div class="domain-count">' + group.courses.length + " lessons →</div>";
       div.addEventListener("click", () => {
         state.courseDomain = group.domain.name;
         location.hash = "#/courses";
@@ -206,24 +294,26 @@
       domainHost.appendChild(div);
     });
 
-    const next = allTopics.find(row => !state.read.includes(row.topic.id)) || allTopics[0];
+    const next = NOTION_COURSES.find(course => !state.read.includes(course.id)) || NOTION_COURSES[0];
+    const continueTitle = document.getElementById("continue-title");
+    const continueDesc = document.getElementById("continue-desc");
+    const continueBtn = document.getElementById("continue-btn");
     if (next) {
-      document.getElementById("continue-title").textContent = next.topic.title;
-      document.getElementById("continue-desc").textContent = next.topic.desc || "繼續你的學習路線。";
-      document.getElementById("continue-btn").onclick = () => openLesson(next.topic.id, true);
+      continueTitle.textContent = next.title;
+      if (next.details) {
+        continueDesc.hidden = false;
+        continueDesc.textContent = next.details;
+      } else {
+        continueDesc.hidden = true;
+        continueDesc.textContent = "";
+      }
+      continueBtn.hidden = false;
+      continueBtn.onclick = () => openLesson(next.id, true);
+    } else {
+      continueTitle.textContent = "目前沒有課程內容";
+      continueDesc.hidden = true;
+      continueBtn.hidden = true;
     }
-  }
-
-  function domainGroups() {
-    const map = new Map();
-    allTopics.forEach(row => {
-      const key = row.domain.name;
-      if (!map.has(key)) map.set(key, { domain: row.domain, rows: [], sample: "" });
-      const group = map.get(key);
-      group.rows.push(row);
-      if (!group.sample) group.sample = row.topic.title || "";
-    });
-    return Array.from(map.values()).sort((a, b) => b.rows.length - a.rows.length);
   }
 
   function renderRoadmap() {
@@ -263,13 +353,17 @@
       nodes.className = "roadmap-nodes";
       topics.forEach(topic => {
         const row = topicMap.get(topic.id);
-        const done = state.read.includes(topic.id);
+        const linkedCourse = courseForRoadmap(topic.id);
+        const done = linkedCourse ? state.read.includes(linkedCourse.id) : false;
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "");
         node.innerHTML =
           '<div class="node-top"><h3>' + esc(topic.title) + '</h3><span class="node-badge">難度 ' +
           row.difficulty + "/10</span></div><p>" + esc(topic.desc || "") + "</p>";
-        node.onclick = () => openLesson(topic.id, true);
+        node.onclick = () => {
+          if (linkedCourse) openLesson(linkedCourse.id, true);
+          else toast("這個 Roadmap 節點目前沒有 Coding Course 內文");
+        };
         nodes.appendChild(node);
       });
       block.append(meta, nodes);
@@ -279,44 +373,59 @@
 
   function renderCourses() {
     const domainSelect = document.getElementById("course-domain");
-    if (domainSelect.options.length <= 1) {
-      domainGroups().forEach(group => {
-        const op = document.createElement("option");
-        op.value = group.domain.name;
-        op.textContent = group.domain.name;
-        domainSelect.appendChild(op);
-      });
+    const previous = domainSelect.value;
+    domainSelect.innerHTML = '<option value="all">全部大單元</option>';
+    notionDomainGroups().forEach(group => {
+      const op = document.createElement("option");
+      op.value = group.domain.name;
+      op.textContent = group.domain.name;
+      domainSelect.appendChild(op);
+    });
+    if ([...domainSelect.options].some(op => op.value === state.courseDomain)) {
+      domainSelect.value = state.courseDomain;
+    } else {
+      state.courseDomain = "all";
+      domainSelect.value = "all";
     }
-    domainSelect.value = state.courseDomain;
+
     document.getElementById("course-level").value = state.courseLevel;
     document.getElementById("course-search").value = state.courseSearch;
 
     const q = state.courseSearch.trim().toLowerCase();
-    const rows = allTopics.filter(row => {
-      const text = ((row.topic.title || "") + " " + (row.topic.desc || "") + " " + row.domain.name).toLowerCase();
+    const courses = NOTION_COURSES.filter(course => {
+      const text = ((course.title || "") + " " + (course.details || "") + " " + (course.domain || "") + " " + (course.content || "")).toLowerCase();
+      const band = levelBand(course.difficulty);
       return (!q || text.includes(q)) &&
-        (state.courseDomain === "all" || row.domain.name === state.courseDomain) &&
-        (state.courseLevel === "all" || levelBand(row.difficulty) === state.courseLevel);
+        (state.courseDomain === "all" || course.domain === state.courseDomain) &&
+        (state.courseLevel === "all" || band === state.courseLevel);
     });
 
     const host = document.getElementById("courses-grid");
     host.innerHTML = "";
-    rows.forEach(row => {
-      const topic = row.topic;
+    courses.forEach(course => {
       const card = document.createElement("article");
       card.className = "course-card";
-      const bars = Array.from({ length: 5 }, (_, i) => '<i class="' + (i < Math.ceil(row.difficulty / 2) ? "on" : "") + '"></i>').join("");
+      const meta = notionDomainMeta(course.domain);
+      const diff = course.difficulty;
+      const bars = diff == null ? "" : Array.from({ length: 5 }, (_, i) =>
+        '<i class="' + (i < Math.ceil(diff / 2) ? "on" : "") + '"></i>'
+      ).join("");
+      const tags =
+        (course.domain ? '<span class="tag brand">' + esc(meta.short) + '</span>' : "") +
+        (diff != null ? '<span class="tag">難度 ' + esc(diff) + '/10</span>' : "");
+      const footer = diff != null
+        ? '<div class="course-footer"><div class="difficulty" title="難度 ' + esc(diff) + '/10">' + bars + '</div></div>'
+        : "";
+
       card.innerHTML =
-        '<div class="tag-row"><span class="tag brand">' + esc(row.domain.short) + '</span><span class="tag">' +
-        esc(String(row.level.levelName || "").split(" (")[0]) + "</span></div>" +
-        "<h3>" + esc(topic.title) + "</h3>" +
-        "<p>" + esc(topic.desc || "") + "</p>" +
-        '<div class="course-footer"><div class="difficulty" title="難度 ' + row.difficulty + '/10">' + bars +
-        '</div><span>' + (topic.problems || []).length + " 題練習</span></div>";
-      card.onclick = () => openLesson(topic.id, true);
+        (tags ? '<div class="tag-row">' + tags + '</div>' : "") +
+        "<h3>" + esc(course.title) + "</h3>" +
+        (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
+        footer;
+      card.onclick = () => openLesson(course.id, true);
       host.appendChild(card);
     });
-    document.getElementById("course-empty").hidden = rows.length !== 0;
+    document.getElementById("course-empty").hidden = courses.length !== 0;
   }
 
   function renderProblems() {
@@ -412,28 +521,48 @@
   }
 
   function openLesson(id, pushHash) {
-    const row = topicMap.get(id);
-    if (!row) {
-      toast("找不到這堂課");
+    let course = notionCourseMap.get(id);
+    if (!course) course = courseForRoadmap(id);
+    if (!course) {
+      toast("這堂課在 Coding Course 中沒有非空白內文");
       return;
     }
-    state.activeTopic = row;
-    localStorage.setItem(STORAGE.last, id);
-    const topic = row.topic;
-    document.getElementById("lesson-breadcrumb").textContent = row.domain.name + " / " + String(row.level.levelName || "").split(" (")[0];
-    document.getElementById("lesson-title").textContent = topic.title || "";
-    document.getElementById("lesson-desc").textContent = topic.desc || "";
-    document.getElementById("lesson-tags").innerHTML =
-      '<span class="tag brand">' + esc(row.domain.short) + '</span><span class="tag">難度 ' + row.difficulty + '/10</span>';
 
-    renderPrerequisites(row);
-    renderLessonProblems(topic);
+    state.activeTopic = { source: "notion", course };
+    localStorage.setItem(STORAGE.last, course.id);
+
+    const meta = notionDomainMeta(course.domain);
+    document.getElementById("lesson-breadcrumb").textContent =
+      "Coding Course" + (course.domain ? " / " + course.domain : "");
+    document.getElementById("lesson-title").textContent = course.title || "";
+
+    const desc = document.getElementById("lesson-desc");
+    if (course.details) {
+      desc.hidden = false;
+      desc.textContent = course.details;
+    } else {
+      desc.hidden = true;
+      desc.textContent = "";
+    }
+
+    let tags = "";
+    if (course.domain) tags += '<span class="tag brand">' + esc(meta.short) + '</span>';
+    if (course.difficulty != null) tags += '<span class="tag">難度 ' + esc(course.difficulty) + '/10</span>';
+    document.getElementById("lesson-tags").innerHTML = tags;
+
+    document.getElementById("lesson-prereq").style.display = "none";
+    document.querySelector(".lesson-end").style.display = "none";
+
     refreshLessonProgress();
-    loadTutorial(row);
+    renderCourseContent(course);
+
     document.getElementById("lesson-overlay").classList.add("open");
     document.getElementById("lesson-overlay").setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
-    if (pushHash) history.pushState(null, "", "#/lesson/" + encodeURIComponent(id));
+
+    if (pushHash) {
+      history.pushState(null, "", "#/lesson/" + encodeURIComponent(course.id));
+    }
   }
 
   function closeLesson(pushHash) {
@@ -446,93 +575,35 @@
     if (pushHash) location.hash = "#/" + state.baseView;
   }
 
-  function renderPrerequisites(row) {
-    let ids = Array.isArray(row.topic.prerequisites) ? row.topic.prerequisites.slice() : [];
-    if (!ids.length && row.topicIndex > 0) {
-      const previous = (row.level.topics || [])[row.topicIndex - 1];
-      if (previous) ids = [previous.id];
-    }
-    const box = document.getElementById("lesson-prereq");
-    if (!ids.length) {
-      box.innerHTML = "<strong>先備知識</strong><span style='color:var(--muted)'>這堂課可以直接開始。</span>";
-      return;
-    }
-    const links = ids.map(id => {
-      const p = topicMap.get(id);
-      if (!p) return '<span class="tag">' + esc(id) + "</span>";
-      return '<button class="chip prereq-link" data-topic="' + esc(id) + '">' + esc(p.topic.title) + "</button>";
-    }).join("");
-    box.innerHTML = '<strong>先備知識</strong><div class="prereq-list">' + links + "</div>";
-    box.querySelectorAll("[data-topic]").forEach(btn => {
-      btn.onclick = () => openLesson(btn.dataset.topic, true);
-    });
-  }
-
-  function renderLessonProblems(topic) {
-    const host = document.getElementById("lesson-problems");
-    host.innerHTML = "";
-    const problems = topic.problems || [];
-    if (!problems.length) {
-      host.innerHTML = '<div style="color:var(--muted);font-size:13px">這堂課目前沒有綁定練習題。</div>';
-      return;
-    }
-    problems.forEach(p => {
-      const line = document.createElement("div");
-      line.className = "lesson-problem";
-      line.innerHTML =
-        '<input type="checkbox" ' + (state.solved.includes(p.id) ? "checked" : "") + '>' +
-        "<div><b>" + esc(p.name) + '</b><div class="problem-meta">' + esc(p.platform || "") + " · " + esc(p.difficulty || "") + "</div></div>" +
-        '<a href="' + esc(p.url || "#") + '" target="_blank" rel="noreferrer">前往 OJ ↗</a>';
-      line.querySelector("input").onchange = e => toggleProblem(p.id, e.target.checked);
-      host.appendChild(line);
-    });
-  }
-
   function refreshLessonProgress() {
-    if (!state.activeTopic) return;
-    const topic = state.activeTopic.topic;
-    const marked = state.read.includes(topic.id);
-    const problems = topic.problems || [];
-    const solved = problems.filter(p => state.solved.includes(p.id)).length;
-    const pct = problems.length ? Math.round(solved / problems.length * 100) : (marked ? 100 : 0);
-    document.getElementById("lesson-progress-label").textContent = marked ? "已完成" : (solved ? "學習中" : "未開始");
-    document.getElementById("lesson-progress-fill").style.width = pct + "%";
+    if (!state.activeTopic || !state.activeTopic.course) return;
+    const id = state.activeTopic.course.id;
+    const marked = state.read.includes(id);
+    document.getElementById("lesson-progress-label").textContent = marked ? "已完成" : "未開始";
+    document.getElementById("lesson-progress-fill").style.width = marked ? "100%" : "0%";
     const btn = document.getElementById("lesson-mark");
     btn.textContent = marked ? "✓ 已完成" : "標記已完成";
   }
 
   function toggleLessonComplete() {
-    if (!state.activeTopic) return;
-    const id = state.activeTopic.topic.id;
+    if (!state.activeTopic || !state.activeTopic.course) return;
+    const id = state.activeTopic.course.id;
     if (state.read.includes(id)) state.read = state.read.filter(x => x !== id);
     else state.read.push(id);
     persist();
     refreshLessonProgress();
     renderHome();
+    renderRoadmap();
     toast(state.read.includes(id) ? "課程已完成" : "已取消完成");
   }
 
-  async function loadTutorial(row) {
+  function renderCourseContent(course) {
     const host = document.getElementById("lesson-content");
-    host.innerHTML = '<div class="loading">載入課程中…</div>';
-    const candidates = tutorialCandidates(row.topic.id);
-    let markdown = null;
-
-    for (const name of candidates) {
-      try {
-        const res = await fetch("../tutorials/" + encodeURIComponent(name) + ".md", { cache: "no-store" });
-        if (res.ok) {
-          markdown = await res.text();
-          break;
-        }
-      } catch (_) {}
-    }
-
-    if (markdown == null) {
-      const resources = (row.topic.resources || []).map(r => "- [" + (r.name || "資源") + "](" + (r.url || "#") + ")").join("\n");
-      markdown = "# " + (row.topic.title || "") + "\n\n" +
-        (row.topic.desc || "") + "\n\n" +
-        (resources ? "## 延伸資源\n\n" + resources : "");
+    const markdown = course.content || "";
+    if (!markdown.trim()) {
+      host.innerHTML = "";
+      buildToc(host);
+      return;
     }
 
     if (window.marked) host.innerHTML = window.marked.parse(markdown);
@@ -559,15 +630,6 @@
         });
       } catch (_) {}
     }
-  }
-
-  function tutorialCandidates(id) {
-    const list = [id];
-    const alias = tutorialAliases[id] || [];
-    alias.forEach(x => list.push(x));
-    if (id.startsWith("intro-")) list.push(id.replace(/^intro-/, ""));
-    if (id.endsWith("-basic")) list.push(id.replace(/-basic$/, ""));
-    return Array.from(new Set(list.filter(Boolean)));
   }
 
   function buildToc(host) {
@@ -600,6 +662,7 @@
       modal.classList.remove("open");
       modal.setAttribute("aria-hidden", "true");
     };
+
     document.getElementById("search-open").onclick = open;
     document.getElementById("search-close").onclick = close;
     modal.addEventListener("click", e => { if (e.target === modal) close(); });
@@ -613,6 +676,7 @@
         if (document.getElementById("lesson-overlay").classList.contains("open")) closeLesson(true);
       }
     });
+
     input.addEventListener("input", () => {
       const q = input.value.trim().toLowerCase();
       results.innerHTML = "";
@@ -620,23 +684,37 @@
         results.innerHTML = '<div class="empty-state">輸入關鍵字搜尋課程與題目。</div>';
         return;
       }
-      const topicResults = allTopics.filter(row => ((row.topic.title || "") + " " + (row.topic.desc || "")).toLowerCase().includes(q)).slice(0, 8);
-      const problemResults = Array.from(problemMap.values()).filter(x => ((x.problem.name || "") + " " + (x.problem.platform || "")).toLowerCase().includes(q)).slice(0, 8);
-      topicResults.forEach(row => {
+
+      const courseResults = NOTION_COURSES.filter(course =>
+        ((course.title || "") + " " + (course.details || "") + " " + (course.domain || "") + " " + (course.content || ""))
+          .toLowerCase().includes(q)
+      ).slice(0, 8);
+      const problemResults = Array.from(problemMap.values()).filter(x =>
+        ((x.problem.name || "") + " " + (x.problem.platform || "")).toLowerCase().includes(q)
+      ).slice(0, 8);
+
+      courseResults.forEach(course => {
         const item = document.createElement("div");
         item.className = "search-result";
-        item.innerHTML = "<strong>" + esc(row.topic.title) + "</strong><small>課程 · " + esc(row.domain.name) + "</small>";
-        item.onclick = () => { close(); openLesson(row.topic.id, true); };
+        item.innerHTML =
+          "<strong>" + esc(course.title) + "</strong>" +
+          "<small>課程" + (course.domain ? " · " + esc(course.domain) : "") + "</small>";
+        item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
       });
+
       problemResults.forEach(x => {
         const item = document.createElement("div");
         item.className = "search-result";
-        item.innerHTML = "<strong>" + esc(x.problem.name) + "</strong><small>題目 · " + esc(x.problem.platform || "") + "</small>";
+        item.innerHTML =
+          "<strong>" + esc(x.problem.name) + "</strong><small>題目 · " + esc(x.problem.platform || "") + "</small>";
         item.onclick = () => { window.open(x.problem.url, "_blank", "noopener"); };
         results.appendChild(item);
       });
-      if (!results.children.length) results.innerHTML = '<div class="empty-state">沒有找到結果。</div>';
+
+      if (!results.children.length) {
+        results.innerHTML = '<div class="empty-state">沒有找到結果。</div>';
+      }
     });
   }
 
