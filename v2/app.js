@@ -23,6 +23,9 @@
     baseView: "home"
   };
 
+  const ROADMAP = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
+  const TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
+
   const domainRules = [
     ["Dynamic Programming", "DP", "▦", /\bdp\b|dynamic|動態|knapsack|背包|lis|digit dp|tree dp/i],
     ["Graph", "Graph", "⌘", /graph|圖論|圖 |bfs|dfs|shortest|dijkstra|bellman|floyd|mst|topolog|scc|flow|matching/i],
