@@ -77,8 +77,9 @@
   }
 
   function initData() {
-    const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];\n    if (!roadmapData.length) return;
-    window.ROADMAP_DATA.forEach((level, levelIndex) => {
+    const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
+    if (!roadmapData.length) return;
+    roadmapData.forEach((level, levelIndex) => {
       (level.topics || []).forEach((topic, topicIndex) => {
         const row = {
           topic: topic,
