@@ -106,3 +106,6 @@ footer{width:min(var(--max),calc(100% - 40px));margin:0 auto;padding:20px 0 70px
   .problem-course-row{grid-template-columns:30px minmax(0,1fr) auto}
   .problem-course-diff{display:none}
 }
+
+.course-no{display:inline-block;min-width:28px;margin-right:8px;font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);vertical-align:1px}
+.roadmap-node.done .course-no{color:var(--green)}
