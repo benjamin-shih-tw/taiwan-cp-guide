@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣競程修練指南 | Taiwan CP Guide</title>
+    <meta name="description" content="結合 USACO Guide, OI Wiki 與 NTUCPC Guide 的精華，為台灣高中生及大學生選手打造的競賽程式 (Competitive Programming) 一站式系統化修練指南。支援 APCS、TOI 與 ICPC 學習地圖、進度追蹤及常用模板。">
+    
+    <!-- SVG Favicon 解決 404 與增加極客標示 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+    
+    <!-- 樣式表 -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PWA Manifest 與 Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#07080e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- KaTeX 數學公式離線快取/渲染引擎 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <!-- Marked.js 用於前端動態 Markdown 渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <!-- OpenCC-js 用於前端高品質繁簡轉換 -->
+    <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+</head>
+<body>
+
+    <!-- 🌌 Aurora Magic Background -->
+    <div class="aurora-background">
+        <div class="aurora-wave aurora-wave-1"></div>
+        <div class="aurora-wave aurora-wave-2"></div>
+        <div class="aurora-wave aurora-wave-3"></div>
+        <div class="aurora-wave aurora-wave-4"></div>
+        <!-- 🎯 Hero Highlight Spotlight Dot Grid -->
+        <div class="hero-dot-grid hero-dot-grid-base"></div>
+        <div class="hero-dot-grid hero-dot-grid-spotlight"></div>
+        <div class="aurora-depth-overlay"></div>
+    </div>
+
+    <div class="container">
+        
+        <!-- Header 區域 -->
+        <header>
+            <div class="header-main-layout" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; width: 100%;">
+                <div class="brand-wrapper">
+                    <span class="badge-tag" id="main-badge">APCS / TOI / ICPC / IOI</span>
+                    <h1>台灣競程<span class="highlight-text">修練指南</span></h1>
+                    <p class="subtitle">結合 USACO Guide 系統、OI Wiki 深度與 NTUCPC 台灣經驗的極客修練平台</p>
+                </div>
+                <!-- 👤 用戶登入/登出狀態面板 -->
+                <div class="user-auth-widget" id="user-auth-widget" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; backdrop-filter: blur(10px); transition: all 0.3s ease;">
+                    <!-- 未登入狀態 -->
+                    <div id="auth-logged-out" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span style="font-size: 0.85rem; color: #94a3b8;">👤 訪客模式</span>
+                        <button class="action-btn" id="auth-login-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: 700; transition: opacity 0.2s;">登入帳號</button>
+                    </div>
+                    <!-- 已登入狀態 -->
+                    <div id="auth-logged-in" style="display: none; align-items: center; gap: 0.8rem;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span id="auth-user-name" style="font-size: 0.85rem; color: #fff; font-weight: 700;">選手名稱</span>
+                            <span id="auth-user-handle" style="font-size: 0.75rem; color: #64748b;">CF: 未綁定</span>
+                        </div>
+                        <button class="action-btn" id="auth-logout-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #f87171; cursor: pointer; transition: all 0.2s;">登出</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Panel (即時進度統計) -->
+        <section class="dashboard-panel" aria-label="進度儀表板">
+            <!-- 已讀主題 -->
+            <div class="stat-item">
+                <div class="stat-icon" aria-hidden="true">🗺️</div>
+                <div class="stat-info">
+                    <span class="stat-label">已修讀主題</span>
+                    <div class="stat-val-wrapper">
+                        <span class="stat-value" id="stat-read-text">0 / 0</span>
+                        <span class="stat-percent" id="stat-read-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress-read-fill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 已刷習題 -->
+            <div class="stat-item">
+                <div class="stat-icon" aria-hidden="true">🏆</div>
+                <div class="stat-info">
+                    <span class="stat-label">已解決習題</span>
+                    <div class="stat-val-wrapper">
+                        <span class="stat-value" id="stat-solved-text">0 / 0</span>
+                        <span class="stat-percent" id="stat-solved-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress-solved-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Codeforces API 進度同步 -->
+            <div class="stat-item cf-sync-item">
+                <div class="stat-icon" aria-hidden="true">🦊</div>
+                <div class="stat-info">
+                    <span class="stat-label">Codeforces 進度同步</span>
+                    <div class="cf-sync-wrapper" style="display: flex; gap: 0.5rem; margin: 0.4rem 0;">
+                        <input type="text" id="cf-handle-input" placeholder="CF 使用者名稱 (如 tourist)" aria-label="Codeforces 使用者名稱" style="flex: 1; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 0.3rem 0.5rem; font-size: 0.85rem;">
+                        <button class="cf-sync-btn" id="cf-sync-btn" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff; padding: 0.3rem 0.8rem; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s;">同步</button>
+                    </div>
+                    <span id="cf-sync-status" class="cf-status-label" style="font-size: 0.75rem; color: #64748b;">未同步。點擊同步拉取 AC 進度</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 導航分頁 Tabs -->
+        <nav class="tabs-navigation" aria-label="主要選單">
+            <button class="tab-btn active" data-tab="roadmap" id="tab-btn-roadmap">
+                <span class="tab-icon">🗺️</span> 學習地圖
+            </button>
+            <button class="tab-btn" data-tab="templates" id="tab-btn-templates">
+                <span class="tab-icon">⚡</span> 演算法模板
+            </button>
+            <button class="tab-btn" data-tab="utilities" id="tab-btn-utilities">
+                <span class="tab-icon">🛠️</span> 競程工具箱
+            </button>
+            <button class="tab-btn" data-tab="coach" id="tab-btn-coach">
+                <span class="tab-icon">🎓</span> AI 客製化路徑
+            </button>
+            <button class="tab-btn" data-tab="contest" id="tab-btn-contest">
+                <span class="tab-icon">🏆</span> 競賽檢定專區
+            </button>
+        </nav>
+
+        <!-- 主內容區域 -->
+        <main>
+            
+            <!-- 1. 學習地圖分頁 (Roadmap Panel) -->
+            <section class="tab-content-panel active" id="roadmap-panel" aria-labelledby="tab-btn-roadmap">
+                <!-- 難度過濾列 -->
+                <div class="filters-bar">
+                    <div class="filter-group" role="group" aria-label="難度篩選">
+                        <button class="filter-btn active" data-level-filter="all" id="filter-all">🌟 全部</button>
+                        <button class="filter-btn" data-level-filter="apcs-basic" id="filter-apcs">🟢 啟航 (APCS/Bronze)</button>
+                        <button class="filter-btn" data-level-filter="toi-silver" id="filter-silver">🔵 突破 (TOI複選/Silver)</button>
+                        <button class="filter-btn" data-level-filter="toi-gold" id="filter-gold">🟡 榮耀 (選訓/Gold)</button>
+                        <button class="filter-btn" data-level-filter="icpc-platinum" id="filter-platinum">🔴 巔峰Ⅰ (Platinum)</button>
+                        <button class="filter-btn" data-level-filter="icpc-advanced" id="filter-advanced">⚡ 巔峰Ⅱ (IOI/WF)</button>
+                    </div>
+                    <div class="view-controls">
+                        <!-- 隱藏已解決開關 -->
+                        <label class="toggle-switch-wrapper" title="隱藏已經標記為「已解決✓」的題目">
+                            <input type="checkbox" id="hide-solved-toggle">
+                            <span class="custom-checkbox">✓</span>
+                            <span class="toggle-label" style="font-size: 0.8rem; color: #94a3b8; user-select: none;">隱藏已通關</span>
+                        </label>
+                        
+                        <button class="action-btn" id="export-progress-btn" title="備份學習進度為 JSON 檔案">📤 匯出進度</button>
+                        <label class="action-btn" for="import-progress-input" title="從 JSON 檔案還原學習進度" style="cursor:pointer;">📥 匯入進度</label>
+                        <input type="file" id="import-progress-input" accept=".json" style="display:none;" aria-label="選擇進度備份檔案">
+                    </div>
+                </div>
+
+                <!-- 學習地圖動態加載目標 -->
+                <div id="roadmap-container">
+                    <!-- 由 app.js 動態渲染 -->
+                </div>
+            </section>
+
+            <!-- 2. 演算法模板分頁 (Templates Panel) -->
+            <section class="tab-content-panel" id="templates-panel" aria-labelledby="tab-btn-templates">
+                <div class="templates-layout">
+                    
+                    <!-- 側邊欄列表 -->
+                    <aside class="templates-sidebar" aria-label="模板導覽">
+                        <!-- 搜尋框 -->
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="template-search" placeholder="搜尋模板或演算法...">
+                        </div>
+                        
+                        <!-- 分類過濾按鈕 -->
+                        <div class="filter-group" style="gap: 0.35rem;" role="group" aria-label="模板分類">
+                            <button class="filter-btn active" data-cat-filter="all" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">All</button>
+                            <button class="filter-btn" data-cat-filter="Basic" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">基礎</button>
+                            <button class="filter-btn" data-cat-filter="Data Structure" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">資料結構</button>
+                            <button class="filter-btn" data-cat-filter="Graph Theory" style="font-size: 0.75rem; padding: 0.3rem 0.75rem;">圖論</button>
+                        </div>
+                        
+                        <!-- 模板菜單 -->
+                        <nav class="template-menu-list" id="template-menu" aria-label="模板清單">
+                            <!-- 由 app.js 動態載入 -->
+                        </nav>
+                    </aside>
+
+                    <!-- 右側展示面板 -->
+                    <article class="template-viewer" aria-label="模板詳情">
+                        <div class="viewer-header">
+                            <div class="viewer-title-area">
+                                <span class="viewer-cat-tag" id="viewer-cat">Basic</span>
+                                <h2 class="viewer-title" id="viewer-title">起手式與快速 I/O</h2>
+                                <p class="viewer-desc" id="viewer-desc">競程常用起手模板...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 代碼展示視窗 -->
+                        <div class="code-window">
+                            <div class="code-window-header">
+                                <div class="code-dots">
+                                    <div class="code-dot red" aria-hidden="true"></div>
+                                    <div class="code-dot yellow" aria-hidden="true"></div>
+                                    <div class="code-dot green" aria-hidden="true"></div>
+                                </div>
+                                <div class="code-lang-tabs" role="group" aria-label="語言切換" style="display: flex; gap: 0.5rem; margin-left: 1.5rem; flex: 1;">
+                                    <button class="code-lang-tab active" data-lang="cpp" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">C++</button>
+                                    <button class="code-lang-tab" data-lang="java" style="background: transparent; border: 1px solid transparent; color: #94a3b8; border-radius: 4px; padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Java</button>
+                                    <button class="code-lang-tab" data-lang="py" style="background: transparent; border: 1px solid transparent; color: #94a3b8; border-radius: 4px; padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Python</button>
+                                </div>
+                                <button class="code-copy-btn" id="code-copy-btn" title="複製代碼">
+                                    <span>📋 Copy</span>
+                                </button>
+                            </div>
+                            <div class="code-content-wrapper">
+                                <pre><code id="code-display" class="language-cpp">
+                                    <!-- 由 app.js 動態填寫與高亮 -->
+                                </code></pre>
+                            </div>
+                        </div>
+                    </article>
+                    
+                </div>
+            </section>
+
+            <!-- 3. 競程工具箱分頁 (Utilities Panel) -->
+            <section class="tab-content-panel" id="utilities-panel" aria-labelledby="tab-btn-utilities">
+                <div class="utilities-grid">
+                    
+                    <!-- 卡片 A: 競程倒數計時器 -->
+                    <article class="utility-card" aria-labelledby="util-timer-title">
+                        <div class="utility-header">
+                            <h2 class="utility-title" id="util-timer-title">⏱️ 競程計時沙漏</h2>
+                            <p class="utility-desc">模擬實戰賽制時間壓力，支援經典的 5 小時 ICPC/NPSC 規格</p>
+                        </div>
+                        
+                        <div class="timer-display-wrapper">
+                            <!-- 模式切換 -->
+                            <div class="timer-mode-badges" role="group" aria-label="計時模式">
+                                <button class="timer-mode-btn active" data-mode="pomodoro">🍅 番茄鐘 (25m)</button>
+                                <button class="timer-mode-btn" data-mode="practice">📝 題目演練 (90m)</button>
+                                <button class="timer-mode-btn" data-mode="mock">🏆 五小時模擬賽 (5h)</button>
+                            </div>
+                            
+                            <!-- 時鐘 -->
+                            <div class="timer-clock" id="timer-clock" aria-live="polite">25:00</div>
+                            
+                            <!-- 控制按鈕 -->
+                            <div class="timer-controls">
+                                <button class="timer-btn start" id="timer-start">▶ 開始倒數</button>
+                                <button class="timer-btn pause" id="timer-pause" style="display: none;">⏸ 暫停</button>
+                                <button class="timer-btn reset" id="timer-reset">🔄 重置</button>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- 卡片 B: APCS 實作題估分預測器 -->
+                    <article class="utility-card" aria-labelledby="util-calc-title">
+                        <div class="utility-header">
+                            <h2 class="utility-title" id="util-calc-title">📊 APCS 實作模擬計分</h2>
+                            <p class="utility-desc">依據教育部 APCS 官方實作題計分規則，模擬實作級分 (1~5 級)</p>
+                        </div>
+                        
+                        <div class="calculator-container">
+                            <!-- 第一題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第一題 (基礎語法/模擬)</span>
+                                <select class="calc-select" id="p1-score" aria-label="第一題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第二題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第二題 (陣列與基本枚舉)</span>
+                                <select class="calc-select" id="p2-score" aria-label="第二題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第三題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第三題 (遞迴/回溯/經典 DP)</span>
+                                <select class="calc-select" id="p3-score" aria-label="第三題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 第四題 -->
+                            <div class="calc-row">
+                                <span class="calc-problem-name">第四題 (高難度演算法/綜合)</span>
+                                <select class="calc-select" id="p4-score" aria-label="第四題分數">
+                                    <option value="100">完全通過 (100 分)</option>
+                                    <option value="60">通過部分測資 (60 分)</option>
+                                    <option value="20">通過部分測資 (20 分)</option>
+                                    <option value="0">未通過 (0 分)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="calc-divider" aria-hidden="true"></div>
+                            
+                            <!-- 級分結果 -->
+                            <div class="calc-result-box" aria-live="polite">
+                                <span class="result-label" id="result-label">🌱 基礎級</span>
+                                <div class="result-score-wrapper">
+                                    <span class="result-score" id="result-score">1</span>
+                                    <span class="result-unit">級分</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    
+                </div>
+            </section>
+
+            <!-- 4. AI 客製化學習路徑分頁 (AI Coach Panel) -->
+            <section class="tab-content-panel" id="coach-panel" aria-labelledby="tab-btn-coach">
+                <div class="coach-container">
+                    <header class="coach-header-intro">
+                        <span class="coach-badge">🔮 ANTIGRAVITY 模式</span>
+                        <h2>AI 競程/APCS 頂級教練導航</h2>
+                        <p class="coach-subtitle">
+                            精通資訊科學競賽與檢定檢驗，協助你建立清晰、系統化的客製化學習路徑。
+                        </p>
+                    </header>
+                    
+                    <!-- 互動選單 (Wizard Form) -->
+                    <div class="coach-wizard-card">
+                        <form id="coach-setup-form" onsubmit="event.preventDefault();">
+                            
+                            <!-- 1. 目標類別 -->
+                            <div class="wizard-section">
+                                <span class="wizard-section-title"><span class="step-num">1</span> 選擇目標類別</span>
+                                <div class="wizard-options-grid">
+                                    <label class="wizard-option-card">
+                                        <input type="radio" name="coach-target" value="apcs" checked>
+                                        <div class="option-card-content">
+                                            <span class="option-icon">🎯</span>
+                                            <span class="option-title">【檢定升學組】APCS</span>
+                                            <span class="option-desc">著重基礎語法熟練度、觀念題邏輯、基礎資料結構、實作題（模擬、貪心、二分搜等常考題型）。</span>
+                                        </div>
+                                    </label>
+                                    <label class="wizard-option-card">
+                                        <input type="radio" name="coach-target" value="competitive">
+                                        <div class="option-card-content">
+                                            <span class="option-icon">⚔️</span>
+                                            <span class="option-title">【競賽選手組】IOI / TOI / ICPC</span>
+                                            <span class="option-desc">著重高難度演算法、進階資料結構、嚴格的時間與空間複雜度優化、競賽解題策略。</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 2. 目前階段/背景 -->
+                            <div class="wizard-section">
+                                <span class="wizard-section-title"><span class="step-num">2</span> 目前階段與背景</span>
+                                <div class="wizard-select-wrapper">
+                                    <select class="wizard-select" id="coach-background" required>
+                                        <option value="novice">完全新手（沒有寫過程式，打算從零開始）</option>
+                                        <option value="basic-cpp">懂 C++ 基礎語法（變數、迴圈、基本陣列）</option>
+                                        <option value="recursion">APCS 實作二級分 / 懂基礎遞迴（能寫遞迴與簡單枚舉）</option>
+                                        <option value="algorithms">APCS 實作三級分 / 懂基礎演算法（會 DFS/BFS、二分搜、基礎貪心）</option>
+                                        <option value="advanced">已進入選訓營 / 具備 APCS 實作四級分以上（熟練中高階算法）</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- 3. 短期目標 -->
+                            <div class="wizard-section">
+                                <span class="wizard-section-title"><span class="step-num">3</span> 短期衝刺目標</span>
+                                <div class="wizard-select-wrapper">
+                                    <select class="wizard-select" id="coach-goal" required>
+                                        <option value="apcs-3">通過 APCS 實作三級分 / 學習基礎演算法與模擬</option>
+                                        <option value="apcs-4">通過 APCS 實作四級分以上 / 學習中階演算法與動態規劃 (DP)</option>
+                                        <option value="toi-primary">TOI 初選入選 / 進軍全國決賽前段班</option>
+                                        <option value="toi-camp">晉級選訓營複選 / 入選國家代表隊培訓 (國手選拔)</option>
+                                        <option value="competitive-skills">提升競賽實力與刷題熟練度（AtCoder / Codeforces 提速）</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- 提交按鈕 -->
+                            <button type="button" class="coach-submit-btn" id="coach-generate-btn">
+                                ⚡ 產生我的客製化修練藍圖
+                            </button>
+                            
+                        </form>
+                    </div>
+                    
+                    <!-- 生成結果面板 (Blueprint Result Panel) -->
+                    <div class="coach-result-panel" id="coach-result-container" style="display: none;">
+                        <div class="result-header">
+                            <div class="coach-avatar-mini">🎓</div>
+                            <div>
+                                <h3 id="blueprint-title">我的客製化修練藍圖</h3>
+                                <p class="result-meta">由頂級教練 Antigravity 模式針對你的背景精心編排</p>
+                            </div>
+                        </div>
+                        
+                        <div class="result-body">
+                            
+                            <!-- 區塊 1: 階段性知識地圖 -->
+                            <section class="result-section">
+                                <h4 class="result-section-title">🗺️ 1. 階段性知識地圖 (Knowledge Map)</h4>
+                                <div class="knowledge-cards-list" id="blueprint-knowledge-map">
+                                    <!-- 動態產生 -->
+                                </div>
+                            </section>
+                            
+                            <!-- 區塊 2: 實戰練習與刷題策略 -->
+                            <section class="result-section">
+                                <h4 class="result-section-title">📊 2. 實戰練習與刷題策略 (Practice Strategy)</h4>
+                                <div class="result-text-box" id="blueprint-practice-strategy">
+                                    <!-- 動態產生 -->
+                                </div>
+                            </section>
+                            
+                            <!-- 區塊 3: 常見盲點與破局關鍵 -->
+                            <section class="result-section">
+                                <h4 class="result-section-title">💡 3. 常見盲點與破局關鍵 (Pitfalls & Tips)</h4>
+                                <div class="result-text-box warning-box" id="blueprint-pitfalls">
+                                    <!-- 動態產生 -->
+                                </div>
+                            </section>
+                            
+                        </div>
+                    </div>
+                    
+                </div>
+            </section>
+
+            <!-- 5. 競賽檢定專區分頁 (Contest Panel) -->
+            <section class="tab-content-panel" id="contest-panel" aria-labelledby="tab-btn-contest">
+                <div class="contest-container">
+                    <header class="contest-header-intro">
+                        <span class="contest-badge">🏆 競賽大綱與推薦題庫</span>
+                        <h2>台灣競賽檢定專題深度大綱</h2>
+                        <p class="contest-subtitle">
+                            針對台灣主流程式設計競賽與檢定（APCS、TOI 一階、全國學科能力競賽），由頂級教練 Antigravity 團隊針對 AP325、ZeroJudge 歷屆真題精準規劃的備考指引。
+                        </p>
+                    </header>
+                    
+                    <!-- 競賽項目選擇導覽按鈕 -->
+                    <div class="contest-tabs-bar" role="group" aria-label="競賽類型選擇">
+                        <button class="contest-tab-selector active" data-contest-type="apcs" id="selector-apcs">
+                            🎯 APCS 檢定 (AP325 + ZJ)
+                        </button>
+                        <button class="contest-tab-selector" data-contest-type="toi" id="selector-toi">
+                            🥈 TOI 階段選拔一階
+                        </button>
+                        <button class="contest-tab-selector" data-contest-type="olympiad" id="selector-olympiad">
+                            🥇 全國資訊學科能力競賽
+                        </button>
+                    </div>
+
+                    <!-- 競賽詳情動態渲染卡片列表 -->
+                    <div class="contest-details-panel">
+                        <div class="contest-desc-box" id="contest-type-desc">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                        <div class="contest-levels-grid" id="contest-levels-container">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer 區域 -->
+        <footer>
+            <p>© 2026 台灣競程修練指南. Designed with 💜 by Antigravity.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">
+                參考與致敬資源：
+                <a href="https://usaco.guide/" target="_blank">USACO Guide</a> | 
+                <a href="https://oi-wiki.org/" target="_blank">OI Wiki</a> | 
+                <a href="https://ntucpc.org/" target="_blank">NTUCPC Guide</a>
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- 主題詳情全螢幕切分對話框 (Modal Overlay) -->
+    <aside class="modal-overlay" id="topic-modal-overlay" aria-hidden="true" role="dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span class="modal-level-badge" id="modal-level-badge">啟航級</span>
+                    <h2 class="modal-title" id="modal-title">主題標題</h2>
+                    <a href="#" target="_blank" class="github-edit-btn" id="github-edit-btn" title="在 GitHub 上編輯此篇教學">✍️ 編輯教學</a>
+                </div>
+                <button class="modal-close-btn" id="modal-close-btn" aria-label="關閉詳情">✕ 返回地圖</button>
+            </div>
+            
+            <!-- 學習狀態切換欄 (Game-like Status Selector Bar) -->
+            <div class="modal-status-selector-bar">
+                <span class="status-selector-label">🎯 學習進度狀態：</span>
+                <div class="status-pills">
+                    <button class="status-pill-btn" data-status="not-started">⚪ 【未開始】</button>
+                    <button class="status-pill-btn" data-status="learning">🔵 【學習中】</button>
+                    <button class="status-pill-btn" data-status="mastered">🟢 【已掌握】</button>
+                    <button class="status-pill-btn" data-status="proficient">👑 【精熟】</button>
+                </div>
+            </div>
+            
+            <!-- 雙欄切分主體 -->
+            <div class="modal-body-split">
+                <!-- 左欄：觀念教學與重點整理 -->
+                <div class="modal-left-pane">
+                    <!-- APCS 考點分析 (動態填寫) -->
+                    <div id="modal-apcs-alert-container"></div>
+                    
+                    <p class="modal-desc" id="modal-desc">主題內容簡述...</p>
+                    
+                    <section class="modal-section" id="modal-tutorial-section" style="display: none;">
+                        <div class="modal-section-title-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <h3 class="modal-section-title" style="margin-bottom: 0;"><span>📖</span> 觀念教學與修練重點</h3>
+                            <div class="tutorial-source-controls" style="display: flex; gap: 0.35rem;">
+                                <button class="source-btn active" id="btn-source-local">本站教材</button>
+                                <button class="source-btn" id="btn-source-oiwiki">OI Wiki 繁中鏡像</button>
+                            </div>
+                        </div>
+                        <div class="tutorial-content" id="modal-tutorial">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+
+                    <!-- 📝 個人筆記與學術討論 -->
+                    <section class="modal-section" id="modal-notes-section">
+                        <div class="section-tabs-header">
+                            <button class="section-tab-btn active" data-sec-tab="notes">📝 個人學習筆記</button>
+                            <button class="section-tab-btn" data-sec-tab="comments">💡 選手討論區</button>
+                        </div>
+                        
+                        <div class="section-tab-content active" id="sec-tab-notes">
+                            <div class="notes-header">
+                                <span class="notes-hint">支援 Markdown-like 格式，隨寫隨存，離線自動同步儲存</span>
+                                <span class="save-status" id="notes-save-status">💾 已儲存</span>
+                            </div>
+                            <textarea class="notes-textarea" id="notes-textarea" placeholder="在這裡記錄你的學習筆記、思路分析、或是卡關的心得...（自動存檔）"></textarea>
+                        </div>
+                        
+                        <div class="section-tab-content" id="sec-tab-comments">
+                            <!-- 留言清單 -->
+                            <div class="comment-list" id="modal-comments-list">
+                                <!-- 由 app.js 動態渲染置頂與本地留言 -->
+                            </div>
+                            
+                            <!-- 留言輸入框 -->
+                            <form class="comment-form" id="comment-form">
+                                <input type="text" class="comment-input" id="comment-input" placeholder="輸入你想分享的解題思路或提問..." required>
+                                <button type="submit" class="comment-submit-btn">發布</button>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- 右欄：推薦習題與修練資源 -->
+                <div class="modal-right-pane">
+                    <!-- 💻 推薦習題 -->
+                    <section class="modal-section">
+                        <h3 class="modal-section-title"><span>💻</span> 實戰推薦習題</h3>
+                        <div class="problem-list" id="modal-problems">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+                    
+                    <!-- 📚 講義與資源 -->
+                    <section class="modal-section">
+                        <h3 class="modal-section-title"><span>📚</span> 推薦講義與修練教材</h3>
+                        <div class="resource-list" id="modal-resources">
+                            <!-- 由 app.js 動態渲染 -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 👤 登入對話框 (Login Modal Overlay) -->
+    <aside class="modal-overlay" id="login-modal-overlay" aria-hidden="true" role="dialog" style="display: none; justify-content: center; align-items: center; z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(7, 8, 14, 0.85); backdrop-filter: blur(8px);">
+        <div class="modal-content" style="max-width: 440px; width: 90%; height: auto; padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: #0c0f1d; box-shadow: 0 20px 40px rgba(0,0,0,0.5); box-sizing: border-box; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                <h2 style="margin: 0; font-size: 1.2rem; color: #fff; display: flex; align-items: center; gap: 0.5rem; font-weight: 700;"><span>👤</span> 選手登入模式</h2>
+                <button id="login-modal-close" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0.2rem; display: flex; align-items: center; justify-content: center; line-height: 1;">✕</button>
+            </div>
+
+            <!-- 模式切換 Tabs -->
+            <div class="auth-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
+                <button class="auth-tab-btn active" id="auth-tab-local" style="flex: 1; text-align: center; border: none; padding: 0.5rem; font-size: 0.85rem; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.08); color: #fff;">💻 本地快速</button>
+                <button class="auth-tab-btn" id="auth-tab-cloud" style="flex: 1; text-align: center; border: none; padding: 0.5rem; font-size: 0.85rem; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: #94a3b8;">☁️ 雲端同步</button>
+            </div>
+            
+            <!-- 1. 本地遊玩表單 -->
+            <form id="login-form-local" onsubmit="event.preventDefault();" style="display: block;">
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label for="login-username" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">選手姓名 / 暱稱</label>
+                    <input type="text" id="login-username" placeholder="例如：tourist" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                </div>
+                
+                <div style="margin-bottom: 1.2rem; text-align: left;">
+                    <label for="login-cf-handle" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">Codeforces ID (選填，自動同步進度)</label>
+                    <input type="text" id="login-cf-handle" placeholder="例如：tourist" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                </div>
+                
+                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff; font-weight: 700; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; font-size: 0.95rem;">本地登入並同步</button>
+            </form>
+
+            <!-- 2. 雲端同步表單 (Supabase Cloud Sync) -->
+            <form id="login-form-cloud" onsubmit="event.preventDefault();" style="display: none;">
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label for="cloud-email" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">電子信箱 (Email)</label>
+                    <input type="email" id="cloud-email" placeholder="user@example.com" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none;">
+                </div>
+
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label for="cloud-password" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600;">密碼 (Password)</label>
+                    <input type="password" id="cloud-password" placeholder="請輸入密碼 (6位以上)" style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; color: #fff; font-size: 0.9rem; box-sizing: border-box; outline: none;">
+                </div>
+
+                <!-- ⚙️ 雲端設定摺疊區 -->
+                <div style="margin-bottom: 1.2rem; text-align: left;">
+                    <button type="button" id="btn-toggle-db-settings" style="background: none; border: none; color: #8b5cf6; font-size: 0.8rem; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 0.25rem; font-weight: 600; outline: none;">⚙️ 雲端資料庫設定 (自訂 Supabase 伺服器)</button>
+                    <div id="db-settings-fields" style="display: none; margin-top: 0.6rem; padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
+                        <div style="margin-bottom: 0.5rem;">
+                            <label for="db-url" style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.2rem;">Supabase URL</label>
+                            <input type="text" id="db-url" placeholder="https://your-project.supabase.co" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 0.4rem 0.6rem; color: #fff; font-size: 0.8rem; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label for="db-key" style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.2rem;">Supabase Anon Key</label>
+                            <input type="password" id="db-key" placeholder="eyJhbGciOi..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 0.4rem 0.6rem; color: #fff; font-size: 0.8rem; box-sizing: border-box;">
+                        </div>
+                        <p style="font-size: 0.65rem; color: #64748b; margin-top: 0.4rem; line-height: 1.3;">* 請在您的 Supabase 專案中建立 `profiles` 資料表來同步進度與筆記，包含欄位 `id` (uuid), `username` (text), `cf_handle` (text), `solved_problems` (jsonb), `read_topics` (jsonb), `topic_status` (jsonb)。</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="btn-cloud-register" style="flex: 1; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; font-weight: 600; padding: 0.7rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem;">註冊新帳號</button>
+                    <button type="submit" id="btn-cloud-login" style="flex: 1; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff; font-weight: 700; padding: 0.7rem; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; font-size: 0.85rem;">登入並同步</button>
+                </div>
+            </form>
+        </div>
+    </aside>
+
+    <!-- 全域 Toast 微提示 -->
+    <div class="toast-msg" id="toast-msg" aria-live="assertive">
+        <span class="toast-icon">✨</span>
+        <span id="toast-text">提示訊息</span>
+    </div>
+
+    <!-- 載入數據與應用邏輯 -->
+    <script src="data/roadmap.js"></script>
+    <script src="data/templates.js"></script>
+    <script src="data/coach_db.js"></script>
+    <script src="data/contest_db.js"></script>
+    <!-- ☁️ Supabase Client SDK CDN (支援雲端登入資料庫) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>

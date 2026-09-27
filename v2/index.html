@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Taiwan CP Guide</title>
+  <meta name="description" content="從基礎到進階的競程學習路線、課程、題庫與互動練習。">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/home" aria-label="Taiwan CP Guide 首頁">
+      <span class="brand-mark">&lt;/&gt;</span>
+      <span>
+        <strong>Taiwan CP Guide</strong>
+        <small>Competitive Programming</small>
+      </span>
+    </a>
+    <nav class="main-nav" aria-label="主要導覽">
+      <a href="#/home" data-nav="home">首頁</a>
+      <a href="#/roadmap" data-nav="roadmap">研讀順序</a>
+      <a href="#/courses" data-nav="courses">課程</a>
+      <a href="#/problems" data-nav="problems">題庫</a>
+      <a href="#/resources" data-nav="resources">資源</a>
+    </nav>
+    <div class="top-actions">
+      <button id="search-open" class="icon-btn" aria-label="搜尋">⌕</button>
+      <button id="theme-toggle" class="icon-btn" aria-label="切換深淺色">◐</button>
+    </div>
+  </header>
+
+  <main id="app">
+    <section class="view active" data-view="home">
+      <div class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">APCS · TOI · ICPC · Competitive Programming</span>
+          <h1>學演算法，不只是看懂。<br><span>要一路練到真的會。</span></h1>
+          <p>依照研讀順序，從大單元進入課程，再用題庫逐步練熟。所有教材沿用現有課程內容，只重新設計學習體驗。</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#/roadmap">開始學習</a>
+            <a class="btn ghost" href="#/courses">瀏覽全部課程</a>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-label">Learning Flow</div>
+          <ol class="flow-list">
+            <li><span>01</span><div><b>研讀順序</b><small>先決定學習方向</small></div></li>
+            <li><span>02</span><div><b>大單元</b><small>建立主題脈絡</small></div></li>
+            <li><span>03</span><div><b>課程</b><small>逐篇理解概念</small></div></li>
+            <li><span>04</span><div><b>題庫</b><small>用題目真正掌握</small></div></li>
+          </ol>
+        </div>
+      </div>
+
+      <section class="stats-strip" aria-label="課程統計">
+        <div><strong id="stat-topics">0</strong><span>課程主題</span></div>
+        <div><strong id="stat-problems">0</strong><span>練習題</span></div>
+        <div><strong id="stat-progress">0%</strong><span>目前進度</span></div>
+        <div><strong id="stat-levels">0</strong><span>學習階段</span></div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div><span class="eyebrow">Learning paths</span><h2>從你的目標開始</h2></div>
+          <a href="#/roadmap">完整 Roadmap →</a>
+        </div>
+        <div id="path-cards" class="path-grid"></div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div><span class="eyebrow">Domains</span><h2>大單元</h2></div>
+          <a href="#/courses">查看所有課程 →</a>
+        </div>
+        <div id="domain-cards" class="domain-grid"></div>
+      </section>
+
+      <section class="section-block">
+        <div class="continue-card">
+          <div>
+            <span class="eyebrow">Continue learning</span>
+            <h2 id="continue-title">從第一堂課開始</h2>
+            <p id="continue-desc">你的學習進度會保存在這台裝置上。</p>
+          </div>
+          <button id="continue-btn" class="btn primary">繼續學習</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="view" data-view="roadmap">
+      <div class="page-head">
+        <div><span class="eyebrow">Roadmap</span><h1>研讀順序</h1><p>按階段由易到難前進；每個節點都會連到實際課程與題目。</p></div>
+      </div>
+      <div id="roadmap-filters" class="chip-row"></div>
+      <div id="roadmap-view" class="roadmap-stack"></div>
+    </section>
+
+    <section class="view" data-view="courses">
+      <div class="page-head">
+        <div><span class="eyebrow">Courses</span><h1>課程總覽</h1><p>可依關鍵字、主題與難度快速找到要學的內容。</p></div>
+      </div>
+      <div class="toolbar">
+        <label class="searchbox"><span>⌕</span><input id="course-search" type="search" placeholder="搜尋課程、演算法、資料結構..."></label>
+        <select id="course-domain"><option value="all">全部大單元</option></select>
+        <select id="course-level"><option value="all">全部難度</option><option value="beginner">入門</option><option value="intermediate">中階</option><option value="advanced">進階</option></select>
+      </div>
+      <div id="courses-grid" class="course-grid"></div>
+      <div id="course-empty" class="empty-state" hidden>找不到符合條件的課程。</div>
+    </section>
+
+    <section class="view" data-view="problems">
+      <div class="page-head">
+        <div><span class="eyebrow">Problem ladder</span><h1>題庫</h1><p>不是把題目丟成清單，而是跟著主題逐步練習。</p></div>
+      </div>
+      <div class="toolbar">
+        <label class="searchbox"><span>⌕</span><input id="problem-search" type="search" placeholder="搜尋題目或平台..."></label>
+        <select id="problem-platform"><option value="all">全部平台</option></select>
+        <label class="check-control"><input id="hide-solved" type="checkbox"> 隱藏已完成</label>
+      </div>
+      <div id="problem-progress" class="progress-card"></div>
+      <div id="problem-ladder" class="problem-ladder"></div>
+    </section>
+
+    <section class="view" data-view="resources">
+      <div class="page-head">
+        <div><span class="eyebrow">Resources</span><h1>工具與資源</h1><p>快速開啟動畫庫、模板與常用學習資源。</p></div>
+      </div>
+      <div class="resource-grid">
+        <a class="resource-card accent" href="https://benjamin-shih-tw.github.io/algovista-algorithm-library/" target="_blank" rel="noreferrer">
+          <span>▶</span><div><h3>Algovista 動畫庫</h3><p>搭配課程用動畫理解演算法執行過程。</p></div>
+        </a>
+        <a class="resource-card" href="https://usaco.guide/" target="_blank" rel="noreferrer">
+          <span>U</span><div><h3>USACO Guide</h3><p>分級 Roadmap 與題目參考。</p></div>
+        </a>
+        <a class="resource-card" href="https://oi-wiki.org/" target="_blank" rel="noreferrer">
+          <span>Ω</span><div><h3>OI Wiki</h3><p>演算法與資料結構的完整查詢資源。</p></div>
+        </a>
+        <a class="resource-card" href="../legacy.html">
+          <span>⚙</span><div><h3>進階工具</h3><p>保留原本的模板、計時器、登入與競賽工具。</p></div>
+        </a>
+      </div>
+      <section class="section-block compact">
+        <div class="section-heading"><div><span class="eyebrow">Templates</span><h2>程式碼模板</h2></div></div>
+        <div id="template-grid" class="template-grid"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer style="width:min(var(--max),calc(100% - 40px));margin:0 auto 90px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:12px">
+    <span>© 2026 Taiwan CP Guide</span>
+    <span>Notion / ROADMAP_DATA 作為內容來源，前端只負責呈現。</span>
+  </footer>
+
+  <aside id="lesson-overlay" class="lesson-overlay" aria-hidden="true">
+    <div class="lesson-shell">
+      <header class="lesson-topbar">
+        <button id="lesson-close" class="icon-btn">←</button>
+        <div class="lesson-breadcrumb" id="lesson-breadcrumb">Course</div>
+        <div class="lesson-actions">
+          <button id="lesson-mark" class="btn small ghost">標記已完成</button>
+        </div>
+      </header>
+      <div class="lesson-layout">
+        <article class="lesson-article">
+          <div class="lesson-head">
+            <div id="lesson-tags" class="tag-row"></div>
+            <h1 id="lesson-title"></h1>
+            <p id="lesson-desc"></p>
+          </div>
+          <div id="lesson-prereq" class="prereq-box"></div>
+          <div id="lesson-content" class="markdown-body"><div class="loading">載入課程中…</div></div>
+          <section class="lesson-end">
+            <h2>對應練習</h2>
+            <div id="lesson-problems"></div>
+          </section>
+        </article>
+        <aside class="lesson-side">
+          <div class="side-card">
+            <span class="eyebrow">Progress</span>
+            <div id="lesson-progress-label" class="side-progress-label">未開始</div>
+            <div class="mini-progress"><span id="lesson-progress-fill"></span></div>
+          </div>
+          <div class="side-card">
+            <span class="eyebrow">Quick links</span>
+            <a href="https://benjamin-shih-tw.github.io/algovista-algorithm-library/" target="_blank" rel="noreferrer">打開 Algovista ↗</a>
+            <a href="#/problems">前往題庫 →</a>
+          </div>
+          <div class="side-card">
+            <span class="eyebrow">On this lesson</span>
+            <div id="lesson-toc" class="toc"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </aside>
+
+  <div id="search-modal" class="search-modal" aria-hidden="true">
+    <div class="search-dialog">
+      <div class="search-dialog-head"><span>⌕</span><input id="global-search" placeholder="搜尋課程與題目…" autocomplete="off"><button id="search-close">Esc</button></div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="../data/roadmap.js"></script>
+  <script src="../data/templates.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
