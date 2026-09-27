@@ -930,7 +930,10 @@
 
       document.querySelectorAll("iframe.notion-embed-frame").forEach(frame => {
         if (frame.contentWindow === event.source) {
+          frame.dataset.notionReady = "1";
           frame.style.height = height + "px";
+          const host = frame.closest(".notion-iframe-host");
+          if (host) host.dataset.notionReady = "1";
         }
       });
     });
@@ -961,23 +964,36 @@
     iframe.setAttribute("scrolling", "no");
     iframe.style.height = "680px";
 
-    let settled = false;
+    let fallbackTriggered = false;
+
+    const fallback = () => {
+      if (fallbackTriggered || host.dataset.notionRenderToken !== token) return;
+      fallbackTriggered = true;
+      host.classList.remove("notion-iframe-host");
+      host.classList.add("markdown-body");
+      host.dataset.notionReady = "0";
+      renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
+    };
+
     iframe.addEventListener("load", () => {
-      settled = true;
       if (makeToc) {
         const toc = document.getElementById("lesson-toc");
         if (toc) toc.innerHTML = '<span style="font-size:11px;color:var(--muted)">本篇使用 Notion 原生渲染。</span>';
       }
     });
 
-    iframe.addEventListener("error", () => {
-      if (settled || host.dataset.notionRenderToken !== token) return;
-      host.classList.remove("notion-iframe-host");
-      host.classList.add("markdown-body");
-      renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
-    });
-
+    iframe.addEventListener("error", fallback);
     host.appendChild(iframe);
+
+    setTimeout(() => {
+      if (
+        host.dataset.notionRenderToken === token &&
+        host.dataset.notionReady !== "1" &&
+        iframe.dataset.notionReady !== "1"
+      ) {
+        fallback();
+      }
+    }, 8000);
   }
 
 
@@ -1004,7 +1020,12 @@
   }
 
   function renderCourseContent(course) {
-    renderNotionMarkdownInto(document.getElementById("lesson-content"), course.content || "", true);
+    renderNotionPageInto(
+      document.getElementById("lesson-content"),
+      course.id,
+      course.content || "",
+      true
+    );
   }
 
   function enhanceNotionDetails(host) {
