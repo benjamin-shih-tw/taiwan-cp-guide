@@ -163,5 +163,41 @@ window.NOTION_DOMAIN_RELATIONS = {
   ],
   "33092ab76d4080e396c2d21276ba88db": [
     "12 Strings"
+  ],
+  "3e892ab76d40812aa397cb8b7dc9cb85": [
+    "01 Complete Search & Simulation"
+  ],
+  "3e892ab76d40816dbdc7f9cd010bfc59": [
+    "01 Complete Search & Simulation"
+  ],
+  "3e892ab76d4081d49132d6cc34d59c79": [
+    "06 Graphs"
+  ],
+  "3e892ab76d40814d9dc6d44031417468": [
+    "07 Trees"
+  ],
+  "3e892ab76d408191a979d9f33c5f58c4": [
+    "08 Dynamic Programming"
+  ],
+  "3e892ab76d408178b59ff292e87b9256": [
+    "08 Dynamic Programming"
+  ],
+  "3e892ab76d4081c9a9f7dd9ac7bbb034": [
+    "09 Data Structures & Range Queries"
+  ],
+  "3e892ab76d40811faaedc77ac94b29e9": [
+    "09 Data Structures & Range Queries"
+  ],
+  "3e892ab76d4081cfb499c9e8ab05a172": [
+    "10 Math"
+  ],
+  "3e892ab76d40814a87f5d65fd9b9e353": [
+    "10 Math"
+  ],
+  "3e892ab76d40810f8e8ec16f2dc7a6ee": [
+    "11 Geometry"
+  ],
+  "3e892ab76d4081f8ad7aedb667c615ba": [
+    "12 Strings"
   ]
 };

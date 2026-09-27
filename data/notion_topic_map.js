@@ -35,7 +35,7 @@ window.NOTION_TOPIC_MAP = {
     "2e392ab76d408076acd9d02a39ee64f3"
   ],
   "knapsack": [
-    "2e392ab76d408019a704c34f01b2ab1c"
+    "3e892ab76d408191a979d9f33c5f58c4"
   ],
   "intro-graphs": [
     "2e392ab76d4080a894fed635920f9c3c",
@@ -60,7 +60,7 @@ window.NOTION_TOPIC_MAP = {
     "33092ab76d40806a80b9c4a4d2d3fec0"
   ],
   "combinatorics": [
-    "33092ab76d408075bf02c0aecbacaf15"
+    "3e892ab76d4081cfb499c9e8ab05a172"
   ],
   "prefix-sums": [
     "33092ab76d4080e79badf5a1f860fc8c"
@@ -72,7 +72,7 @@ window.NOTION_TOPIC_MAP = {
     "33092ab76d4080199eaafc456a0f2fb7"
   ],
   "fenwick-tree": [
-    "33092ab76d408052ab69d57ace25461e"
+    "3e892ab76d4081c9a9f7dd9ac7bbb034"
   ],
   "dsu": [
     "33092ab76d40802f813ed4ca344b6864"
@@ -87,6 +87,27 @@ window.NOTION_TOPIC_MAP = {
     "33092ab76d408067a9b3c3459edb680a"
   ],
   "string-suffix": [
-    "33092ab76d4080e396c2d21276ba88db"
+    "3e892ab76d4081f8ad7aedb667c615ba"
+  ],
+  "simulation": [
+    "3e892ab76d40812aa397cb8b7dc9cb85"
+  ],
+  "meet-in-the-middle": [
+    "3e892ab76d40816dbdc7f9cd010bfc59"
+  ],
+  "func-graphs": [
+    "3e892ab76d4081d49132d6cc34d59c79"
+  ],
+  "all-roots": [
+    "3e892ab76d40814d9dc6d44031417468"
+  ],
+  "paths-grids": [
+    "3e892ab76d408178b59ff292e87b9256"
+  ],
+  "matrix-expo": [
+    "3e892ab76d40814a87f5d65fd9b9e353"
+  ],
+  "convex-hull": [
+    "3e892ab76d40810f8e8ec16f2dc7a6ee"
   ]
 };

@@ -39,6 +39,93 @@
   });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
+  const LIVE_API_BASE = "https://benjaminshih.vercel.app/api/coding-course";
+  const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
+  const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
+  window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
+
+  function rebuildCourseMap() {
+    notionCourseMap.clear();
+    NOTION_COURSES.forEach(course => notionCourseMap.set(course.id, course));
+    window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
+  }
+
+  function applyLiveCatalog(catalog) {
+    if (!catalog || !Array.isArray(catalog.items) || !catalog.items.length) return false;
+
+    const domains = Array.isArray(catalog.domains) && catalog.domains.length
+      ? catalog.domains
+      : NOTION_DOMAIN_ORDER.slice();
+
+    NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...domains);
+
+    const lectures = [];
+    const ladders = [];
+
+    catalog.items.forEach(item => {
+      const id = String(item.id || "").replace(/-/g, "");
+      if (!id) return;
+
+      const domains = Array.isArray(item.domains) ? item.domains.filter(Boolean) : [];
+      const fallback = STATIC_COURSE_FALLBACK.get(id) || STATIC_LADDER_FALLBACK.get(id) || {};
+      const base = {
+        ...fallback,
+        id,
+        title: String(item.title || fallback.title || "").trim(),
+        details: String(item.details || fallback.details || "").trim(),
+        difficulty: item.difficulty == null ? (fallback.difficulty ?? null) : Number(item.difficulty),
+        domains,
+        domain: domains[0] || fallback.domain || "",
+        status: item.status || "",
+        mastery: item.mastery || "",
+        hasContent: item.hasContent !== false,
+        isPlaceholder: item.hasContent === false || String(item.details || "").trim().toLowerCase() === "coming soon",
+        live: true,
+        notionUrl: item.notionUrl || fallback.notionUrl || ("https://app.notion.com/p/" + id),
+        content: fallback.content || ""
+      };
+
+      if (item.type === "lecture") lectures.push(base);
+      if (item.type === "assignment" && /^Problem Ladder\s*[—-]/i.test(base.title)) ladders.push(base);
+    });
+
+    if (!lectures.length) return false;
+
+    lectures.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
+    ladders.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
+
+    NOTION_COURSES.splice(0, NOTION_COURSES.length, ...lectures);
+    if (ladders.length) NOTION_LADDERS.splice(0, NOTION_LADDERS.length, ...ladders);
+
+    Object.keys(NOTION_DOMAIN_RELATIONS).forEach(key => delete NOTION_DOMAIN_RELATIONS[key]);
+    NOTION_COURSES.forEach(course => {
+      NOTION_DOMAIN_RELATIONS[course.id] = (course.domains || []).slice();
+      course.domain = course.domains?.[0] || "";
+    });
+
+    rebuildCourseMap();
+    return true;
+  }
+
+  async function loadLiveCatalog() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(LIVE_API_BASE + "/catalog", {
+        cache: "no-store",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("catalog " + response.status);
+      const catalog = await response.json();
+      return applyLiveCatalog(catalog);
+    } catch (error) {
+      console.warn("[Coding Course] live catalog unavailable; using static fallback", error);
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   const NOTION_LECTURE_TO_ROADMAP = {
     "2f392ab7-6d40-80d7-a19a-f426c0398dce":"time-complexity",
     "2e392ab7-6d40-80f5-9f95-d0827281ae23":"complete-rec",
@@ -53,7 +140,7 @@
     "36e92ab7-6d40-806b-bf5a-f50e80105a2b":"enumeration-bruteforce",
     "36e92ab7-6d40-8069-8f55-dbe8082655d6":"intro-greedy",
     "2e392ab7-6d40-8076-acd9-d02a39ee64f3":"basic-dp",
-    "2e392ab7-6d40-8019-a704-c34f01b2ab1c":"knapsack",
+    "3e892ab7-6d40-8191-a979-d9f33c5f58c4":"knapsack",
     "2e392ab7-6d40-80a8-94fe-d635920f9c3c":"intro-graphs",
     "2e392ab7-6d40-801c-8e05-e50e3ef06c86":"intro-graphs",
     "33092ab7-6d40-80ee-9d38-f7836636d5fa":"shortest-path-basic",
@@ -66,20 +153,23 @@
     "33092ab7-6d40-80e7-9bad-f5a1f860fc8c":"prefix-sums",
     "33092ab7-6d40-809c-9543-d94c24efa37a":"monotonic-structures",
     "33092ab7-6d40-8019-9eaa-fc456a0f2fb7":"segment-tree",
-    "33092ab7-6d40-8052-ab69-d57ace25461e":"fenwick-tree",
-    "33092ab7-6d40-802f-813e-d4ca344b6864":"dsu",
-    "33092ab7-6d40-803f-9b93-ca26e064c1bf":"strongly-connected-components",
+    "3e892ab7-6d40-81c9-a9f7-dd9ac7bbb034":"fenwick-tree",
+    "33092ab7-6d40-804a-8dda-e8a9c6090a1f":["dsu","mst"],
+    "33092ab7-6d40-802f-813e-d4ca344b6864":"strongly-connected-components",
     "33092ab7-6d40-802e-8b3f-e81a23b44576":"rect-geo",
-    "33092ab7-6d40-8067-a9b3-c3459edb680a":"hashing",
-    "33092ab7-6d40-80e3-96c2-d21276ba88db":"string-suffix"
+    "33092ab7-6d40-80e3-96c2-d21276ba88db":"hashing",
+    "3e892ab7-6d40-81f8-ad7a-edb667c615ba":"string-suffix"
   };
 
   const roadmapToNotion = new Map();
-  Object.entries(NOTION_LECTURE_TO_ROADMAP).forEach(([pageId, slug]) => {
+  Object.entries(NOTION_LECTURE_TO_ROADMAP).forEach(([pageId, rawSlugs]) => {
     const id = pageId.replace(/-/g, "");
-    const list = roadmapToNotion.get(slug) || [];
-    list.push(id);
-    roadmapToNotion.set(slug, list);
+    const slugs = Array.isArray(rawSlugs) ? rawSlugs : [rawSlugs];
+    slugs.forEach(slug => {
+      const list = roadmapToNotion.get(slug) || [];
+      if (!list.includes(id)) list.push(id);
+      roadmapToNotion.set(slug, list);
+    });
   });
 
   const NOTION_DOMAIN_META = {
@@ -248,16 +338,9 @@
     if (themeMeta) themeMeta.setAttribute("content", dark ? "#111111" : "#ffffff");
     const btn = document.getElementById("theme-toggle");
     if (btn) btn.textContent = dark ? "☀" : "◐";
-    document.querySelectorAll("iframe.notion-embed-frame").forEach(frame => {
-      try {
-        const url = new URL(frame.src);
-        const nextTheme = dark ? "dark" : "light";
-        if (url.searchParams.get("theme") !== nextTheme) {
-          url.searchParams.set("theme", nextTheme);
-          frame.src = url.toString();
-        }
-      } catch (_) {}
-    });
+    if (window.NotionXBridge && typeof window.NotionXBridge.setTheme === "function") {
+      window.NotionXBridge.setTheme(dark);
+    }
   }
 
   function showView(name) {
@@ -422,8 +505,10 @@
       group.courses.forEach(course => {
         const done = state.read.includes(course.id);
         const node = document.createElement("article");
-        node.className = "roadmap-node" + (done ? " done" : "");
-        const badge = course.difficulty == null ? "" : '<span class="node-badge">難度 ' + esc(course.difficulty) + '/10</span>';
+        node.className = "roadmap-node" + (done ? " done" : "") + (course.isPlaceholder ? " coming-soon" : "");
+        const badge = course.isPlaceholder
+          ? '<span class="node-badge muted">Coming soon</span>'
+          : (course.difficulty == null ? "" : '<span class="node-badge">難度 ' + esc(course.difficulty) + '/10</span>');
         node.innerHTML =
           '<div class="node-top"><h3>' + esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "");
@@ -483,13 +568,15 @@
 
       courses.forEach(course => {
         const card = document.createElement("article");
-        card.className = "course-card";
+        card.className = "course-card" + (course.isPlaceholder ? " coming-soon" : "");
         const diff = course.difficulty;
         const bars = diff == null ? "" : Array.from({ length: 5 }, (_, i) =>
           '<i class="' + (i < Math.ceil(diff / 2) ? "on" : "") + '"></i>'
         ).join("");
         const relationTags = "";
-        const difficultyTag = diff == null ? "" : '<span class="tag">難度 ' + esc(diff) + '/10</span>';
+        const difficultyTag = course.isPlaceholder
+          ? '<span class="tag muted">Coming soon</span>'
+          : (diff == null ? "" : '<span class="tag">難度 ' + esc(diff) + '/10</span>');
         const footer = diff == null ? "" :
           '<div class="course-footer"><div class="difficulty" title="難度 ' + esc(diff) + '/10">' + bars + '</div></div>';
 
@@ -562,6 +649,7 @@
     });
 
     const migratedHost = document.getElementById("migrated-ladders");
+    if (window.NotionXBridge?.unmountWithin) window.NotionXBridge.unmountWithin(migratedHost);
     migratedHost.innerHTML = "";
     const migrated = NOTION_LADDERS
       .filter(ladder => ladder.domain === group.domain.name)
@@ -582,7 +670,7 @@
       const loadLadder = () => {
         if (!details.open || body.dataset.loaded === "1") return;
         body.dataset.loaded = "1";
-        renderNotionPageInto(body, ladder.id, ladder.content || "", false);
+        renderNotionPageInto(body, ladder.id, ladder.content || "", false, ladder);
       };
       details.addEventListener("toggle", loadLadder);
       details.append(summary, body);
@@ -731,6 +819,8 @@
     overlay.classList.remove("open");
     overlay.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+    const lessonHost = document.getElementById("lesson-content");
+    if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(lessonHost);
     state.activeTopic = null;
     if (pushHash) location.hash = state.baseView === "problems" && state.problemDomain ? "#/problems/" + encodeURIComponent(state.problemDomain) : "#/" + state.baseView;
   }
@@ -919,86 +1009,92 @@
   }
 
   let notionRenderCounter = 0;
-  let notionEmbedMessageReady = false;
 
-  function ensureNotionEmbedMessageHandler() {
-    if (notionEmbedMessageReady) return;
-    notionEmbedMessageReady = true;
-
-    window.addEventListener("message", event => {
-      if (event.origin !== "https://benjaminshih.vercel.app") return;
-      const data = event.data || {};
-      if (data.type !== "coding-course:notion-height") return;
-
-      const height = Math.max(120, Math.min(30000, Number(data.height) || 0));
-      if (!height) return;
-
-      document.querySelectorAll("iframe.notion-embed-frame").forEach(frame => {
-        if (frame.contentWindow === event.source) {
-          frame.dataset.notionReady = "1";
-          frame.style.height = height + "px";
-          const host = frame.closest(".notion-iframe-host");
-          if (host) host.dataset.notionReady = "1";
-        }
-      });
-    });
+  function renderLessonPlaceholder(host, title) {
+    if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
+    host.className = "lesson-placeholder";
+    host.innerHTML =
+      '<div class="lesson-placeholder-mark">Coming soon</div>' +
+      '<h2>' + esc(title || "這堂課") + '</h2>' +
+      '<p>Notion 已建立課程空殼；內容補上後，這裡會自動顯示，不需要再 push 網站。</p>';
+    const toc = document.getElementById("lesson-toc");
+    if (toc) toc.innerHTML = "";
   }
 
-  function notionEmbedUrl(pageId) {
-    const cleanId = String(pageId || "").replace(/-/g, "");
-    const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-    return "https://benjaminshih.vercel.app/embed/" + encodeURIComponent(cleanId) + "?theme=" + theme;
+  function renderLessonError(host, course, message) {
+    if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
+    host.className = "lesson-load-error";
+    host.innerHTML =
+      '<strong>內容暫時載入失敗</strong>' +
+      '<p>' + esc(message || "請稍後再試。") + '</p>' +
+      '<button type="button" class="btn small ghost">重新載入</button>';
+    host.querySelector("button")?.addEventListener("click", () => renderCourseContent(course));
   }
 
-  function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc) {
-    ensureNotionEmbedMessageHandler();
-
+  async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc, courseMeta) {
     const token = String(++notionRenderCounter);
     host.dataset.notionRenderToken = token;
-    host.classList.remove("markdown-body", "notion-x-host");
-    host.classList.add("notion-iframe-host");
-    host.replaceChildren();
 
-    const iframe = document.createElement("iframe");
-    iframe.className = "notion-embed-frame";
-    iframe.dataset.pageId = String(pageId || "").replace(/-/g, "");
-    iframe.src = notionEmbedUrl(pageId);
-    iframe.title = "Notion lesson";
-    iframe.loading = "eager";
-    iframe.referrerPolicy = "strict-origin-when-cross-origin";
-    iframe.setAttribute("scrolling", "no");
-    iframe.style.height = "680px";
+    if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
 
-    let fallbackTriggered = false;
+    if (courseMeta?.isPlaceholder || courseMeta?.hasContent === false) {
+      renderLessonPlaceholder(host, courseMeta?.title);
+      return;
+    }
 
-    const fallback = () => {
-      if (fallbackTriggered || host.dataset.notionRenderToken !== token) return;
-      fallbackTriggered = true;
-      host.classList.remove("notion-iframe-host");
-      host.classList.add("markdown-body");
-      host.dataset.notionReady = "0";
-      renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
-    };
+    host.className = "notion-live-host";
+    host.innerHTML =
+      '<div class="notion-loading" aria-label="載入課程內容">' +
+      '<i></i><i></i><i></i><i></i>' +
+      '</div>';
 
-    iframe.addEventListener("load", () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+
+    try {
+      const cleanId = String(pageId || "").replace(/-/g, "");
+      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(cleanId), {
+        cache: "no-store",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("Notion API " + response.status);
+      const payload = await response.json();
+
+      if (host.dataset.notionRenderToken !== token) return;
+
+      if (payload.hasContent === false) {
+        renderLessonPlaceholder(host, courseMeta?.title || payload.title);
+        return;
+      }
+
+      if (!window.NotionXBridge || typeof window.NotionXBridge.render !== "function") {
+        throw new Error("Notion renderer 尚未載入");
+      }
+
+      host.replaceChildren();
+      host.className = "notion-live-host";
+      const ok = window.NotionXBridge.render(host, payload.blockMap);
+      if (!ok) throw new Error("Notion blockMap 無法渲染");
+
       if (makeToc) {
         const toc = document.getElementById("lesson-toc");
-        if (toc) toc.innerHTML = '<span style="font-size:11px;color:var(--muted)">本篇使用 Notion 原生渲染。</span>';
+        if (toc) toc.innerHTML = '<span class="toc-live-note">內容由 Notion 即時同步</span>';
       }
-    });
+    } catch (error) {
+      if (host.dataset.notionRenderToken !== token) return;
+      console.warn("[Coding Course] live page unavailable", pageId, error);
 
-    iframe.addEventListener("error", fallback);
-    host.appendChild(iframe);
-
-    setTimeout(() => {
-      if (
-        host.dataset.notionRenderToken === token &&
-        host.dataset.notionReady !== "1" &&
-        iframe.dataset.notionReady !== "1"
-      ) {
-        fallback();
+      if (String(fallbackMarkdown || "").trim()) {
+        host.className = "markdown-body";
+        renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
+      } else if (courseMeta?.isPlaceholder) {
+        renderLessonPlaceholder(host, courseMeta?.title);
+      } else {
+        renderLessonError(host, courseMeta || { id: pageId }, "無法連線到 Notion 內容服務。");
       }
-    }, 8000);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
 
@@ -1029,7 +1125,8 @@
       document.getElementById("lesson-content"),
       course.id,
       course.content || "",
-      true
+      true,
+      course
     );
   }
 
@@ -1371,6 +1468,16 @@
     window.addEventListener("hashchange", router);
     window.addEventListener("popstate", router);
     router();
+
+    loadLiveCatalog().then(changed => {
+      if (!changed) return;
+      renderHome();
+      renderRoadmap();
+      renderCourses();
+      renderProblems();
+      renderResources();
+      router();
+    });
   }
 
   if (document.readyState === "loading") {
