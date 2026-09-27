@@ -107,3 +107,38 @@ footer{width:min(var(--max),calc(100% - 40px));margin:0 auto;padding:20px 0 70px
   .problem-course-diff{display:none}
 }
 
+
+/* Lesson code + math rendering */
+.markdown-body .katex-display{overflow-x:auto;overflow-y:hidden;padding:6px 0;margin:18px 0}
+.markdown-body .katex{font-size:1.04em}
+.code-block{margin:18px 0;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#f6f8fa}
+.code-toolbar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid #d8dee4;background:#f6f8fa;color:#57606a;font-family:var(--mono);font-size:10px}
+.code-toolbar button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:3px 5px;border-radius:4px}
+.code-toolbar button:hover{background:#eaeef2;color:#24292f}
+.markdown-body .code-block pre{margin:0;border:0;border-radius:0;background:#fff;color:#24292f;padding:15px 17px;overflow:auto;line-height:1.55}
+.markdown-body .code-block code{display:block;background:transparent!important;color:inherit;padding:0!important;font-family:var(--mono);font-size:12.5px;tab-size:4}
+.hljs{background:transparent!important;color:#24292f}
+.hljs-comment,.hljs-quote{color:#6e7781}
+.hljs-keyword,.hljs-selector-tag,.hljs-literal{color:#cf222e}
+.hljs-type,.hljs-built_in{color:#8250df}
+.hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:#8250df}
+.hljs-string,.hljs-regexp{color:#0a3069}
+.hljs-number,.hljs-symbol,.hljs-bullet{color:#0550ae}
+.hljs-meta,.hljs-meta .hljs-keyword{color:#116329}
+.hljs-variable,.hljs-template-variable,.hljs-attr{color:#953800}
+.hljs-params{color:#24292f}
+
+html[data-theme="dark"] .code-block{background:#161b22;border-color:#30363d}
+html[data-theme="dark"] .code-toolbar{background:#161b22;border-color:#30363d;color:#8b949e}
+html[data-theme="dark"] .code-toolbar button:hover{background:#21262d;color:#f0f6fc}
+html[data-theme="dark"] .markdown-body .code-block pre{background:#0d1117;color:#c9d1d9}
+html[data-theme="dark"] .hljs{color:#c9d1d9}
+html[data-theme="dark"] .hljs-comment,html[data-theme="dark"] .hljs-quote{color:#8b949e}
+html[data-theme="dark"] .hljs-keyword,html[data-theme="dark"] .hljs-selector-tag,html[data-theme="dark"] .hljs-literal{color:#ff7b72}
+html[data-theme="dark"] .hljs-type,html[data-theme="dark"] .hljs-built_in{color:#d2a8ff}
+html[data-theme="dark"] .hljs-title,html[data-theme="dark"] .hljs-title.function_,html[data-theme="dark"] .hljs-function .hljs-title{color:#d2a8ff}
+html[data-theme="dark"] .hljs-string,html[data-theme="dark"] .hljs-regexp{color:#a5d6ff}
+html[data-theme="dark"] .hljs-number,html[data-theme="dark"] .hljs-symbol,html[data-theme="dark"] .hljs-bullet{color:#79c0ff}
+html[data-theme="dark"] .hljs-meta,html[data-theme="dark"] .hljs-meta .hljs-keyword{color:#7ee787}
+html[data-theme="dark"] .hljs-variable,html[data-theme="dark"] .hljs-template-variable,html[data-theme="dark"] .hljs-attr{color:#ffa657}
+html[data-theme="dark"] .hljs-params{color:#c9d1d9}
