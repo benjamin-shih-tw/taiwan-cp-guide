@@ -82,18 +82,19 @@
   });
 
   const NOTION_DOMAIN_META = {
-    "APCS 暑假特訓班!!!": ["🎯", "APCS 暑假特訓班!!!"],
-    "basic": ["{}", "basic"],
-    "Computational Geometry": ["△", "Computational Geometry"],
-    "DP(dynamic programming)": ["▦", "DP(dynamic programming)"],
-    "DS": ["▤", "DS"],
-    "Graph": ["⌘", "Graph"],
-    "Greedy": ["↗", "Greedy"],
-    "Math": ["∑", "Math"],
-    "Sorting & searching": ["↕", "Sorting & searching"],
-    "STL": ["<>", "STL"],
-    "String": ["Aa", "String"],
-    "Tree": ["🌳", "Tree"],
+    "00 Fundamentals": ["00", "Fundamentals"],
+    "01 Complete Search & Simulation": ["01", "Complete Search"],
+    "02 STL & Basic Data Structures": ["02", "STL / Basic DS"],
+    "03 Sorting & Searching": ["03", "Sorting / Searching"],
+    "04 Prefix Sums": ["04", "Prefix Sums"],
+    "05 Greedy": ["05", "Greedy"],
+    "06 Graphs": ["06", "Graphs"],
+    "07 Trees": ["07", "Trees"],
+    "08 Dynamic Programming": ["08", "DP"],
+    "09 Data Structures & Range Queries": ["09", "Data Structures"],
+    "10 Math": ["10", "Math"],
+    "11 Geometry": ["11", "Geometry"],
+    "12 Strings": ["12", "Strings"],
     "未歸類": ["•", "未歸類"]
   };
 
