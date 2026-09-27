@@ -699,6 +699,11 @@
     toast(state.read.includes(id) ? "課程已完成" : "已取消完成");
   }
 
+  function normalizeNotionMath(markdown) {
+    return String(markdown || "")
+      .replace(/\$\`([^\`\n]+)\`\$/g, (_, body) => "$" + body + "$");
+  }
+
   function protectMarkdownCode(markdown) {
     const stash = [];
     const hold = value => {
@@ -707,6 +712,10 @@
     };
     let text = String(markdown || "");
     text = text.replace(/```[\s\S]*?```/g, hold);
+    text = text.replace(/\$\$[\s\S]*?\$\$/g, hold);
+    text = text.replace(/\\\[[\s\S]*?\\\]/g, hold);
+    text = text.replace(/\\\([^\n]*?\\\)/g, hold);
+    text = text.replace(/\$[^$\n]+\$/g, hold);
     text = text.replace(/`[^`\n]*`/g, hold);
     return {
       text,
@@ -721,7 +730,14 @@
     const out = [];
     const stack = [];
 
-    lines.forEach(line => {
+    lines.forEach(originalLine => {
+      let line = originalLine;
+      let removeTabs = stack.length;
+      while (removeTabs > 0 && line.startsWith("\t")) {
+        line = line.slice(1);
+        removeTabs--;
+      }
+
       const toggle = line.match(/^(#{1,6})\s+(.+?)\s*\{toggle\s*=\s*["']true["']\}\s*$/i);
       const heading = toggle || line.match(/^(#{1,6})\s+/);
       const level = heading ? heading[1].length : null;
@@ -748,6 +764,38 @@
     return out.join("\n");
   }
 
+  function deindentNotionDetails(markdown) {
+    const lines = String(markdown || "").split("\n");
+    const out = [];
+    let depth = 0;
+
+    lines.forEach(originalLine => {
+      const trimmed = originalLine.trimStart();
+      const closing = /^<\/details\s*>/i.test(trimmed);
+      if (closing) depth = Math.max(0, depth - 1);
+
+      let line = originalLine;
+      let removeTabs = depth;
+      while (removeTabs > 0 && line.startsWith("\t")) {
+        line = line.slice(1);
+        removeTabs--;
+      }
+      out.push(line);
+
+      if (/^<details(?:\s|>)/i.test(trimmed)) depth++;
+    });
+
+    return out.join("\n");
+  }
+
+  function isolateNotionHtmlBlocks(markdown) {
+    return String(markdown || "")
+      .replace(/(^|\n)[ \t]*(<table\b)/gi, "$1\n$2")
+      .replace(/<\/table>[ \t]*(?=\n|$)/gi, "</table>\n\n")
+      .replace(/(^|\n)[ \t]*(<details\b)/gi, "$1\n$2")
+      .replace(/<\/details>[ \t]*(?=\n|$)/gi, "</details>\n\n");
+  }
+
   function escapeNonHtmlAngles(markdown) {
     const allowed = new Set([
       "a","abbr","b","blockquote","br","code","col","colgroup","dd","del","details","div","dl","dt",
@@ -766,10 +814,24 @@
   }
 
   function preprocessNotionMarkdown(markdown) {
-    const protectedCode = protectMarkdownCode(markdown);
+    const normalized = normalizeNotionMath(markdown);
+    const protectedCode = protectMarkdownCode(normalized);
     let text = protectedCode.text;
 
     text = text.replace(/<empty-block\s*\/>/gi, "");
+
+    text = text.replace(
+      /<(?:page)\s+url="([^"]*)"\s*>([\s\S]*?)<\/page>/gi,
+      (_, url, label) => '<a class="notion-page-block" href="' + url + '">' + label.trim() + '<span>↗</span></a>'
+    );
+    text = text.replace(
+      /<mention-page\s+url="([^"]*)"\s*>([\s\S]*?)<\/mention-page>/gi,
+      (_, url, label) => '<a class="notion-mention" href="' + url + '">' + label.trim() + "</a>"
+    );
+    text = text.replace(
+      /<embed\s+src="([^"]*)"\s*>\s*<\/embed>/gi,
+      (_, src) => src ? '<a class="notion-attachment" href="' + src + '">Embed ↗</a>' : ""
+    );
     text = text.replace(
       /<unknown\s+url="([^"]*)"\s+alt="([^"]*)"\s*\/>/gi,
       (_, url, alt) => {
@@ -787,6 +849,8 @@
     );
 
     text = convertNotionToggleHeadings(text);
+    text = deindentNotionDetails(text);
+    text = isolateNotionHtmlBlocks(text);
     text = escapeNonHtmlAngles(text);
     return protectedCode.restore(text);
   }
@@ -819,19 +883,20 @@
 
   function enhanceNotionDetails(host) {
     if (!window.marked) return;
-    const details = Array.from(host.querySelectorAll("details")).reverse();
 
-    details.forEach(detail => {
-      if (detail.dataset.notionReady === "1") return;
+    const process = detail => {
+      if (!detail || detail.dataset.notionReady === "1") return;
       const summary = detail.querySelector(":scope > summary");
       if (!summary) return;
 
       if (window.marked.parseInline) {
-        summary.innerHTML = window.marked.parseInline(summary.innerHTML.trim());
+        summary.innerHTML = window.marked.parseInline(summary.textContent.trim());
       }
 
       const bodyNodes = Array.from(detail.childNodes).filter(node => node !== summary);
-      const raw = bodyNodes.map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : node.outerHTML).join("");
+      const raw = bodyNodes.map(node =>
+        node.nodeType === Node.TEXT_NODE ? node.textContent : node.outerHTML
+      ).join("");
       bodyNodes.forEach(node => node.remove());
 
       const body = document.createElement("div");
@@ -842,20 +907,37 @@
       detail.appendChild(body);
       detail.classList.add("notion-toggle");
       detail.dataset.notionReady = "1";
-    });
+
+      Array.from(body.querySelectorAll("details")).forEach(process);
+    };
+
+    Array.from(host.querySelectorAll("details"))
+      .filter(detail => !detail.parentElement.closest("details"))
+      .forEach(process);
   }
 
   function enhanceNotionInlineBlocks(host) {
     if (window.marked && window.marked.parseInline) {
-      host.querySelectorAll("td,th").forEach(cell => {
-        const raw = cell.innerHTML;
-        if (/[*_~`\[]/.test(raw)) cell.innerHTML = window.marked.parseInline(raw);
-      });
+      const renderTextNodes = root => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
 
-      host.querySelectorAll("span[color]").forEach(span => {
-        const raw = span.innerHTML;
-        if (/[*_~`\[]/.test(raw)) span.innerHTML = window.marked.parseInline(raw);
-      });
+        nodes.forEach(node => {
+          const parent = node.parentElement;
+          if (!parent || parent.closest("pre,code,a,.katex")) return;
+          const raw = node.textContent || "";
+          if (!raw || raw.includes("$") || !/[\*\_~`\[]/.test(raw)) return;
+
+          const html = window.marked.parseInline(raw);
+          if (html === raw) return;
+          const template = document.createElement("template");
+          template.innerHTML = html;
+          node.replaceWith(template.content);
+        });
+      };
+
+      host.querySelectorAll("td,th,span[color]").forEach(renderTextNodes);
     }
 
     const colors = {
