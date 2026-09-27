@@ -265,22 +265,8 @@
   }
 
   function router() {
-    const rawHash = location.hash;
-
-    if (!rawHash || rawHash === "#" || rawHash === "#/" || rawHash === "#/welcome") {
-      closeLesson(false);
-      showView("home");
-      if (window.CourseFX && typeof window.CourseFX.openWelcome === "function") {
-        window.CourseFX.openWelcome();
-      }
-      return;
-    }
-
-    if (window.CourseFX && typeof window.CourseFX.closeWelcome === "function") {
-      window.CourseFX.closeWelcome();
-    }
-
-    const clean = rawHash.replace(/^#\/?/, "");
+    const hash = location.hash || "#/home";
+    const clean = hash.replace(/^#\/?/, "");
     const parts = clean.split("/").filter(Boolean);
 
     if (parts[0] === "lesson" && parts[1]) {
@@ -541,13 +527,7 @@
         "<span>" + esc(label) + "</span>";
       const body = document.createElement("div");
       body.className = "migrated-ladder-body markdown-body";
-      if (window.marked) body.innerHTML = window.marked.parse(ladder.content || "");
-      else body.textContent = ladder.content || "";
-      body.querySelectorAll("a").forEach(a => {
-        if (/^https?:/i.test(a.getAttribute("href") || "")) { a.target = "_blank"; a.rel = "noreferrer"; }
-      });
-      enhanceCodeBlocks(body);
-      renderLessonMath(body);
+      renderNotionMarkdownInto(body, ladder.content || "", false);
       details.append(summary, body);
       migratedHost.appendChild(details);
     });
@@ -719,21 +699,186 @@
     toast(state.read.includes(id) ? "課程已完成" : "已取消完成");
   }
 
-  function renderCourseContent(course) {
-    const host = document.getElementById("lesson-content");
-    const markdown = course.content || "";
-    if (!markdown.trim()) {
+  function protectMarkdownCode(markdown) {
+    const stash = [];
+    const hold = value => {
+      const id = stash.push(value) - 1;
+      return "\uE000" + id + "\uE001";
+    };
+    let text = String(markdown || "");
+    text = text.replace(/```[\s\S]*?```/g, hold);
+    text = text.replace(/`[^`\n]*`/g, hold);
+    return {
+      text,
+      restore(value) {
+        return value.replace(/\uE000(\d+)\uE001/g, (_, id) => stash[Number(id)] || "");
+      }
+    };
+  }
+
+  function convertNotionToggleHeadings(markdown) {
+    const lines = String(markdown || "").split("\n");
+    const out = [];
+    const stack = [];
+
+    lines.forEach(line => {
+      const toggle = line.match(/^(#{1,6})\s+(.+?)\s*\{toggle\s*=\s*["']true["']\}\s*$/i);
+      const heading = toggle || line.match(/^(#{1,6})\s+/);
+      const level = heading ? heading[1].length : null;
+
+      if (level != null) {
+        while (stack.length && stack[stack.length - 1] >= level) {
+          out.push("</details>");
+          stack.pop();
+        }
+      }
+
+      if (toggle) {
+        out.push('<details class="notion-toggle notion-toggle-h' + level + '"><summary>' + toggle[2].trim() + "</summary>");
+        stack.push(level);
+      } else {
+        out.push(line);
+      }
+    });
+
+    while (stack.length) {
+      out.push("</details>");
+      stack.pop();
+    }
+    return out.join("\n");
+  }
+
+  function escapeNonHtmlAngles(markdown) {
+    const allowed = new Set([
+      "a","abbr","b","blockquote","br","code","col","colgroup","dd","del","details","div","dl","dt",
+      "em","figure","figcaption","h1","h2","h3","h4","h5","h6","hr","i","img","kbd","li","mark",
+      "ol","p","pre","s","small","span","strong","sub","summary","sup","table","tbody","td","tfoot",
+      "th","thead","tr","u","ul"
+    ]);
+    return String(markdown || "").replace(/<([^>\n]+)>/g, full => {
+      const inner = full.slice(1, -1).trim();
+      const cleaned = inner.replace(/^\//, "").trim();
+      const nameMatch = cleaned.match(/^([a-zA-Z][\w-]*)\b/);
+      const name = nameMatch ? nameMatch[1].toLowerCase() : "";
+      if (allowed.has(name) || inner.startsWith("!--")) return full;
+      return full.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    });
+  }
+
+  function preprocessNotionMarkdown(markdown) {
+    const protectedCode = protectMarkdownCode(markdown);
+    let text = protectedCode.text;
+
+    text = text.replace(/<empty-block\s*\/>/gi, "");
+    text = text.replace(
+      /<unknown\s+url="([^"]*)"\s+alt="([^"]*)"\s*\/>/gi,
+      (_, url, alt) => {
+        const label = alt && alt.toLowerCase() !== "button" ? alt : "開啟";
+        return '<a class="notion-button-block" href="' + url + '">' + label + " ↗</a>";
+      }
+    );
+    text = text.replace(
+      /<(file|pdf)\s+src="([^"]*)"\s*>\s*<\/\1>/gi,
+      (_, kind, src) => {
+        const label = kind.toUpperCase();
+        if (src) return '<a class="notion-attachment" href="' + src + '">' + label + " ↗</a>";
+        return '<span class="notion-attachment notion-attachment-empty">' + label + "</span>";
+      }
+    );
+
+    text = convertNotionToggleHeadings(text);
+    text = escapeNonHtmlAngles(text);
+    return protectedCode.restore(text);
+  }
+
+  function renderNotionMarkdownInto(host, markdown, makeToc) {
+    const source = String(markdown || "");
+    if (!source.trim()) {
       host.innerHTML = "";
-      buildToc(host);
+      if (makeToc) buildToc(host);
       return;
     }
 
     if (window.marked) {
       window.marked.setOptions({ gfm: true, breaks: false });
-      host.innerHTML = window.marked.parse(markdown);
+      host.innerHTML = window.marked.parse(preprocessNotionMarkdown(source));
     } else {
-      host.textContent = markdown;
+      host.textContent = source;
     }
+
+    enhanceNotionDetails(host);
+    enhanceNotionInlineBlocks(host);
+    enhanceCodeBlocks(host);
+    renderLessonMath(host);
+    if (makeToc) buildToc(host);
+  }
+
+  function renderCourseContent(course) {
+    renderNotionMarkdownInto(document.getElementById("lesson-content"), course.content || "", true);
+  }
+
+  function enhanceNotionDetails(host) {
+    if (!window.marked) return;
+    const details = Array.from(host.querySelectorAll("details")).reverse();
+
+    details.forEach(detail => {
+      if (detail.dataset.notionReady === "1") return;
+      const summary = detail.querySelector(":scope > summary");
+      if (!summary) return;
+
+      if (window.marked.parseInline) {
+        summary.innerHTML = window.marked.parseInline(summary.innerHTML.trim());
+      }
+
+      const bodyNodes = Array.from(detail.childNodes).filter(node => node !== summary);
+      const raw = bodyNodes.map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : node.outerHTML).join("");
+      bodyNodes.forEach(node => node.remove());
+
+      const body = document.createElement("div");
+      body.className = "notion-toggle-body";
+      body.innerHTML = raw.trim()
+        ? window.marked.parse(preprocessNotionMarkdown(raw.trim()))
+        : "";
+      detail.appendChild(body);
+      detail.classList.add("notion-toggle");
+      detail.dataset.notionReady = "1";
+    });
+  }
+
+  function enhanceNotionInlineBlocks(host) {
+    if (window.marked && window.marked.parseInline) {
+      host.querySelectorAll("td,th").forEach(cell => {
+        const raw = cell.innerHTML;
+        if (/[*_~`\[]/.test(raw)) cell.innerHTML = window.marked.parseInline(raw);
+      });
+
+      host.querySelectorAll("span[color]").forEach(span => {
+        const raw = span.innerHTML;
+        if (/[*_~`\[]/.test(raw)) span.innerHTML = window.marked.parseInline(raw);
+      });
+    }
+
+    const colors = {
+      gray:"#787774", brown:"#9f6b53", orange:"#d9730d", yellow:"#cb912f",
+      green:"#448361", blue:"#337ea9", purple:"#9065b0", pink:"#c14c8a", red:"#d44c47"
+    };
+    const backgrounds = {
+      gray:"#ebeced", brown:"#e9e5e3", orange:"#faebdd", yellow:"#fbf3db",
+      green:"#ddedea", blue:"#ddebf1", purple:"#eae4f2", pink:"#f4dfeb", red:"#fbe4e4"
+    };
+
+    host.querySelectorAll("span[color]").forEach(span => {
+      const value = (span.getAttribute("color") || "").toLowerCase();
+      if (value.endsWith("_background")) {
+        const key = value.replace("_background", "");
+        if (backgrounds[key]) span.style.background = backgrounds[key];
+        span.classList.add("notion-color-background");
+      } else if (colors[value]) {
+        span.style.color = colors[value];
+      } else if (/^#[0-9a-f]{3,8}$/i.test(value)) {
+        span.style.color = value;
+      }
+    });
 
     host.querySelectorAll("a").forEach(a => {
       if (/^https?:/i.test(a.getAttribute("href") || "")) {
@@ -742,9 +887,18 @@
       }
     });
 
-    enhanceCodeBlocks(host);
-    renderLessonMath(host);
-    buildToc(host);
+    host.querySelectorAll("img").forEach(img => {
+      img.loading = "lazy";
+      img.decoding = "async";
+    });
+
+    host.querySelectorAll("table").forEach(table => {
+      if (table.parentElement && table.parentElement.classList.contains("notion-table-wrap")) return;
+      const wrap = document.createElement("div");
+      wrap.className = "notion-table-wrap";
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
+    });
   }
 
   function enhanceCodeBlocks(host) {
