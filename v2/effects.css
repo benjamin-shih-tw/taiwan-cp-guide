@@ -201,7 +201,7 @@ html:not([data-theme="dark"]) .zipper-teeth{
   cursor:grab;
   will-change:transform;
 }
-.zipper-pull:active,.welcome-stage.is-dragging .zipper-pull{cursor:grabbing;transform:translate(-50%,var(--pull-y,0)) scale(.98)}
+.zipper-pull:active,.welcome-stage.is-dragging .zipper-pull{cursor:grabbing;filter:brightness(.94)}
 .zipper-pull span{font-size:20px;line-height:1}
 .welcome-stage.is-revealed .zipper-pull{opacity:0;pointer-events:none;transition:opacity .2s ease}
 
