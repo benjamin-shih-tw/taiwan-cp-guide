@@ -119,15 +119,9 @@
   }
 
   function courseDisplayTitle(course) {
-    let title = String((course && course.title) || "").trim();
-    title = title.replace(/^Lecture_\d+(?:-\d+(?:\.\d+)?)?\s*/i, "");
-    title = title.replace(/^\|\s*[^|]+\s*\|\s*/, "");
-    return title.trim() || String((course && course.title) || "").trim();
+    return String((course && course.title) || "").trim();
   }
 
-  function displayNumber(index) {
-    return String(index + 1).padStart(2, "0");
-  }
 
   function initData() {
     const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
@@ -366,14 +360,13 @@
 
       const nodes = document.createElement("div");
       nodes.className = "roadmap-nodes";
-      group.courses.forEach((course, courseIndex) => {
+      group.courses.forEach(course => {
         const done = state.read.includes(course.id);
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "");
         const badge = course.difficulty == null ? "" : '<span class="node-badge">難度 ' + esc(course.difficulty) + '/10</span>';
         node.innerHTML =
-          '<div class="node-top"><h3><span class="course-no">' + displayNumber(courseIndex) + '</span>' +
-          esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
+          '<div class="node-top"><h3>' + esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "");
         node.onclick = () => openLesson(course.id, true);
         nodes.appendChild(node);
@@ -430,7 +423,6 @@
       grid.className = "unit-course-grid";
 
       courses.forEach(course => {
-        const courseIndex = group.courses.findIndex(item => item.id === course.id);
         const card = document.createElement("article");
         card.className = "course-card";
         const diff = course.difficulty;
@@ -444,7 +436,7 @@
 
         card.innerHTML =
           ((relationTags || difficultyTag) ? '<div class="tag-row">' + relationTags + difficultyTag + '</div>' : "") +
-          "<h3><span class=\"course-no\">" + displayNumber(courseIndex) + "</span>" + esc(courseDisplayTitle(course)) + "</h3>" +
+          "<h3>" + esc(courseDisplayTitle(course)) + "</h3>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
           footer;
         card.onclick = () => openLesson(course.id, true);
@@ -498,11 +490,10 @@
 
     const courseHost = document.getElementById("problem-course-list");
     courseHost.innerHTML = "";
-    group.courses.forEach((course, index) => {
+    group.courses.forEach(course => {
       const row = document.createElement("button");
       row.className = "problem-course-row";
       row.innerHTML =
-        '<span class="problem-course-index">' + String(index + 1).padStart(2, "0") + "</span>" +
         '<span class="problem-course-name">' + esc(courseDisplayTitle(course)) + "</span>" +
         (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
         '<span class="problem-course-arrow">→</span>';
