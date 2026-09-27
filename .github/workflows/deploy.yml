@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -24,6 +24,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install renderer dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build Notion renderer
+        run: npm run build:notion
+
+      - name: Persist generated renderer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f v2/notion-renderer.js v2/notion-renderer.css v2/notion-assets || true
+          if ! git diff --cached --quiet; then
+            git commit -m "build: update Notion renderer bundle"
+            git push
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

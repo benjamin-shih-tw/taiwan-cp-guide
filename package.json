@@ -1,0 +1,17 @@
+{
+  "name": "taiwan-cp-guide-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:notion": "esbuild v2/notion-renderer-entry.jsx --bundle --minify --format=iife --platform=browser --target=es2020 --outfile=v2/notion-renderer.js --loader:.woff=file --loader:.woff2=file --loader:.ttf=file --asset-names=notion-assets/[name]-[hash]"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.0",
+    "katex": "^0.16.11",
+    "prismjs": "^1.30.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-notion-x": "7.12.1",
+    "react-pdf": "^9.2.1"
+  }
+}
