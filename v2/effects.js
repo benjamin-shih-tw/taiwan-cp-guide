@@ -72,14 +72,14 @@
     return "polygon(" + points.join(",") + ")";
   }
 
-  async function themeReveal(target, applyTheme) {
+  async function themeReveal(target, applyTheme, event) {
     if (typeof applyTheme !== "function") return;
     if (reduceMotion || !document.startViewTransition) {
       applyTheme();
       return;
     }
 
-    const { x, y } = targetPoint(target, null);
+    const { x, y } = targetPoint(target, event);
     const radius = Math.max(
       Math.hypot(x, y),
       Math.hypot(innerWidth - x, y),
@@ -229,8 +229,7 @@
       burst(welcome.pull, event);
     });
 
-    enter.addEventListener("click", event => {
-      burst(enter, event);
+    enter.addEventListener("click", () => {
       closeWelcome();
       if (location.hash !== "#/home") location.hash = "#/home";
     });
