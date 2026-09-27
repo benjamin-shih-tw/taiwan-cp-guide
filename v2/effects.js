@@ -53,7 +53,7 @@
 
   document.addEventListener("pointerdown", event => {
     const target = event.target.closest && event.target.closest(burstSelector);
-    if (!target || target.closest(".welcome-zipper")) return;
+    if (!target) return;
     burst(target, event);
   }, { passive: true });
 
