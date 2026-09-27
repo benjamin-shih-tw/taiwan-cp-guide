@@ -77,7 +77,7 @@
   }
 
   function initData() {
-    if (!Array.isArray(window.ROADMAP_DATA)) return;
+    const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];\n    if (!roadmapData.length) return;
     window.ROADMAP_DATA.forEach((level, levelIndex) => {
       (level.topics || []).forEach((topic, topicIndex) => {
         const row = {
@@ -139,7 +139,7 @@
     state.baseView = name;
     document.querySelectorAll(".view").forEach(el => el.classList.toggle("active", el.dataset.view === name));
     document.querySelectorAll("[data-nav]").forEach(el => el.classList.toggle("active", el.dataset.nav === name));
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "auto" });
     if (name === "home") renderHome();
     if (name === "roadmap") renderRoadmap();
     if (name === "courses") renderCourses();
@@ -169,11 +169,11 @@
     document.getElementById("stat-topics").textContent = allTopics.length;
     document.getElementById("stat-problems").textContent = totalProblems;
     document.getElementById("stat-progress").textContent = progress + "%";
-    document.getElementById("stat-levels").textContent = (window.ROADMAP_DATA || []).length;
+    document.getElementById("stat-levels").textContent = ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).length;
 
     const pathHost = document.getElementById("path-cards");
     pathHost.innerHTML = "";
-    (window.ROADMAP_DATA || []).slice(0, 3).forEach((level, idx) => {
+    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).slice(0, 3).forEach((level, idx) => {
       const div = document.createElement("article");
       div.className = "path-card";
       div.style.setProperty("--path-color", level.color || "var(--brand)");
@@ -234,7 +234,7 @@
     all.onclick = () => { state.roadmapFilter = "all"; renderRoadmap(); };
     filters.appendChild(all);
 
-    (window.ROADMAP_DATA || []).forEach(level => {
+    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).forEach(level => {
       const btn = document.createElement("button");
       btn.className = "chip" + (state.roadmapFilter === level.levelId ? " active" : "");
       btn.textContent = String(level.levelName || "").split(" (")[0];
@@ -244,7 +244,7 @@
 
     const host = document.getElementById("roadmap-view");
     host.innerHTML = "";
-    (window.ROADMAP_DATA || []).forEach((level, levelIndex) => {
+    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).forEach((level, levelIndex) => {
       if (state.roadmapFilter !== "all" && state.roadmapFilter !== level.levelId) return;
       const topics = level.topics || [];
       const completed = topics.filter(t => state.read.includes(t.id)).length;
@@ -397,7 +397,7 @@
   function renderResources() {
     const host = document.getElementById("template-grid");
     host.innerHTML = "";
-    const data = Array.isArray(window.TEMPLATE_DATA) ? window.TEMPLATE_DATA.slice(0, 12) : [];
+    const data = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA.slice(0, 12) : [];
     if (!data.length) {
       host.innerHTML = '<div class="empty-state">模板資料載入中。</div>';
       return;
