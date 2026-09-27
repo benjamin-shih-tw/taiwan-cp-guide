@@ -682,8 +682,12 @@
       return;
     }
 
-    if (window.marked) host.innerHTML = window.marked.parse(markdown);
-    else host.textContent = markdown;
+    if (window.marked) {
+      window.marked.setOptions({ gfm: true, breaks: false });
+      host.innerHTML = window.marked.parse(markdown);
+    } else {
+      host.textContent = markdown;
+    }
 
     host.querySelectorAll("a").forEach(a => {
       if (/^https?:/i.test(a.getAttribute("href") || "")) {
@@ -692,20 +696,101 @@
       }
     });
 
+    enhanceCodeBlocks(host);
+    renderLessonMath(host);
     buildToc(host);
-    if (typeof window.renderMathInElement === "function") {
+  }
+
+  function enhanceCodeBlocks(host) {
+    host.querySelectorAll("pre").forEach(pre => {
+      const code = pre.querySelector("code");
+      if (!code) return;
+
+      let language = "";
+      const langClass = Array.from(code.classList).find(name => name.startsWith("language-"));
+      if (langClass) language = langClass.slice(9).trim().toLowerCase();
+
+      if (["c++", "cpp", "cplusplus"].includes(language)) language = "cpp";
+      if (["plain", "plain-text", "plain text", "text", "txt"].includes(language)) language = "plaintext";
+
+      const source = code.textContent || "";
+      const looksCpp = /#include\s*[<"]|\bstd::|\b(?:cin|cout)\s*>>?|\bvector\s*</.test(source) ||
+        /\b(?:int|long long|void)\s+\w+\s*\([^)]*\)\s*\{/.test(source);
+
+      if ((!language || language === "plaintext") && looksCpp) language = "cpp";
+
+      code.className = language ? "language-" + language : "language-plaintext";
+
+      if (window.hljs) {
+        try {
+          if (language === "plaintext") {
+            code.classList.add("hljs");
+          } else {
+            window.hljs.highlightElement(code);
+          }
+        } catch (_) {
+          code.classList.add("hljs");
+        }
+      }
+
+      const shell = document.createElement("div");
+      shell.className = "code-block";
+      const toolbar = document.createElement("div");
+      toolbar.className = "code-toolbar";
+
+      const label = document.createElement("span");
+      label.textContent = language === "cpp" ? "C++" :
+        language === "javascript" || language === "js" ? "JavaScript" :
+        language === "plaintext" || !language ? "Text" : language;
+
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.textContent = "Copy";
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(source);
+          copy.textContent = "Copied";
+          setTimeout(() => { copy.textContent = "Copy"; }, 1200);
+        } catch (_) {
+          copy.textContent = "Copy failed";
+          setTimeout(() => { copy.textContent = "Copy"; }, 1200);
+        }
+      });
+
+      toolbar.append(label, copy);
+      pre.parentNode.insertBefore(shell, pre);
+      shell.append(toolbar, pre);
+    });
+  }
+
+  function renderLessonMath(host) {
+    const run = () => {
+      if (typeof window.renderMathInElement !== "function") return false;
       try {
         window.renderMathInElement(host, {
           delimiters: [
             { left: "$$", right: "$$", display: true },
-            { left: "$", right: "$", display: false },
+            { left: "\\[", right: "\\]", display: true },
             { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true }
+            { left: "$", right: "$", display: false }
           ],
-          throwOnError: false
+          ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "option"],
+          ignoredClasses: ["katex", "hljs"],
+          throwOnError: false,
+          strict: "ignore"
         });
-      } catch (_) {}
-    }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (run()) return;
+    let tries = 0;
+    const retry = setInterval(() => {
+      tries++;
+      if (run() || tries >= 20) clearInterval(retry);
+    }, 100);
   }
 
   function buildToc(host) {
