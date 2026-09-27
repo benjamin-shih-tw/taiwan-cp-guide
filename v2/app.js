@@ -18,6 +18,7 @@
     courseLevel: "all",
     problemSearch: "",
     problemPlatform: "all",
+    problemDomain: "",
     hideSolved: false,
     activeTopic: null,
     baseView: "home"
@@ -192,6 +193,29 @@
     return null;
   }
 
+  function coursesForRoadmap(slug) {
+    const ids = roadmapToNotion.get(slug) || [];
+    return ids.map(id => notionCourseMap.get(id)).filter(Boolean);
+  }
+
+  function problemEntriesForDomain(domainName) {
+    const entries = [];
+    allTopics.forEach(row => {
+      const linkedCourses = coursesForRoadmap(row.topic.id);
+      const belongs = domainName === "未歸類"
+        ? linkedCourses.length === 0 || linkedCourses.every(course => !(course.domains || []).length)
+        : linkedCourses.some(course => (course.domains || []).includes(domainName));
+      if (!belongs) return;
+      entries.push({ row, linkedCourses });
+    });
+    return entries;
+  }
+
+  function problemCountForDomain(domainName) {
+    return problemEntriesForDomain(domainName)
+      .reduce((sum, entry) => sum + (entry.row.topic.problems || []).length, 0);
+  }
+
   function persist() {
     localStorage.setItem(STORAGE.solved, JSON.stringify(state.solved));
     localStorage.setItem(STORAGE.read, JSON.stringify(state.read));
@@ -232,12 +256,21 @@
     const hash = location.hash || "#/home";
     const clean = hash.replace(/^#\/?/, "");
     const parts = clean.split("/").filter(Boolean);
+
     if (parts[0] === "lesson" && parts[1]) {
       const base = state.baseView === "home" ? "courses" : state.baseView;
       showView(base);
       openLesson(parts[1], false);
       return;
     }
+
+    if (parts[0] === "problems") {
+      closeLesson(false);
+      state.problemDomain = parts.length > 1 ? decodeURIComponent(parts.slice(1).join("/")) : "";
+      showView("problems");
+      return;
+    }
+
     closeLesson(false);
     showView(parts[0] || "home");
   }
@@ -413,6 +446,57 @@
   }
 
   function renderProblems() {
+    const home = document.getElementById("problem-domain-home");
+    const detail = document.getElementById("problem-domain-detail");
+    const groups = notionDomainGroups();
+
+    if (!state.problemDomain) {
+      home.hidden = false;
+      detail.hidden = true;
+
+      const grid = document.getElementById("problem-domain-grid");
+      grid.innerHTML = "";
+      groups.forEach(group => {
+        const problemCount = problemCountForDomain(group.domain.name);
+        const card = document.createElement("article");
+        card.className = "problem-domain-card";
+        card.innerHTML =
+          "<h2>" + esc(group.domain.name) + "</h2>" +
+          '<div class="problem-domain-meta"><span>' + group.courses.length + " 課</span><span>" +
+          problemCount + " 題</span></div>";
+        card.onclick = () => {
+          location.hash = "#/problems/" + encodeURIComponent(group.domain.name);
+        };
+        grid.appendChild(card);
+      });
+      return;
+    }
+
+    const group = groups.find(item => item.domain.name === state.problemDomain);
+    if (!group) {
+      state.problemDomain = "";
+      location.hash = "#/problems";
+      return;
+    }
+
+    home.hidden = true;
+    detail.hidden = false;
+    document.getElementById("problem-domain-title").textContent = group.domain.name;
+
+    const courseHost = document.getElementById("problem-course-list");
+    courseHost.innerHTML = "";
+    group.courses.forEach((course, index) => {
+      const row = document.createElement("button");
+      row.className = "problem-course-row";
+      row.innerHTML =
+        '<span class="problem-course-index">' + String(index + 1).padStart(2, "0") + "</span>" +
+        '<span class="problem-course-name">' + esc(course.title) + "</span>" +
+        (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
+        '<span class="problem-course-arrow">→</span>';
+      row.onclick = () => openLesson(course.id, true);
+      courseHost.appendChild(row);
+    });
+
     const platformSelect = document.getElementById("problem-platform");
     if (platformSelect.options.length <= 1) {
       const platforms = Array.from(new Set(Array.from(problemMap.values()).map(x => x.problem.platform).filter(Boolean))).sort();
@@ -427,77 +511,61 @@
     document.getElementById("problem-search").value = state.problemSearch;
     document.getElementById("hide-solved").checked = state.hideSolved;
 
-    const validIds = Array.from(problemMap.keys());
-    const solved = validIds.filter(id => state.solved.includes(id)).length;
-    const pct = validIds.length ? Math.round(solved / validIds.length * 100) : 0;
+    const allEntries = problemEntriesForDomain(group.domain.name);
+    const allDomainProblems = allEntries.flatMap(entry => entry.row.topic.problems || []);
+    const solved = allDomainProblems.filter(problem => state.solved.includes(problem.id)).length;
+    const pct = allDomainProblems.length ? Math.round(solved / allDomainProblems.length * 100) : 0;
     document.getElementById("problem-progress").innerHTML =
-      '<div style="display:flex;justify-content:space-between;gap:16px;align-items:center"><div><b>' +
-      solved + " / " + validIds.length + '</b><div style="font-size:11px;color:var(--muted)">已完成題目</div></div><strong>' +
-      pct + '%</strong></div><div class="mini-progress" style="margin-top:12px"><span style="width:' + pct + '%"></span></div>';
+      '<div class="ladder-progress-line"><span>' + solved + " / " + allDomainProblems.length +
+      '</span><strong>' + pct + '%</strong></div>' +
+      '<div class="mini-progress"><span style="width:' + pct + '%"></span></div>';
 
     const q = state.problemSearch.trim().toLowerCase();
-    const byDomain = new Map();
-    const add = (name, row, problems) => {
-      if (!byDomain.has(name)) byDomain.set(name, []);
-      byDomain.get(name).push({ row, problems });
-    };
+    const ladder = document.getElementById("problem-ladder");
+    ladder.innerHTML = "";
 
-    allTopics.forEach(row => {
-      const problems = (row.topic.problems || []).filter(p => {
-        const solvedNow = state.solved.includes(p.id);
-        const text = ((p.name || "") + " " + (p.platform || "")).toLowerCase();
+    let step = 0;
+    allEntries.forEach(({ row }) => {
+      const problems = (row.topic.problems || []).filter(problem => {
+        const solvedNow = state.solved.includes(problem.id);
+        const text = ((problem.name || "") + " " + (problem.platform || "")).toLowerCase();
         return (!q || text.includes(q)) &&
-          (state.problemPlatform === "all" || p.platform === state.problemPlatform) &&
+          (state.problemPlatform === "all" || problem.platform === state.problemPlatform) &&
           (!state.hideSolved || !solvedNow);
       });
       if (!problems.length) return;
 
-      const linked = courseForRoadmap(row.topic.id);
-      const primary = linked && linked.domains && linked.domains.length ? linked.domains[0] : "未歸類";
-      add(primary, row, problems);
-    });
+      step++;
+      const block = document.createElement("section");
+      block.className = "ladder-step";
 
-    const host = document.getElementById("problem-ladder");
-    host.innerHTML = "";
-    const order = NOTION_DOMAIN_ORDER.concat(["未歸類"]);
-    order.forEach(name => {
-      const entries = byDomain.get(name);
-      if (!entries || !entries.length) return;
+      const head = document.createElement("div");
+      head.className = "ladder-step-head";
+      const doneCount = (row.topic.problems || []).filter(problem => state.solved.includes(problem.id)).length;
+      head.innerHTML =
+        '<span class="ladder-step-index">' + String(step).padStart(2, "0") + "</span>" +
+        '<div><h3>' + esc(row.topic.title) + '</h3><small>' +
+        doneCount + " / " + (row.topic.problems || []).length + "</small></div>";
+      block.appendChild(head);
 
-      const section = document.createElement("section");
-      section.className = "problem-domain-section";
-      const title = document.createElement("div");
-      title.className = "problem-domain-heading";
-      title.innerHTML = "<h2>" + esc(name) + "</h2>";
-      section.appendChild(title);
-
-      entries.forEach(({ row, problems }) => {
-        const block = document.createElement("section");
-        block.className = "problem-topic";
-        const doneCount = (row.topic.problems || []).filter(p => state.solved.includes(p.id)).length;
-        const head = document.createElement("div");
-        head.className = "problem-topic-head";
-        head.innerHTML = "<h3>" + esc(row.topic.title) + "</h3><span>" + doneCount + " / " + (row.topic.problems || []).length + "</span>";
-        block.appendChild(head);
-
-        problems.forEach(p => {
-          const solvedNow = state.solved.includes(p.id);
-          const line = document.createElement("div");
-          line.className = "problem-row";
-          line.innerHTML =
-            '<input type="checkbox" ' + (solvedNow ? "checked" : "") + ' aria-label="完成題目">' +
-            '<div><div class="problem-name">' + esc(p.name) + '</div><div class="problem-meta">' + esc(p.platform || "") + "</div></div>" +
-            '<span class="problem-diff">' + esc(p.difficulty || "") + '</span>' +
-            '<a href="' + esc(p.url || "#") + '" target="_blank" rel="noreferrer">前往 OJ ↗</a>';
-          line.querySelector("input").addEventListener("change", event => toggleProblem(p.id, event.target.checked));
-          block.appendChild(line);
-        });
-        section.appendChild(block);
+      problems.forEach(problem => {
+        const solvedNow = state.solved.includes(problem.id);
+        const line = document.createElement("div");
+        line.className = "problem-row";
+        line.innerHTML =
+          '<input type="checkbox" ' + (solvedNow ? "checked" : "") + ' aria-label="完成題目">' +
+          '<div><div class="problem-name">' + esc(problem.name) + '</div><div class="problem-meta">' +
+          esc(problem.platform || "") + "</div></div>" +
+          '<span class="problem-diff">' + esc(problem.difficulty || "") + "</span>" +
+          '<a href="' + esc(problem.url || "#") + '" target="_blank" rel="noreferrer">開啟 ↗</a>';
+        line.querySelector("input").addEventListener("change", event => toggleProblem(problem.id, event.target.checked));
+        block.appendChild(line);
       });
-      host.appendChild(section);
+
+      ladder.appendChild(block);
     });
 
-    if (!host.children.length) host.innerHTML = '<div class="empty-state">目前沒有符合條件的題目。</div>';
+    if (!ladder.children.length) ladder.innerHTML = '<div class="empty-state">目前沒有題目</div>';
   }
 
   function toggleProblem(id, checked) {
@@ -573,7 +641,7 @@
     overlay.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
     state.activeTopic = null;
-    if (pushHash) location.hash = "#/" + state.baseView;
+    if (pushHash) location.hash = state.baseView === "problems" && state.problemDomain ? "#/problems/" + encodeURIComponent(state.problemDomain) : "#/" + state.baseView;
   }
 
   function refreshLessonProgress() {
@@ -751,6 +819,10 @@
     document.getElementById("hide-solved").addEventListener("change", e => {
       state.hideSolved = e.target.checked;
       renderProblems();
+    });
+
+    document.getElementById("problem-domain-back").addEventListener("click", () => {
+      location.hash = "#/problems";
     });
   }
 
