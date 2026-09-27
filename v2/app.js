@@ -244,6 +244,8 @@
     localStorage.setItem(STORAGE.theme, mode);
     const dark = mode === "dark" || (mode === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = dark ? "dark" : "light";
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute("content", dark ? "#111111" : "#ffffff");
     const btn = document.getElementById("theme-toggle");
     if (btn) btn.textContent = dark ? "☀" : "◐";
   }
@@ -263,8 +265,22 @@
   }
 
   function router() {
-    const hash = location.hash || "#/home";
-    const clean = hash.replace(/^#\/?/, "");
+    const rawHash = location.hash;
+
+    if (!rawHash || rawHash === "#" || rawHash === "#/" || rawHash === "#/welcome") {
+      closeLesson(false);
+      showView("home");
+      if (window.CourseFX && typeof window.CourseFX.openWelcome === "function") {
+        window.CourseFX.openWelcome();
+      }
+      return;
+    }
+
+    if (window.CourseFX && typeof window.CourseFX.closeWelcome === "function") {
+      window.CourseFX.closeWelcome();
+    }
+
+    const clean = rawHash.replace(/^#\/?/, "");
     const parts = clean.split("/").filter(Boolean);
 
     if (parts[0] === "lesson" && parts[1]) {
@@ -910,9 +926,15 @@
   }
 
   function setupControls() {
-    document.getElementById("theme-toggle").onclick = () => {
+    document.getElementById("theme-toggle").onclick = event => {
+      const button = event.currentTarget;
       const current = document.documentElement.dataset.theme;
-      setTheme(current === "dark" ? "light" : "dark");
+      const next = current === "dark" ? "light" : "dark";
+      if (window.CourseFX && typeof window.CourseFX.themeReveal === "function") {
+        window.CourseFX.themeReveal(button, () => setTheme(next), event);
+      } else {
+        setTheme(next);
+      }
     };
     document.getElementById("lesson-close").onclick = () => closeLesson(true);
     document.getElementById("lesson-mark").onclick = toggleLessonComplete;
