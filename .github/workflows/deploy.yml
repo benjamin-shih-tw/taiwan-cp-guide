@@ -46,13 +46,26 @@ jobs:
             git push
           fi
 
+      - name: Prepare deploy directory
+        run: |
+          rm -rf site
+          mkdir site
+          rsync -a ./ site/ \
+            --exclude site \
+            --exclude node_modules \
+            --exclude .git \
+            --exclude .github \
+            --exclude package.json \
+            --exclude package-lock.json \
+            --exclude v2/notion-renderer-entry.jsx
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'site'
 
       - name: Deploy to GitHub Pages
         id: deployment

@@ -6,6 +6,9 @@ import { Collection } from 'react-notion-x/third-party/collection'
 import { Equation } from 'react-notion-x/third-party/equation'
 import { Modal } from 'react-notion-x/third-party/modal'
 import { Pdf } from 'react-notion-x/third-party/pdf'
+import { marked } from 'marked'
+import hljs from 'highlight.js/lib/common'
+import renderMathInElement from 'katex/contrib/auto-render'
 
 import 'react-notion-x/styles.css'
 import 'prismjs/themes/prism-tomorrow.css'
@@ -91,6 +94,10 @@ function setTheme(nextDark) {
   darkMode = Boolean(nextDark)
   for (const entry of mounts.values()) renderEntry(entry)
 }
+
+window.marked = marked
+window.hljs = hljs
+window.renderMathInElement = renderMathInElement
 
 window.NotionXBridge = {
   render,
