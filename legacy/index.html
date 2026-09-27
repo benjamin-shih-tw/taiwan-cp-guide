@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Taiwan CP Guide</title>
+  <meta http-equiv="refresh" content="0;url=./v2/">
+  <style>body{font-family:system-ui,sans-serif;padding:40px;color:#475467}a{color:#5b5bd6}</style>
+</head>
+<body>
+  <p>正在進入新版 Taiwan CP Guide… <a href="./v2/">如果沒有自動跳轉，點這裡。</a></p>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").finally(function () {
+        location.replace("./v2/");
+      });
+    } else {
+      location.replace("./v2/");
+    }
+  </script>
+</body>
+</html>
