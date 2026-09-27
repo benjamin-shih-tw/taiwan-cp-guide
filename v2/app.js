@@ -27,6 +27,14 @@
   const TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
 
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
+  const NOTION_DOMAIN_ORDER = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
+  const NOTION_DOMAIN_RELATIONS = window.NOTION_DOMAIN_RELATIONS || {};
+  NOTION_COURSES.forEach(course => {
+    course.domains = Array.isArray(NOTION_DOMAIN_RELATIONS[course.id])
+      ? NOTION_DOMAIN_RELATIONS[course.id].slice()
+      : [];
+    course.domain = course.domains[0] || "";
+  });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
   const NOTION_LECTURE_TO_ROADMAP = {
@@ -73,47 +81,19 @@
   });
 
   const NOTION_DOMAIN_META = {
+    "APCS 暑假特訓班!!!": ["🎯", "APCS 暑假特訓班!!!"],
     "basic": ["{}", "basic"],
-    "APCS": ["🎯", "APCS"],
-    "STL": ["<>", "STL"],
-    "Sorting & searching": ["↕", "Search"],
-    "Greedy": ["↗", "Greedy"],
-    "DP": ["▦", "DP"],
-    "Graph": ["⌘", "Graph"],
-    "Math": ["∑", "Math"],
+    "Computational Geometry": ["△", "Computational Geometry"],
+    "DP(dynamic programming)": ["▦", "DP(dynamic programming)"],
     "DS": ["▤", "DS"],
-    "Computational Geometry": ["△", "Geometry"],
+    "Graph": ["⌘", "Graph"],
+    "Greedy": ["↗", "Greedy"],
+    "Math": ["∑", "Math"],
+    "Sorting & searching": ["↕", "Sorting & searching"],
+    "STL": ["<>", "STL"],
     "String": ["Aa", "String"],
-    "Course": ["•", "Course"]
-  };
-
-  const domainRules = [
-    ["Dynamic Programming", "DP", "▦", /\bdp\b|dynamic|動態|knapsack|背包|lis|digit dp|tree dp/i],
-    ["Graph", "Graph", "⌘", /graph|圖論|圖 |bfs|dfs|shortest|dijkstra|bellman|floyd|mst|topolog|scc|flow|matching/i],
-    ["Tree", "Tree", "⌁", /tree|樹|lca|centroid|heavy light|hld|binary lifting|euler tour/i],
-    ["Data Structures", "DS", "▤", /segment tree|fenwick|bit tree|資料結構|stack|queue|deque|priority|heap|set|map|dsu|union find/i],
-    ["Sorting & Searching", "Search", "↕", /sort|search|二分|binary search|two pointer|sliding window|排序|搜尋/i],
-    ["Greedy", "Greedy", "↗", /greedy|貪心/i],
-    ["Mathematics", "Math", "∑", /math|數學|number theory|prime|gcd|modular|combin|fft|ntt|matrix|矩陣|數論/i],
-    ["Strings", "String", "Aa", /string|字串|hash|suffix|kmp|z-function|z function|trie/i],
-    ["Geometry", "Geometry", "△", /geometry|幾何|convex|point|line|sweep line|rect/i]
-  ];
-
-  const tutorialAliases = {
-    "intro-sorting": ["sorting-custom"],
-    "intro-sets-maps": ["sets-maps", "sets-and-maps"],
-    "intro-ds": ["intro-ds", "data-structures"],
-    "binary-search": ["binary-search", "binary-search-sorted-array"],
-    "shortest-path": ["shortest-path-basic"],
-    "shortest-paths": ["shortest-path-basic"],
-    "segment-tree-basic": ["segment-tree"],
-    "fenwick": ["fenwick-tree"],
-    "bit": ["fenwick-tree"],
-    "topological-sort": ["toposort"],
-    "scc": ["strongly-connected-components", "scc-advanced"],
-    "tree-dp": ["dp-trees"],
-    "bitmask-dp": ["dp-bitmasks"],
-    "interval-dp": ["dp-ranges"]
+    "Tree": ["🌳", "Tree"],
+    "未歸類": ["•", "未歸類"]
   };
 
   const allTopics = [];
@@ -147,8 +127,7 @@
           level: level,
           levelIndex: levelIndex,
           topicIndex: topicIndex,
-          difficulty: Math.min(10, 1 + levelIndex * 2),
-          domain: getDomain(topic)
+          difficulty: Math.min(10, 1 + levelIndex * 2)
         };
         allTopics.push(row);
         topicMap.set(topic.id, row);
@@ -159,13 +138,6 @@
     });
   }
 
-  function getDomain(topic) {
-    const text = ((topic.title || "") + " " + (topic.desc || "")).toLowerCase();
-    for (const rule of domainRules) {
-      if (rule[3].test(text)) return { name: rule[0], short: rule[1], icon: rule[2] };
-    }
-    return { name: "Foundations", short: "Basic", icon: "{}" };
-  }
 
   function levelBand(score) {
     if (score == null || Number.isNaN(Number(score))) return "unknown";
@@ -181,14 +153,34 @@
 
   function notionDomainGroups() {
     const map = new Map();
+    const ensure = name => {
+      if (!map.has(name)) map.set(name, { domain: notionDomainMeta(name), courses: [], sample: "" });
+      return map.get(name);
+    };
+
+    NOTION_DOMAIN_ORDER.forEach(ensure);
     NOTION_COURSES.forEach(course => {
-      const meta = notionDomainMeta(course.domain);
-      if (!map.has(meta.name)) map.set(meta.name, { domain: meta, courses: [], sample: "" });
-      const group = map.get(meta.name);
-      group.courses.push(course);
-      if (!group.sample) group.sample = course.title || "";
+      const names = course.domains && course.domains.length ? course.domains : ["未歸類"];
+      names.forEach(name => {
+        const group = ensure(name);
+        group.courses.push(course);
+        if (!group.sample) group.sample = course.title || "";
+      });
     });
-    return Array.from(map.values()).sort((a, b) => b.courses.length - a.courses.length);
+
+    const ordered = [];
+    NOTION_DOMAIN_ORDER.forEach(name => {
+      const group = map.get(name);
+      if (group && group.courses.length) ordered.push(group);
+    });
+    Array.from(map.values()).forEach(group => {
+      if (!NOTION_DOMAIN_ORDER.includes(group.domain.name) &&
+          group.domain.name !== "未歸類" &&
+          group.courses.length) ordered.push(group);
+    });
+    const unassigned = map.get("未歸類");
+    if (unassigned && unassigned.courses.length) ordered.push(unassigned);
+    return ordered;
   }
 
   function courseForRoadmap(slug) {
@@ -257,30 +249,31 @@
     document.getElementById("stat-topics").textContent = NOTION_COURSES.length;
     document.getElementById("stat-problems").textContent = totalProblems;
     document.getElementById("stat-progress").textContent = progress + "%";
-    document.getElementById("stat-levels").textContent = ROADMAP.length;
+    document.getElementById("stat-levels").textContent = NOTION_DOMAIN_ORDER.length;
 
     const pathHost = document.getElementById("path-cards");
     pathHost.innerHTML = "";
-    ROADMAP.slice(0, 3).forEach((level, idx) => {
+    const entries = [
+      { icon:"🗂️", title:"大單元", desc:"依照 Notion Domains 瀏覽課程。", hash:"#/roadmap", meta:NOTION_DOMAIN_ORDER.length + " 個單元" },
+      { icon:"📚", title:"課程總覽", desc:"查看所有有內容的 Coding Course 課程。", hash:"#/courses", meta:NOTION_COURSES.length + " 堂課" },
+      { icon:"🧩", title:"題庫", desc:"從課程延伸到對應的練習題。", hash:"#/problems", meta:totalProblems + " 題" }
+    ];
+    entries.forEach(entry => {
       const div = document.createElement("article");
       div.className = "path-card";
-      div.style.setProperty("--path-color", level.color || "var(--brand)");
       div.innerHTML =
-        '<div class="path-icon">' + ["🌱", "🧠", "🚀"][idx] + '</div>' +
-        "<h3>" + esc(level.levelName) + "</h3>" +
-        (level.levelDesc ? "<p>" + esc(level.levelDesc) + "</p>" : "") +
-        '<div class="path-meta"><span>' + (level.topics || []).length + " 個主題</span><span>開始 →</span></div>";
-      div.addEventListener("click", () => {
-        state.roadmapFilter = level.levelId;
-        location.hash = "#/roadmap";
-      });
+        '<div class="path-icon">' + entry.icon + '</div>' +
+        "<h3>" + esc(entry.title) + "</h3>" +
+        "<p>" + esc(entry.desc) + "</p>" +
+        '<div class="path-meta"><span>' + esc(entry.meta) + '</span><span>前往 →</span></div>';
+      div.addEventListener("click", () => { location.hash = entry.hash; });
       pathHost.appendChild(div);
     });
 
     const groups = notionDomainGroups();
     const domainHost = document.getElementById("domain-cards");
     domainHost.innerHTML = "";
-    groups.slice(0, 8).forEach(group => {
+    groups.forEach(group => {
       const div = document.createElement("article");
       div.className = "domain-card";
       div.innerHTML =
@@ -317,115 +310,133 @@
   }
 
   function renderRoadmap() {
+    const groups = notionDomainGroups();
     const filters = document.getElementById("roadmap-filters");
     filters.innerHTML = "";
+
     const all = document.createElement("button");
     all.className = "chip" + (state.roadmapFilter === "all" ? " active" : "");
-    all.textContent = "全部";
+    all.textContent = "全部單元";
     all.onclick = () => { state.roadmapFilter = "all"; renderRoadmap(); };
     filters.appendChild(all);
 
-    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).forEach(level => {
+    groups.forEach(group => {
       const btn = document.createElement("button");
-      btn.className = "chip" + (state.roadmapFilter === level.levelId ? " active" : "");
-      btn.textContent = String(level.levelName || "").split(" (")[0];
-      btn.onclick = () => { state.roadmapFilter = level.levelId; renderRoadmap(); };
+      btn.className = "chip" + (state.roadmapFilter === group.domain.name ? " active" : "");
+      btn.textContent = group.domain.name;
+      btn.onclick = () => { state.roadmapFilter = group.domain.name; renderRoadmap(); };
       filters.appendChild(btn);
     });
 
     const host = document.getElementById("roadmap-view");
     host.innerHTML = "";
-    ((typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : []).forEach((level, levelIndex) => {
-      if (state.roadmapFilter !== "all" && state.roadmapFilter !== level.levelId) return;
-      const topics = level.topics || [];
-      const completed = topics.filter(t => state.read.includes(t.id)).length;
+    groups.forEach((group, index) => {
+      if (state.roadmapFilter !== "all" && state.roadmapFilter !== group.domain.name) return;
+      const completed = group.courses.filter(course => state.read.includes(course.id)).length;
       const block = document.createElement("section");
       block.className = "roadmap-level";
+
       const meta = document.createElement("div");
       meta.className = "roadmap-level-meta";
+      const pct = group.courses.length ? Math.round(completed / group.courses.length * 100) : 0;
       meta.innerHTML =
-        '<span class="eyebrow">Stage ' + String(levelIndex + 1).padStart(2, "0") + "</span>" +
-        "<h2>" + esc(level.levelName) + "</h2>" +
-        "<p>" + esc(level.levelDesc || "") + "</p>" +
-        '<div class="level-progress"><div class="mini-progress"><span style="width:' +
-        (topics.length ? Math.round(completed / topics.length * 100) : 0) + '%"></span></div></div>';
+        '<span class="eyebrow">Unit ' + String(index + 1).padStart(2, "0") + "</span>" +
+        "<h2>" + esc(group.domain.icon + " " + group.domain.name) + "</h2>" +
+        "<p>" + group.courses.length + " 堂課</p>" +
+        '<div class="level-progress"><div class="mini-progress"><span style="width:' + pct + '%"></span></div></div>';
+
       const nodes = document.createElement("div");
       nodes.className = "roadmap-nodes";
-      topics.forEach(topic => {
-        const row = topicMap.get(topic.id);
-        const linkedCourse = courseForRoadmap(topic.id);
-        const done = linkedCourse ? state.read.includes(linkedCourse.id) : false;
+      group.courses.forEach(course => {
+        const done = state.read.includes(course.id);
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "");
+        const badge = course.difficulty == null ? "" : '<span class="node-badge">難度 ' + esc(course.difficulty) + '/10</span>';
         node.innerHTML =
-          '<div class="node-top"><h3>' + esc(topic.title) + '</h3><span class="node-badge">難度 ' +
-          row.difficulty + "/10</span></div><p>" + esc(topic.desc || "") + "</p>";
-        node.onclick = () => {
-          if (linkedCourse) openLesson(linkedCourse.id, true);
-          else toast("這個 Roadmap 節點目前沒有 Coding Course 內文");
-        };
+          '<div class="node-top"><h3>' + esc(course.title) + "</h3>" + badge + "</div>" +
+          (course.details ? "<p>" + esc(course.details) + "</p>" : "");
+        node.onclick = () => openLesson(course.id, true);
         nodes.appendChild(node);
       });
+
       block.append(meta, nodes);
       host.appendChild(block);
     });
   }
 
   function renderCourses() {
+    const groups = notionDomainGroups();
     const domainSelect = document.getElementById("course-domain");
-    const previous = domainSelect.value;
     domainSelect.innerHTML = '<option value="all">全部大單元</option>';
-    notionDomainGroups().forEach(group => {
+    groups.forEach(group => {
       const op = document.createElement("option");
       op.value = group.domain.name;
       op.textContent = group.domain.name;
       domainSelect.appendChild(op);
     });
-    if ([...domainSelect.options].some(op => op.value === state.courseDomain)) {
-      domainSelect.value = state.courseDomain;
-    } else {
-      state.courseDomain = "all";
-      domainSelect.value = "all";
-    }
-
+    if (![...domainSelect.options].some(op => op.value === state.courseDomain)) state.courseDomain = "all";
+    domainSelect.value = state.courseDomain;
     document.getElementById("course-level").value = state.courseLevel;
     document.getElementById("course-search").value = state.courseSearch;
 
     const q = state.courseSearch.trim().toLowerCase();
-    const courses = NOTION_COURSES.filter(course => {
-      const text = ((course.title || "") + " " + (course.details || "") + " " + (course.domain || "") + " " + (course.content || "")).toLowerCase();
+    const matches = course => {
+      const text = ((course.title || "") + " " + (course.details || "") + " " +
+        (course.domains || []).join(" ") + " " + (course.content || "")).toLowerCase();
       const band = course.difficulty == null ? null : levelBand(course.difficulty);
       return (!q || text.includes(q)) &&
-        (state.courseDomain === "all" || course.domain === state.courseDomain) &&
         (state.courseLevel === "all" || band === state.courseLevel);
-    });
+    };
 
     const host = document.getElementById("courses-grid");
     host.innerHTML = "";
-    courses.forEach(course => {
-      const card = document.createElement("article");
-      card.className = "course-card";
-      const meta = notionDomainMeta(course.domain);
-      const diff = course.difficulty;
-      const bars = diff == null ? "" : Array.from({ length: 5 }, (_, i) =>
-        '<i class="' + (i < Math.ceil(diff / 2) ? "on" : "") + '"></i>'
-      ).join("");
-      const tags =
-        (course.domain ? '<span class="tag brand">' + esc(meta.short) + '</span>' : "") +
-        (diff != null ? '<span class="tag">難度 ' + esc(diff) + '/10</span>' : "");
-      const footer = diff != null
-        ? '<div class="course-footer"><div class="difficulty" title="難度 ' + esc(diff) + '/10">' + bars + '</div></div>'
-        : "";
+    let shown = 0;
 
-      card.innerHTML =
-        (tags ? '<div class="tag-row">' + tags + '</div>' : "") +
-        "<h3>" + esc(course.title) + "</h3>" +
-        (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
-        footer;
-      card.onclick = () => openLesson(course.id, true);
-      host.appendChild(card);
+    groups.forEach(group => {
+      if (state.courseDomain !== "all" && state.courseDomain !== group.domain.name) return;
+      const courses = group.courses.filter(matches);
+      if (!courses.length) return;
+      shown += courses.length;
+
+      const section = document.createElement("section");
+      section.className = "unit-section";
+      const heading = document.createElement("div");
+      heading.className = "unit-heading";
+      heading.innerHTML =
+        '<div><span class="eyebrow">Unit</span><h2>' + esc(group.domain.icon + " " + group.domain.name) + '</h2></div>' +
+        '<span class="unit-count">' + courses.length + " lessons</span>";
+
+      const grid = document.createElement("div");
+      grid.className = "unit-course-grid";
+
+      courses.forEach(course => {
+        const card = document.createElement("article");
+        card.className = "course-card";
+        const diff = course.difficulty;
+        const bars = diff == null ? "" : Array.from({ length: 5 }, (_, i) =>
+          '<i class="' + (i < Math.ceil(diff / 2) ? "on" : "") + '"></i>'
+        ).join("");
+        const relationTags = (course.domains || []).map(name =>
+          '<span class="tag brand">' + esc(name) + '</span>'
+        ).join("");
+        const difficultyTag = diff == null ? "" : '<span class="tag">難度 ' + esc(diff) + '/10</span>';
+        const footer = diff == null ? "" :
+          '<div class="course-footer"><div class="difficulty" title="難度 ' + esc(diff) + '/10">' + bars + '</div></div>';
+
+        card.innerHTML =
+          ((relationTags || difficultyTag) ? '<div class="tag-row">' + relationTags + difficultyTag + '</div>' : "") +
+          "<h3>" + esc(course.title) + "</h3>" +
+          (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
+          footer;
+        card.onclick = () => openLesson(course.id, true);
+        grid.appendChild(card);
+      });
+
+      section.append(heading, grid);
+      host.appendChild(section);
     });
-    document.getElementById("course-empty").hidden = courses.length !== 0;
+
+    document.getElementById("course-empty").hidden = shown !== 0;
   }
 
   function renderProblems() {
@@ -452,8 +463,11 @@
       pct + '%</strong></div><div class="mini-progress" style="margin-top:12px"><span style="width:' + pct + '%"></span></div>';
 
     const q = state.problemSearch.trim().toLowerCase();
-    const host = document.getElementById("problem-ladder");
-    host.innerHTML = "";
+    const byDomain = new Map();
+    const add = (name, row, problems) => {
+      if (!byDomain.has(name)) byDomain.set(name, []);
+      byDomain.get(name).push({ row, problems });
+    };
 
     allTopics.forEach(row => {
       const problems = (row.topic.problems || []).filter(p => {
@@ -465,33 +479,52 @@
       });
       if (!problems.length) return;
 
-      const block = document.createElement("section");
-      block.className = "problem-topic";
-      const doneCount = (row.topic.problems || []).filter(p => state.solved.includes(p.id)).length;
-      const head = document.createElement("div");
-      head.className = "problem-topic-head";
-      head.innerHTML = "<h3>" + esc(row.topic.title) + "</h3><span>" + doneCount + " / " + (row.topic.problems || []).length + "</span>";
-      block.appendChild(head);
-
-      problems.forEach(p => {
-        const solvedNow = state.solved.includes(p.id);
-        const line = document.createElement("div");
-        line.className = "problem-row";
-        line.innerHTML =
-          '<input type="checkbox" ' + (solvedNow ? "checked" : "") + ' aria-label="完成題目">' +
-          '<div><div class="problem-name">' + esc(p.name) + '</div><div class="problem-meta">' + esc(p.platform || "") + "</div></div>" +
-          '<span class="problem-diff">' + esc(p.difficulty || "") + '</span>' +
-          '<a href="' + esc(p.url || "#") + '" target="_blank" rel="noreferrer">前往 OJ ↗</a>';
-        const checkbox = line.querySelector("input");
-        checkbox.addEventListener("change", event => toggleProblem(p.id, event.target.checked));
-        block.appendChild(line);
-      });
-      host.appendChild(block);
+      const linked = courseForRoadmap(row.topic.id);
+      const primary = linked && linked.domains && linked.domains.length ? linked.domains[0] : "未歸類";
+      add(primary, row, problems);
     });
 
-    if (!host.children.length) {
-      host.innerHTML = '<div class="empty-state">目前沒有符合條件的題目。</div>';
-    }
+    const host = document.getElementById("problem-ladder");
+    host.innerHTML = "";
+    const order = NOTION_DOMAIN_ORDER.concat(["未歸類"]);
+    order.forEach(name => {
+      const entries = byDomain.get(name);
+      if (!entries || !entries.length) return;
+
+      const section = document.createElement("section");
+      section.className = "problem-domain-section";
+      const title = document.createElement("div");
+      title.className = "problem-domain-heading";
+      title.innerHTML = "<h2>" + esc(notionDomainMeta(name).icon + " " + name) + "</h2>";
+      section.appendChild(title);
+
+      entries.forEach(({ row, problems }) => {
+        const block = document.createElement("section");
+        block.className = "problem-topic";
+        const doneCount = (row.topic.problems || []).filter(p => state.solved.includes(p.id)).length;
+        const head = document.createElement("div");
+        head.className = "problem-topic-head";
+        head.innerHTML = "<h3>" + esc(row.topic.title) + "</h3><span>" + doneCount + " / " + (row.topic.problems || []).length + "</span>";
+        block.appendChild(head);
+
+        problems.forEach(p => {
+          const solvedNow = state.solved.includes(p.id);
+          const line = document.createElement("div");
+          line.className = "problem-row";
+          line.innerHTML =
+            '<input type="checkbox" ' + (solvedNow ? "checked" : "") + ' aria-label="完成題目">' +
+            '<div><div class="problem-name">' + esc(p.name) + '</div><div class="problem-meta">' + esc(p.platform || "") + "</div></div>" +
+            '<span class="problem-diff">' + esc(p.difficulty || "") + '</span>' +
+            '<a href="' + esc(p.url || "#") + '" target="_blank" rel="noreferrer">前往 OJ ↗</a>';
+          line.querySelector("input").addEventListener("change", event => toggleProblem(p.id, event.target.checked));
+          block.appendChild(line);
+        });
+        section.appendChild(block);
+      });
+      host.appendChild(section);
+    });
+
+    if (!host.children.length) host.innerHTML = '<div class="empty-state">目前沒有符合條件的題目。</div>';
   }
 
   function toggleProblem(id, checked) {
@@ -531,9 +564,9 @@
     state.activeTopic = { source: "notion", course };
     localStorage.setItem(STORAGE.last, course.id);
 
-    const meta = notionDomainMeta(course.domain);
+    const domains = course.domains && course.domains.length ? course.domains : [];
     document.getElementById("lesson-breadcrumb").textContent =
-      "Coding Course" + (course.domain ? " / " + course.domain : "");
+      "Coding Course" + (domains.length ? " / " + domains.join(" / ") : "");
     document.getElementById("lesson-title").textContent = course.title || "";
 
     const desc = document.getElementById("lesson-desc");
@@ -546,7 +579,7 @@
     }
 
     let tags = "";
-    if (course.domain) tags += '<span class="tag brand">' + esc(meta.short) + '</span>';
+    domains.forEach(name => { tags += '<span class="tag brand">' + esc(name) + '</span>'; });
     if (course.difficulty != null) tags += '<span class="tag">難度 ' + esc(course.difficulty) + '/10</span>';
     document.getElementById("lesson-tags").innerHTML = tags;
 
@@ -686,7 +719,7 @@
       }
 
       const courseResults = NOTION_COURSES.filter(course =>
-        ((course.title || "") + " " + (course.details || "") + " " + (course.domain || "") + " " + (course.content || ""))
+        ((course.title || "") + " " + (course.details || "") + " " + (course.domains || []).join(" ") + " " + (course.content || ""))
           .toLowerCase().includes(q)
       ).slice(0, 8);
       const problemResults = Array.from(problemMap.values()).filter(x =>
@@ -698,7 +731,7 @@
         item.className = "search-result";
         item.innerHTML =
           "<strong>" + esc(course.title) + "</strong>" +
-          "<small>課程" + (course.domain ? " · " + esc(course.domain) : "") + "</small>";
+          "<small>課程" + ((course.domains || []).length ? " · " + esc(course.domains.join(" · ")) : " · 未歸類") + "</small>";
         item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
       });
