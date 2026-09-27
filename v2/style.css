@@ -291,3 +291,59 @@ html[data-theme="dark"] .notion-color-background{
   .markdown-body .notion-table-wrap th,
   .markdown-body .notion-table-wrap td{min-width:74px;padding:7px 8px}
 }
+
+/* react-notion-x integration */
+.notion-x-host{
+  width:100%;
+  min-height:120px;
+}
+.notion-x-host .coding-course-notion-renderer,
+.notion-x-host .notion,
+.notion-x-host .notion-page{
+  width:100%;
+  max-width:none;
+  background:transparent!important;
+  color:var(--text);
+}
+.notion-x-host .notion-page{
+  padding:0!important;
+}
+.notion-x-host .notion-page-content{
+  width:100%!important;
+  max-width:none!important;
+  padding:0!important;
+}
+.notion-x-host .notion-title{
+  display:none!important;
+}
+.notion-x-host .notion-header{
+  display:none!important;
+}
+.notion-x-host .notion-text,
+.notion-x-host .notion-list,
+.notion-x-host .notion-quote{
+  font-family:var(--sans);
+}
+.notion-x-host .notion-code{
+  font-family:var(--mono);
+}
+.notion-x-host .notion-toggle{
+  border-color:var(--line);
+}
+.notion-x-host .notion-table{
+  overflow-x:auto;
+}
+.notion-x-host .notion-asset-wrapper{
+  max-width:100%;
+}
+.notion-x-host .notion-asset-wrapper img{
+  max-width:100%;
+  height:auto;
+}
+html[data-theme="dark"] .notion-x-host .notion{
+  --fg-color:var(--text);
+  --bg-color:transparent;
+}
+.migrated-ladder-body.notion-x-host{
+  padding:8px 2px 18px 34px;
+}

@@ -527,7 +527,7 @@
         "<span>" + esc(label) + "</span>";
       const body = document.createElement("div");
       body.className = "migrated-ladder-body markdown-body";
-      renderNotionMarkdownInto(body, ladder.content || "", false);
+      renderNotionPageInto(body, ladder.id, ladder.content || "", false);
       details.append(summary, body);
       migratedHost.appendChild(details);
     });
@@ -853,6 +853,48 @@
     text = isolateNotionHtmlBlocks(text);
     text = escapeNonHtmlAngles(text);
     return protectedCode.restore(text);
+  }
+
+  let notionRenderCounter = 0;
+
+  async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc) {
+    const token = String(++notionRenderCounter);
+    host.dataset.notionRenderToken = token;
+
+    if (window.NotionXBridge && typeof window.NotionXBridge.render === "function") {
+      try {
+        const cleanId = String(pageId || "").replace(/-/g, "");
+        const response = await fetch("../data/notion-recordmaps/" + encodeURIComponent(cleanId) + ".json", {
+          cache: "no-store"
+        });
+
+        if (response.ok) {
+          const recordMap = await response.json();
+          if (host.dataset.notionRenderToken !== token) return;
+
+          host.classList.remove("markdown-body");
+          host.classList.add("notion-x-host");
+          window.NotionXBridge.render(host, recordMap);
+
+          if (makeToc) {
+            setTimeout(() => {
+              if (host.dataset.notionRenderToken === token) buildToc(host);
+            }, 80);
+          }
+          return;
+        }
+      } catch (error) {
+        console.warn("[Notion renderer] recordMap fallback:", pageId, error);
+      }
+    }
+
+    if (host.dataset.notionRenderToken !== token) return;
+    if (window.NotionXBridge && typeof window.NotionXBridge.unmount === "function") {
+      window.NotionXBridge.unmount(host);
+    }
+    host.classList.remove("notion-x-host");
+    host.classList.add("markdown-body");
+    renderNotionMarkdownInto(host, fallbackMarkdown || "", makeToc);
   }
 
   function renderNotionMarkdownInto(host, markdown, makeToc) {
