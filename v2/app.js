@@ -186,6 +186,9 @@
     });
     const unassigned = map.get("未歸類");
     if (unassigned && unassigned.courses.length) ordered.push(unassigned);
+    ordered.forEach(group => {
+      group.courses.sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "en", { numeric: true }));
+    });
     return ordered;
   }
 
