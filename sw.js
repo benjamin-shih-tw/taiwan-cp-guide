@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v2";
+const CACHE_NAME = "taiwan-cp-guide-v3";
 const CORE = [
   "./",
   "./index.html",
@@ -7,6 +7,11 @@ const CORE = [
   "./v2/app.js",
   "./data/roadmap.js",
   "./data/templates.js",
+  "./data/notion_courses_part1.js",
+  "./data/notion_courses_part2.js",
+  "./data/notion_courses_part3.js",
+  "./data/notion_courses_part4.js",
+  "./data/notion_courses_part5.js",
   "./manifest.json"
 ];
 
