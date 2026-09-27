@@ -251,25 +251,6 @@
     document.getElementById("stat-progress").textContent = progress + "%";
     document.getElementById("stat-levels").textContent = NOTION_DOMAIN_ORDER.length;
 
-    const pathHost = document.getElementById("path-cards");
-    pathHost.innerHTML = "";
-    const entries = [
-      { icon:"🗂️", title:"大單元", desc:"依照 Notion Domains 瀏覽課程。", hash:"#/roadmap", meta:NOTION_DOMAIN_ORDER.length + " 個單元" },
-      { icon:"📚", title:"課程總覽", desc:"查看所有有內容的 Coding Course 課程。", hash:"#/courses", meta:NOTION_COURSES.length + " 堂課" },
-      { icon:"🧩", title:"題庫", desc:"從課程延伸到對應的練習題。", hash:"#/problems", meta:totalProblems + " 題" }
-    ];
-    entries.forEach(entry => {
-      const div = document.createElement("article");
-      div.className = "path-card";
-      div.innerHTML =
-        '<div class="path-icon">' + entry.icon + '</div>' +
-        "<h3>" + esc(entry.title) + "</h3>" +
-        "<p>" + esc(entry.desc) + "</p>" +
-        '<div class="path-meta"><span>' + esc(entry.meta) + '</span><span>前往 →</span></div>';
-      div.addEventListener("click", () => { location.hash = entry.hash; });
-      pathHost.appendChild(div);
-    });
-
     const groups = notionDomainGroups();
     const domainHost = document.getElementById("domain-cards");
     domainHost.innerHTML = "";
@@ -277,9 +258,8 @@
       const div = document.createElement("article");
       div.className = "domain-card";
       div.innerHTML =
-        "<h3>" + esc(group.domain.icon + " " + group.domain.name) + "</h3>" +
-        (group.sample ? "<p>" + esc(group.sample) + "</p>" : "") +
-        '<div class="domain-count">' + group.courses.length + " lessons →</div>";
+        "<h3>" + esc(group.domain.name) + "</h3>" +
+        '<div class="domain-count">' + group.courses.length + " 課</div>";
       div.addEventListener("click", () => {
         state.courseDomain = group.domain.name;
         location.hash = "#/courses";
@@ -293,17 +273,12 @@
     const continueBtn = document.getElementById("continue-btn");
     if (next) {
       continueTitle.textContent = next.title;
-      if (next.details) {
-        continueDesc.hidden = false;
-        continueDesc.textContent = next.details;
-      } else {
-        continueDesc.hidden = true;
-        continueDesc.textContent = "";
-      }
+      continueDesc.hidden = true;
+      continueDesc.textContent = "";
       continueBtn.hidden = false;
       continueBtn.onclick = () => openLesson(next.id, true);
     } else {
-      continueTitle.textContent = "目前沒有課程內容";
+      continueTitle.textContent = "";
       continueDesc.hidden = true;
       continueBtn.hidden = true;
     }
@@ -341,7 +316,7 @@
       const pct = group.courses.length ? Math.round(completed / group.courses.length * 100) : 0;
       meta.innerHTML =
         '<span class="eyebrow">Unit ' + String(index + 1).padStart(2, "0") + "</span>" +
-        "<h2>" + esc(group.domain.icon + " " + group.domain.name) + "</h2>" +
+        "<h2>" + esc(group.domain.name) + "</h2>" +
         "<p>" + group.courses.length + " 堂課</p>" +
         '<div class="level-progress"><div class="mini-progress"><span style="width:' + pct + '%"></span></div></div>';
 
@@ -403,7 +378,7 @@
       const heading = document.createElement("div");
       heading.className = "unit-heading";
       heading.innerHTML =
-        '<div><span class="eyebrow">Unit</span><h2>' + esc(group.domain.icon + " " + group.domain.name) + '</h2></div>' +
+        '<div><span class="eyebrow">Unit</span><h2>' + esc(group.domain.name) + '</h2></div>' +
         '<span class="unit-count">' + courses.length + " lessons</span>";
 
       const grid = document.createElement("div");
@@ -416,9 +391,7 @@
         const bars = diff == null ? "" : Array.from({ length: 5 }, (_, i) =>
           '<i class="' + (i < Math.ceil(diff / 2) ? "on" : "") + '"></i>'
         ).join("");
-        const relationTags = (course.domains || []).map(name =>
-          '<span class="tag brand">' + esc(name) + '</span>'
-        ).join("");
+        const relationTags = "";
         const difficultyTag = diff == null ? "" : '<span class="tag">難度 ' + esc(diff) + '/10</span>';
         const footer = diff == null ? "" :
           '<div class="course-footer"><div class="difficulty" title="難度 ' + esc(diff) + '/10">' + bars + '</div></div>';
@@ -495,7 +468,7 @@
       section.className = "problem-domain-section";
       const title = document.createElement("div");
       title.className = "problem-domain-heading";
-      title.innerHTML = "<h2>" + esc(notionDomainMeta(name).icon + " " + name) + "</h2>";
+      title.innerHTML = "<h2>" + esc(name) + "</h2>";
       section.appendChild(title);
 
       entries.forEach(({ row, problems }) => {
@@ -540,15 +513,11 @@
   function renderResources() {
     const host = document.getElementById("template-grid");
     host.innerHTML = "";
-    const data = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA.slice(0, 12) : [];
-    if (!data.length) {
-      host.innerHTML = '<div class="empty-state">模板資料載入中。</div>';
-      return;
-    }
+    const data = TEMPLATES.slice(0, 12);
     data.forEach(temp => {
       const card = document.createElement("article");
       card.className = "template-card";
-      card.innerHTML = "<h3>" + esc(temp.title || temp.id) + "</h3><p>" + esc(temp.desc || temp.category || "") + "</p>";
+      card.innerHTML = "<h3>" + esc(temp.title || temp.id) + "</h3>";
       host.appendChild(card);
     });
   }
@@ -579,7 +548,6 @@
     }
 
     let tags = "";
-    domains.forEach(name => { tags += '<span class="tag brand">' + esc(name) + '</span>'; });
     if (course.difficulty != null) tags += '<span class="tag">難度 ' + esc(course.difficulty) + '/10</span>';
     document.getElementById("lesson-tags").innerHTML = tags;
 
@@ -731,7 +699,7 @@
         item.className = "search-result";
         item.innerHTML =
           "<strong>" + esc(course.title) + "</strong>" +
-          "<small>課程" + ((course.domains || []).length ? " · " + esc(course.domains.join(" · ")) : " · 未歸類") + "</small>";
+          "<small>" + ((course.domains || []).length ? esc(course.domains.join(" · ")) : "未歸類") + "</small>";
         item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
       });
