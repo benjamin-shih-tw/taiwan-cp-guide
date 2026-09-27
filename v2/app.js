@@ -394,7 +394,7 @@
     const q = state.courseSearch.trim().toLowerCase();
     const courses = NOTION_COURSES.filter(course => {
       const text = ((course.title || "") + " " + (course.details || "") + " " + (course.domain || "") + " " + (course.content || "")).toLowerCase();
-      const band = levelBand(course.difficulty);
+      const band = course.difficulty == null ? null : levelBand(course.difficulty);
       return (!q || text.includes(q)) &&
         (state.courseDomain === "all" || course.domain === state.courseDomain) &&
         (state.courseLevel === "all" || band === state.courseLevel);
