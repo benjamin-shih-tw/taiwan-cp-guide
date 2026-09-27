@@ -28,6 +28,7 @@
   const TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
 
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
+  const NOTION_LADDERS = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
   const NOTION_DOMAIN_ORDER = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
   const NOTION_DOMAIN_RELATIONS = window.NOTION_DOMAIN_RELATIONS || {};
   NOTION_COURSES.forEach(course => {
@@ -467,12 +468,13 @@
       grid.innerHTML = "";
       groups.forEach(group => {
         const problemCount = problemCountForDomain(group.domain.name);
+        const ladderCount = NOTION_LADDERS.filter(ladder => ladder.domain === group.domain.name).length;
         const card = document.createElement("article");
         card.className = "problem-domain-card";
         card.innerHTML =
           "<h2>" + esc(group.domain.name) + "</h2>" +
           '<div class="problem-domain-meta"><span>' + group.courses.length + " 課</span><span>" +
-          problemCount + " 題</span></div>";
+          ladderCount + " 題單</span><span>" + problemCount + " 題</span></div>";
         card.onclick = () => {
           location.hash = "#/problems/" + encodeURIComponent(group.domain.name);
         };
@@ -505,6 +507,34 @@
       courseHost.appendChild(row);
     });
 
+    const migratedHost = document.getElementById("migrated-ladders");
+    migratedHost.innerHTML = "";
+    const migrated = NOTION_LADDERS
+      .filter(ladder => ladder.domain === group.domain.name)
+      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "en", { numeric: true }));
+
+    migrated.forEach((ladder, index) => {
+      const details = document.createElement("details");
+      details.className = "migrated-ladder";
+      if (migrated.length === 1) details.open = true;
+      const summary = document.createElement("summary");
+      let label = String(ladder.title || "");
+      label = label.replace("Problem Ladder — ", "").replace("Problem Ladder - ", "");
+      summary.innerHTML =
+        '<span class="ladder-step-index">' + String(index + 1).padStart(2, "0") + "</span>" +
+        "<span>" + esc(label) + "</span>";
+      const body = document.createElement("div");
+      body.className = "migrated-ladder-body markdown-body";
+      if (window.marked) body.innerHTML = window.marked.parse(ladder.content || "");
+      else body.textContent = ladder.content || "";
+      body.querySelectorAll("a").forEach(a => {
+        if (/^https?:/i.test(a.getAttribute("href") || "")) { a.target = "_blank"; a.rel = "noreferrer"; }
+      });
+      enhanceCodeBlocks(body);
+      renderLessonMath(body);
+      details.append(summary, body);
+      migratedHost.appendChild(details);
+    });
     const platformSelect = document.getElementById("problem-platform");
     if (platformSelect.options.length <= 1) {
       const platforms = Array.from(new Set(Array.from(problemMap.values()).map(x => x.problem.platform).filter(Boolean))).sort();
