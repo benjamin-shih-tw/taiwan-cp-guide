@@ -1,6 +1,8 @@
 (() => {
   "use strict";
 
+  const APP_ASSET_BASE = new URL(".", document.currentScript?.src || location.href);
+
   const STORAGE = {
     solved: "taiwan_cp_solved_problems",
     read: "taiwan_cp_read_topics",
@@ -43,14 +45,98 @@
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
   const LIVE_API_BASE = "https://benjaminshih.vercel.app/api/coding-course";
+  const PAGE_CACHE_TTL = 45_000;
   const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
   const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
+  const courseSearchIndex = new WeakMap();
+  const pagePayloadCache = new Map();
+  const activePageRenders = new Map();
+  const renderedViews = new Set();
+  let notionRendererPromise = null;
   window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
 
   function rebuildCourseMap() {
     notionCourseMap.clear();
     NOTION_COURSES.forEach(course => notionCourseMap.set(course.id, course));
     window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
+  }
+
+  function courseSearchText(course) {
+    if (courseSearchIndex.has(course)) return courseSearchIndex.get(course);
+    const text = ((course.title || "") + " " + (course.details || "") + " " +
+      (course.domains || []).join(" ") + " " + (course.content || "")).toLowerCase();
+    courseSearchIndex.set(course, text);
+    return text;
+  }
+
+  function ensureNotionRenderer() {
+    if (window.NotionXBridge?.render) return Promise.resolve();
+    if (notionRendererPromise) return notionRendererPromise;
+
+    const stylesheet = new Promise((resolve, reject) => {
+      const existing = document.querySelector('link[data-notion-renderer]');
+      if (existing?.dataset.loaded === "1") return resolve();
+      const link = existing || document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = new URL("notion-renderer.css", APP_ASSET_BASE).href;
+      link.dataset.notionRenderer = "1";
+      link.addEventListener("load", () => {
+        link.dataset.loaded = "1";
+        resolve();
+      }, { once: true });
+      link.addEventListener("error", reject, { once: true });
+      if (!existing) document.head.appendChild(link);
+    });
+
+    const script = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-notion-renderer]');
+      if (window.NotionXBridge?.render) return resolve();
+      const node = existing || document.createElement("script");
+      node.src = new URL("notion-renderer.js", APP_ASSET_BASE).href;
+      node.async = true;
+      node.dataset.notionRenderer = "1";
+      node.addEventListener("load", () => window.NotionXBridge?.render
+        ? resolve()
+        : reject(new Error("Notion renderer unavailable")), { once: true });
+      node.addEventListener("error", reject, { once: true });
+      if (!existing) document.head.appendChild(node);
+    });
+
+    notionRendererPromise = Promise.all([stylesheet, script]).catch(error => {
+      notionRendererPromise = null;
+      document.querySelectorAll('[data-notion-renderer]').forEach(node => node.remove());
+      throw error;
+    });
+    return notionRendererPromise;
+  }
+
+  async function loadNotionPayload(pageId, signal) {
+    const cached = pagePayloadCache.get(pageId);
+    if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
+
+    const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
+      cache: "no-store",
+      signal
+    });
+    if (!response.ok) throw new Error("Notion API " + response.status);
+    const payload = await response.json();
+    const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
+    if (payloadId !== pageId || !payload.blockMap?.block) {
+      throw new Error("Notion API returned a mismatched page");
+    }
+    pagePayloadCache.set(pageId, { payload, savedAt: Date.now() });
+    if (pagePayloadCache.size > 12) pagePayloadCache.delete(pagePayloadCache.keys().next().value);
+    return payload;
+  }
+
+  function cancelRendersWithin(parent) {
+    if (!parent) return;
+    for (const [host, render] of activePageRenders) {
+      if (host === parent || parent.contains(host)) {
+        render.controller.abort();
+        activePageRenders.delete(host);
+      }
+    }
   }
 
   function applyLiveCatalog(catalog) {
@@ -112,7 +198,7 @@
 
   async function loadLiveCatalog() {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5500);
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(LIVE_API_BASE + "/catalog", {
         cache: "no-store",
@@ -346,13 +432,16 @@
     }
   }
 
-  function showView(name) {
+  function showView(name, forceRender) {
     const valid = ["welcome", "home", "roadmap", "courses", "problems", "resources"];
     if (!valid.includes(name)) name = "home";
+    const activeView = document.querySelector(".view.active")?.dataset.view;
+    const viewChanged = activeView !== name;
     state.baseView = name;
     document.body.classList.toggle("welcome-active", name === "welcome");
     document.querySelectorAll(".view").forEach(el => el.classList.toggle("active", el.dataset.view === name));
     document.querySelectorAll("[data-nav]").forEach(el => el.classList.toggle("active", el.dataset.nav === name));
+    if (!viewChanged && !forceRender && renderedViews.has(name)) return;
     window.scrollTo({ top: 0, behavior: "auto" });
     if (name === "welcome") {
       renderWelcome();
@@ -367,6 +456,7 @@
     if (name === "courses") renderCourses();
     if (name === "problems") renderProblems();
     if (name === "resources") renderResources();
+    renderedViews.add(name);
   }
 
   function router() {
@@ -529,13 +619,17 @@
   function renderCourses() {
     const groups = notionDomainGroups();
     const domainSelect = document.getElementById("course-domain");
-    domainSelect.innerHTML = '<option value="all">全部大單元</option>';
-    groups.forEach(group => {
-      const op = document.createElement("option");
-      op.value = group.domain.name;
-      op.textContent = group.domain.name;
-      domainSelect.appendChild(op);
-    });
+    const domainSignature = groups.map(group => group.domain.name).join("\n");
+    if (domainSelect.dataset.signature !== domainSignature) {
+      domainSelect.innerHTML = '<option value="all">全部大單元</option>';
+      groups.forEach(group => {
+        const op = document.createElement("option");
+        op.value = group.domain.name;
+        op.textContent = group.domain.name;
+        domainSelect.appendChild(op);
+      });
+      domainSelect.dataset.signature = domainSignature;
+    }
     if (![...domainSelect.options].some(op => op.value === state.courseDomain)) state.courseDomain = "all";
     domainSelect.value = state.courseDomain;
     document.getElementById("course-level").value = state.courseLevel;
@@ -543,8 +637,7 @@
 
     const q = state.courseSearch.trim().toLowerCase();
     const matches = course => {
-      const text = ((course.title || "") + " " + (course.details || "") + " " +
-        (course.domains || []).join(" ") + " " + (course.content || "")).toLowerCase();
+      const text = courseSearchText(course);
       const band = course.difficulty == null ? null : levelBand(course.difficulty);
       return (!q || text.includes(q)) &&
         (state.courseLevel === "all" || band === state.courseLevel);
@@ -654,6 +747,7 @@
     });
 
     const migratedHost = document.getElementById("migrated-ladders");
+    cancelRendersWithin(migratedHost);
     if (window.NotionXBridge?.unmountWithin) window.NotionXBridge.unmountWithin(migratedHost);
     migratedHost.innerHTML = "";
     const migrated = NOTION_LADDERS
@@ -846,6 +940,7 @@
     overlay.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
     const lessonHost = document.getElementById("lesson-content");
+    cancelRendersWithin(lessonHost);
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(lessonHost);
     state.activeTopic = null;
     if (pushHash) location.hash = state.baseView === "problems" && state.problemDomain ? "#/problems/" + encodeURIComponent(state.problemDomain) : "#/" + state.baseView;
@@ -1075,6 +1170,8 @@
     const token = String(++notionRenderCounter);
     host.dataset.notionRenderToken = token;
 
+    activePageRenders.get(host)?.controller.abort();
+
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
 
     if (courseMeta?.isPlaceholder || courseMeta?.hasContent === false) {
@@ -1089,20 +1186,23 @@
       '</div>';
 
     const controller = new AbortController();
+    activePageRenders.set(host, { token, controller });
     const timer = setTimeout(() => controller.abort(), 25000);
+    let rendererError = null;
+    const rendererReady = ensureNotionRenderer().catch(error => {
+      rendererError = error;
+    });
 
     try {
-      const cleanId = String(pageId || "").replace(/-/g, "");
-      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(cleanId), {
-        cache: "no-store",
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error("Notion API " + response.status);
-      const payload = await response.json();
+      const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
+      const payload = await loadNotionPayload(cleanId, controller.signal);
+      await rendererReady;
+      if (rendererError) throw rendererError;
 
       if (host.dataset.notionRenderToken !== token) return;
 
-      if (payload.title) {
+      const lessonHost = document.getElementById("lesson-content");
+      if (host === lessonHost && state.activeTopic?.course?.id === cleanId && payload.title) {
         courseMeta.title = String(payload.title);
         const title = document.getElementById("lesson-title");
         if (title) title.textContent = courseMeta.title;
@@ -1129,6 +1229,15 @@
           if (host.dataset.notionRenderToken !== token) return;
           if (makeToc) buildToc(host);
           if (blockId) scrollToNotionBlock(host, blockId);
+        },
+        onError: error => {
+          if (host.dataset.notionRenderToken !== token) return;
+          console.error("[Coding Course] Notion render failed", cleanId, error);
+          setTimeout(() => {
+            if (host.dataset.notionRenderToken === token) {
+              renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, cleanId);
+            }
+          }, 0);
         }
       });
       if (!ok) throw new Error("Notion blockMap 無法渲染");
@@ -1136,16 +1245,23 @@
       if (host.dataset.notionRenderToken !== token) return;
       console.warn("[Coding Course] live page unavailable", pageId, error);
 
-      if (String(fallbackMarkdown || "").trim()) {
-        host.className = "markdown-body";
-        renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
-      } else if (courseMeta?.isPlaceholder) {
-        renderLessonPlaceholder(host, courseMeta?.title);
-      } else {
-        renderLessonError(host, courseMeta || { id: pageId }, "無法連線到 Notion 內容服務。");
-      }
+      await rendererReady;
+      renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId);
     } finally {
       clearTimeout(timer);
+      if (activePageRenders.get(host)?.token === token) activePageRenders.delete(host);
+    }
+  }
+
+  function renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId) {
+    if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
+    if (String(fallbackMarkdown || "").trim()) {
+      host.className = "markdown-body";
+      renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
+    } else if (courseMeta?.isPlaceholder) {
+      renderLessonPlaceholder(host, courseMeta?.title);
+    } else {
+      renderLessonError(host, courseMeta || { id: pageId }, "無法顯示 Notion 內容，請重新載入。");
     }
   }
 
@@ -1482,8 +1598,7 @@
       }
 
       const courseResults = NOTION_COURSES.filter(course =>
-        ((course.title || "") + " " + (course.details || "") + " " + (course.domains || []).join(" ") + " " + (course.content || ""))
-          .toLowerCase().includes(q)
+        courseSearchText(course).includes(q)
       ).slice(0, 8);
       const problemResults = Array.from(problemMap.values()).filter(x =>
         ((x.problem.name || "") + " " + (x.problem.platform || "")).toLowerCase().includes(q)
@@ -1515,6 +1630,8 @@
   }
 
   function setupControls() {
+    let courseSearchFrame = 0;
+    let problemSearchFrame = 0;
     document.getElementById("theme-toggle").onclick = event => {
       const button = event.currentTarget;
       const current = document.documentElement.dataset.theme;
@@ -1530,7 +1647,8 @@
 
     document.getElementById("course-search").addEventListener("input", e => {
       state.courseSearch = e.target.value;
-      renderCourses();
+      cancelAnimationFrame(courseSearchFrame);
+      courseSearchFrame = requestAnimationFrame(renderCourses);
     });
     document.getElementById("course-domain").addEventListener("change", e => {
       state.courseDomain = e.target.value;
@@ -1543,7 +1661,8 @@
 
     document.getElementById("problem-search").addEventListener("input", e => {
       state.problemSearch = e.target.value;
-      renderProblems();
+      cancelAnimationFrame(problemSearchFrame);
+      problemSearchFrame = requestAnimationFrame(renderProblems);
     });
     document.getElementById("problem-platform").addEventListener("change", e => {
       state.problemPlatform = e.target.value;
@@ -1564,23 +1683,26 @@
     setTheme(state.theme);
     setupControls();
     setupSearch();
-    renderHome();
-    renderRoadmap();
-    renderCourses();
-    renderProblems();
-    renderResources();
-    window.addEventListener("hashchange", router);
-    window.addEventListener("popstate", router);
+    let routeFrame = 0;
+    const scheduleRouter = () => {
+      cancelAnimationFrame(routeFrame);
+      routeFrame = requestAnimationFrame(() => {
+        routeFrame = 0;
+        router();
+      });
+    };
+    window.addEventListener("hashchange", scheduleRouter);
+    window.addEventListener("popstate", scheduleRouter);
     router();
 
     loadLiveCatalog().then(changed => {
       if (!changed) return;
-      renderHome();
-      renderRoadmap();
-      renderCourses();
-      renderProblems();
-      renderResources();
-      router();
+      showView(state.baseView, true);
+      const activeCourse = state.activeTopic?.course;
+      const liveCourse = activeCourse && notionCourseMap.get(activeCourse.id);
+      if (activeCourse?.isPlaceholder && liveCourse && !liveCourse.isPlaceholder) {
+        openLesson(liveCourse.id, false);
+      }
     });
   }
 

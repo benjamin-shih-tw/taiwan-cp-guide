@@ -42,6 +42,26 @@ function CourseCode(props) {
   )
 }
 
+class NotionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  componentDidCatch(error) {
+    this.props.onError?.(error)
+  }
+
+  render() {
+    if (this.state.error) return null
+    return this.props.children
+  }
+}
+
 function internalNotionRoute(href) {
   const raw = String(href || '')
   const routeMatch = raw.match(/^#\/lesson\/([0-9a-f-]{32,36})(?:#([0-9a-f-]{32,36}))?$/i)
@@ -80,18 +100,22 @@ function NotionContent({ entry }) {
   return React.createElement(
     'div',
     { className: 'coding-course-notion-renderer', onClickCapture: handleClick },
-    React.createElement(NotionRenderer, {
-      recordMap: entry.recordMap,
-      fullPage: false,
-      darkMode,
-      mapPageUrl,
-      components: {
-        Code: CourseCode,
-        Collection,
-        Equation,
-        Pdf
-      }
-    })
+    React.createElement(
+      NotionErrorBoundary,
+      { key: entry.version, onError: entry.onError },
+      React.createElement(NotionRenderer, {
+        recordMap: entry.recordMap,
+        fullPage: false,
+        darkMode,
+        mapPageUrl,
+        components: {
+          Code: CourseCode,
+          Collection,
+          Equation,
+          Pdf
+        }
+      })
+    )
   )
 }
 
@@ -108,12 +132,16 @@ function render(container, recordMap, options = {}) {
     entry = {
       root: createRoot(container),
       recordMap,
-      onReady: options.onReady
+      onReady: options.onReady,
+      onError: options.onError,
+      version: 1
     }
     mounts.set(container, entry)
   } else {
     entry.recordMap = recordMap
     entry.onReady = options.onReady
+    entry.onError = options.onError
+    entry.version += 1
   }
 
   renderEntry(entry)

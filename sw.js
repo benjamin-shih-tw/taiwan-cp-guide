@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v33";
+const CACHE_NAME = "taiwan-cp-guide-v34";
 const CORE = [
   "./",
   "./index.html",
