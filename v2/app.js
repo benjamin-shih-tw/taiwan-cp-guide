@@ -1173,6 +1173,21 @@
   function enhanceNotionDetails(host) {
     if (!window.marked) return;
 
+    const parseTextRun = nodes => {
+      const source = nodes.map(node => node.textContent || "").join("");
+      const fragment = document.createDocumentFragment();
+
+      if (!source.trim()) {
+        nodes.forEach(node => fragment.appendChild(node));
+        return fragment;
+      }
+
+      const holder = document.createElement("div");
+      holder.innerHTML = window.marked.parse(preprocessNotionMarkdown(source));
+      while (holder.firstChild) fragment.appendChild(holder.firstChild);
+      return fragment;
+    };
+
     const process = detail => {
       if (!detail || detail.dataset.notionReady === "1") return;
       const summary = detail.querySelector(":scope > summary");
@@ -1182,17 +1197,31 @@
         summary.innerHTML = window.marked.parseInline(summary.textContent.trim());
       }
 
-      const bodyNodes = Array.from(detail.childNodes).filter(node => node !== summary);
-      const raw = bodyNodes.map(node =>
-        node.nodeType === Node.TEXT_NODE ? node.textContent : node.outerHTML
-      ).join("");
-      bodyNodes.forEach(node => node.remove());
-
       const body = document.createElement("div");
       body.className = "notion-toggle-body";
-      body.innerHTML = raw.trim()
-        ? window.marked.parse(preprocessNotionMarkdown(raw.trim()))
-        : "";
+
+      // Do not serialize already-rendered DOM back into Markdown.
+      // Re-parsing outerHTML double-escapes code and exposes closing tags.
+      const nodes = Array.from(detail.childNodes).filter(node => node !== summary);
+      let textRun = [];
+
+      const flushTextRun = () => {
+        if (!textRun.length) return;
+        body.appendChild(parseTextRun(textRun));
+        textRun = [];
+      };
+
+      nodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textRun.push(node);
+          return;
+        }
+
+        flushTextRun();
+        body.appendChild(node);
+      });
+      flushTextRun();
+
       detail.appendChild(body);
       detail.classList.add("notion-toggle");
       detail.dataset.notionReady = "1";
