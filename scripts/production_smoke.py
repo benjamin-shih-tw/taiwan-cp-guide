@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import glob
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -39,7 +41,36 @@ assert len(domains) == 13, f"expected 13 active domains, got {len(domains)}: {do
 assert all("APCS" not in name for name in domains), f"archived APCS domain leaked: {domains}"
 assert len(lectures) >= 60, f"expected >=60 lectures, got {len(lectures)}"
 
+static_by_id = {}
+for path in sorted(glob.glob("data/notion_courses_part*.js")):
+    raw = open(path, "r", encoding="utf-8").read()
+    match = re.search(r"push\\(\\.\\.\\.([\\s\\S]*?)\\);\\s*$", raw)
+    if not match:
+        continue
+    for item in json.loads(match.group(1)):
+        static_by_id[str(item.get("id", "")).replace("-", "")] = item
+
 by_id = {str(item.get("id", "")).replace("-", ""): item for item in items}
+live_lecture_ids = {
+    str(item.get("id", "")).replace("-", "")
+    for item in lectures
+}
+static_ids = set(static_by_id)
+missing_live = sorted(static_ids - live_lecture_ids)
+extra_live = sorted(live_lecture_ids - static_ids)
+if missing_live or extra_live:
+    print(json.dumps({
+        "catalog_mismatch": True,
+        "missing_live": [
+            {"id": page_id, "title": static_by_id.get(page_id, {}).get("title")}
+            for page_id in missing_live
+        ],
+        "extra_live": extra_live,
+    }, ensure_ascii=False))
+assert not missing_live, f"live catalog is missing {len(missing_live)} static lectures"
+assert not extra_live, f"live catalog has {len(extra_live)} unexpected lectures"
+assert len(lectures) == len(static_ids), f"live/static lecture count mismatch: {len(lectures)} vs {len(static_ids)}"
+
 segment = by_id.get(SEGMENT_ID)
 placeholder = by_id.get(PLACEHOLDER_ID)
 assert segment, "Segment Tree is missing from live catalog"
