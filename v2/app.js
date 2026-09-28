@@ -1089,7 +1089,7 @@
       '</div>';
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
+    const timer = setTimeout(() => controller.abort(), 25000);
 
     try {
       const cleanId = String(pageId || "").replace(/-/g, "");
