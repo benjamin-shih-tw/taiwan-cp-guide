@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v32";
+const CACHE_NAME = "taiwan-cp-guide-v33";
 const CORE = [
   "./",
   "./index.html",
@@ -59,18 +59,29 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  const isRendererAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/notion_child_pages\.js)$/.test(url.pathname);
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const network = fetch(event.request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-          }
-          return response;
+    isRendererAsset
+      ? fetch(event.request)
+          .then(response => {
+            if (response && response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+            }
+            return response;
+          })
+          .catch(() => caches.match(event.request))
+      : caches.match(event.request).then(cached => {
+          const network = fetch(event.request)
+            .then(response => {
+              if (response && response.ok) {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+              }
+              return response;
+            })
+            .catch(() => cached);
+          return cached || network;
         })
-        .catch(() => cached);
-      return cached || network;
-    })
   );
 });

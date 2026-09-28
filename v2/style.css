@@ -327,6 +327,21 @@ html[data-theme="dark"] .notion-color-background{
 .notion-live-host .notion-code{
   font-family:var(--mono)!important;
 }
+.notion-live-host .course-code-block{
+  position:relative;
+  width:100%;
+  min-width:0;
+}
+.notion-live-host .course-code-language{
+  position:absolute;
+  top:1.15em;
+  right:3.8em;
+  z-index:1;
+  color:var(--muted);
+  font:10px/1 var(--mono);
+  text-transform:uppercase;
+  pointer-events:none;
+}
 .notion-live-host .notion-code-copy-button{
   cursor:pointer;
 }

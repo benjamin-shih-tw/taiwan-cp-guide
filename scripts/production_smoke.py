@@ -10,6 +10,8 @@ CATALOG = "https://benjaminshih.vercel.app/api/coding-course/catalog"
 PAGE = "https://benjaminshih.vercel.app/api/coding-course/page/33092ab76d4080199eaafc456a0f2fb7"
 PLACEHOLDER_ID = "3e892ab76d40812aa397cb8b7dc9cb85"
 SEGMENT_ID = "33092ab76d4080199eaafc456a0f2fb7"
+SEGMENT_CHILD_ID = "3c492ab76d40800ba2f5dd6bfd0026c1"
+SEGMENT_CHILD_PAGE = f"https://benjaminshih.vercel.app/api/coding-course/page/{SEGMENT_CHILD_ID}"
 
 def get_json(url, attempts=4, timeout=30):
     last = None
@@ -89,11 +91,19 @@ assert page.get("id") == SEGMENT_ID, f"wrong page id: {page.get('id')}"
 assert page.get("hasContent") is True, "Segment Tree page API reports no content"
 assert isinstance(blocks, dict) and len(blocks) >= 2, f"invalid Notion blockMap: {len(blocks)} blocks"
 
+child_page = get_json(SEGMENT_CHILD_PAGE)
+child_block_map = child_page.get("blockMap") or {}
+child_blocks = child_block_map.get("block") or {}
+assert child_page.get("id") == SEGMENT_CHILD_ID, f"wrong child page id: {child_page.get('id')}"
+assert child_page.get("title") == "線段樹解法", f"wrong child page title: {child_page.get('title')}"
+assert isinstance(child_blocks, dict) and len(child_blocks) > 0, "child page has no Notion blocks"
+
 print(json.dumps({
     "status": "ok",
     "domains": len(domains),
     "lectures": len(lectures),
     "catalog_items": len(items),
     "segment_tree_blocks": len(blocks),
+    "segment_tree_child_blocks": len(child_blocks),
     "generatedAt": catalog.get("generatedAt"),
 }, ensure_ascii=False))

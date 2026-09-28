@@ -32,28 +32,74 @@ function mapPageUrl(id) {
   return window.location.hash || '#/courses'
 }
 
-function renderEntry(entry) {
-  entry.root.render(
-    React.createElement(
-      'div',
-      { className: 'coding-course-notion-renderer' },
-      React.createElement(NotionRenderer, {
-        recordMap: entry.recordMap,
-        fullPage: false,
-        darkMode,
-        mapPageUrl,
-        components: {
-          Code,
-          Collection,
-          Equation,
-          Pdf
-        }
-      })
-    )
+function CourseCode(props) {
+  const language = props.block?.properties?.language?.[0]?.[0] || props.defaultLanguage || 'code'
+  return React.createElement(
+    'div',
+    { className: 'course-code-block' },
+    React.createElement('span', { className: 'course-code-language' }, language),
+    React.createElement(Code, props)
   )
 }
 
-function render(container, recordMap) {
+function internalNotionRoute(href) {
+  const raw = String(href || '')
+  const routeMatch = raw.match(/^#\/lesson\/([0-9a-f-]{32,36})(?:#([0-9a-f-]{32,36}))?$/i)
+  if (routeMatch) {
+    const pageId = compact(routeMatch[1])
+    const blockId = compact(routeMatch[2])
+    return '#/lesson/' + pageId + (blockId ? '?block=' + blockId : '')
+  }
+
+  try {
+    const url = new URL(raw, window.location.href)
+    if (!/(^|\.)notion\.(?:so|com)$/i.test(url.hostname)) return ''
+    const pageMatch = url.pathname.match(/([0-9a-f]{32})(?:$|\/)/i)
+    if (!pageMatch) return ''
+    const blockMatch = url.hash.match(/^#([0-9a-f]{32})$/i)
+    return '#/lesson/' + compact(pageMatch[1]) + (blockMatch ? '?block=' + compact(blockMatch[1]) : '')
+  } catch (_) {
+    return ''
+  }
+}
+
+function NotionContent({ entry }) {
+  React.useEffect(() => {
+    entry.onReady?.()
+  }, [entry.recordMap, entry.onReady])
+
+  const handleClick = event => {
+    const anchor = event.target.closest?.('a[href]')
+    if (!anchor) return
+    const route = internalNotionRoute(anchor.getAttribute('href'))
+    if (!route) return
+    event.preventDefault()
+    window.location.hash = route
+  }
+
+  return React.createElement(
+    'div',
+    { className: 'coding-course-notion-renderer', onClickCapture: handleClick },
+    React.createElement(NotionRenderer, {
+      recordMap: entry.recordMap,
+      fullPage: false,
+      darkMode,
+      mapPageUrl,
+      components: {
+        Code: CourseCode,
+        Collection,
+        Equation,
+        Pdf
+      }
+    })
+  )
+}
+
+function renderEntry(entry) {
+  entry.root.render(React.createElement(NotionContent, { entry }))
+}
+
+function render(container, recordMap, options = {}) {
   if (!container || !recordMap?.block) return false
 
   let entry = mounts.get(container)
@@ -61,11 +107,13 @@ function render(container, recordMap) {
     container.replaceChildren()
     entry = {
       root: createRoot(container),
-      recordMap
+      recordMap,
+      onReady: options.onReady
     }
     mounts.set(container, entry)
   } else {
     entry.recordMap = recordMap
+    entry.onReady = options.onReady
   }
 
   renderEntry(entry)

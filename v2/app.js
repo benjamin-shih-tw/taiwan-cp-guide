@@ -372,14 +372,16 @@
   function router() {
     const hash = location.hash || "#/welcome";
     const clean = hash.replace(/^#\/?/, "");
-    const parts = clean.split("/").filter(Boolean);
+    const lessonMatch = clean.match(/^lesson\/([0-9a-f]{32})(?:\?block=([0-9a-f]{32}))?$/i);
 
-    if (parts[0] === "lesson" && parts[1]) {
+    if (lessonMatch) {
       const base = state.baseView === "home" ? "courses" : state.baseView;
       showView(base);
-      openLesson(parts[1], false);
+      openLesson(lessonMatch[1], false, lessonMatch[2] || "");
       return;
     }
+
+    const parts = clean.split("/").filter(Boolean);
 
     if (parts[0] === "problems") {
       closeLesson(false);
@@ -772,7 +774,7 @@
     });
   }
 
-  function openLesson(id, pushHash) {
+  function openLesson(id, pushHash, blockId) {
     const requestedId = String(id || "").replace(/-/g, "").toLowerCase();
     let course = notionCourseMap.get(requestedId);
     if (!course) course = courseForRoadmap(id);
@@ -783,7 +785,7 @@
       const fallbackPage = NOTION_CHILD_PAGES[requestedId] || {};
       course = {
         id: requestedId,
-        title: fallbackPage.title || "載入 Notion 子頁…",
+        title: fallbackPage.title || "載入課程內容…",
         details: "",
         difficulty: null,
         domains: [],
@@ -826,14 +828,14 @@
     document.querySelector(".lesson-end").style.display = "none";
 
     refreshLessonProgress();
-    renderCourseContent(course);
+    renderCourseContent(course, blockId);
 
     document.getElementById("lesson-overlay").classList.add("open");
     document.getElementById("lesson-overlay").setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 
     if (pushHash) {
-      history.pushState(null, "", "#/lesson/" + encodeURIComponent(course.id));
+      history.pushState(null, "", "#/lesson/" + encodeURIComponent(course.id) + (blockId ? "?block=" + encodeURIComponent(blockId) : ""));
     }
   }
 
@@ -1069,7 +1071,7 @@
     host.querySelector("button")?.addEventListener("click", () => renderCourseContent(course));
   }
 
-  async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc, courseMeta) {
+  async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc, courseMeta, blockId) {
     const token = String(++notionRenderCounter);
     host.dataset.notionRenderToken = token;
 
@@ -1100,7 +1102,7 @@
 
       if (host.dataset.notionRenderToken !== token) return;
 
-      if (courseMeta?.isNotionSubpage && payload.title) {
+      if (payload.title) {
         courseMeta.title = String(payload.title);
         const title = document.getElementById("lesson-title");
         if (title) title.textContent = courseMeta.title;
@@ -1122,13 +1124,14 @@
 
       host.replaceChildren();
       host.className = "notion-live-host";
-      const ok = window.NotionXBridge.render(host, payload.blockMap);
+      const ok = window.NotionXBridge.render(host, payload.blockMap, {
+        onReady: () => {
+          if (host.dataset.notionRenderToken !== token) return;
+          if (makeToc) buildToc(host);
+          if (blockId) scrollToNotionBlock(host, blockId);
+        }
+      });
       if (!ok) throw new Error("Notion blockMap 無法渲染");
-
-      if (makeToc) {
-        const toc = document.getElementById("lesson-toc");
-        if (toc) toc.innerHTML = '<span class="toc-live-note">內容由 Notion 即時同步</span>';
-      }
     } catch (error) {
       if (host.dataset.notionRenderToken !== token) return;
       console.warn("[Coding Course] live page unavailable", pageId, error);
@@ -1169,13 +1172,14 @@
     if (makeToc) buildToc(host);
   }
 
-  function renderCourseContent(course) {
+  function renderCourseContent(course, blockId) {
     renderNotionPageInto(
       document.getElementById("lesson-content"),
       course.id,
       course.content || "",
       true,
-      course
+      course,
+      blockId
     );
   }
 
@@ -1413,16 +1417,30 @@
   function buildToc(host) {
     const toc = document.getElementById("lesson-toc");
     toc.innerHTML = "";
-    const headings = host.querySelectorAll("h2,h3");
+    const headings = host.querySelectorAll("h1,h2,h3,.notion-h1,.notion-h2,.notion-h3");
     headings.forEach((h, idx) => {
       if (!h.id) h.id = "lesson-section-" + idx;
       const a = document.createElement("a");
-      a.href = "#" + h.id;
+      a.href = location.hash;
       a.textContent = h.textContent;
-      a.style.paddingLeft = h.tagName === "H3" ? "18px" : "10px";
+      const level = h.matches("h3,.notion-h3") ? 3 : (h.matches("h2,.notion-h2") ? 2 : 1);
+      a.style.paddingLeft = (level - 1) * 9 + "px";
+      a.addEventListener("click", event => {
+        event.preventDefault();
+        h.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
       toc.appendChild(a);
     });
     if (!headings.length) toc.innerHTML = '<span style="font-size:11px;color:var(--muted)">本篇沒有額外章節。</span>';
+  }
+
+  function scrollToNotionBlock(host, blockId) {
+    const targetId = String(blockId || "").replace(/-/g, "").toLowerCase();
+    if (!targetId) return;
+    const target = Array.from(host.querySelectorAll("[id]")).find(node =>
+      String(node.id || "").replace(/-/g, "").toLowerCase() === targetId
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function setupSearch() {
