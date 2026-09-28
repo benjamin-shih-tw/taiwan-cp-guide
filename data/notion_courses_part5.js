@@ -1,6 +1,15 @@
 window.NOTION_COURSES = window.NOTION_COURSES || [];
 window.NOTION_COURSES.push(...[
   {
+    "id": "37e92ab76d4080458956cccda1cb88b5",
+    "title": "00-12 Time Complexity",
+    "details": "",
+    "difficulty": 1,
+    "domain": "00 Fundamentals",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/37e92ab76d4080458956cccda1cb88b5"
+  },
+  {
     "id": "3e892ab76d40812aa397cb8b7dc9cb85",
     "title": "01-01 Simulation with Arrays & Strings",
     "details": "Coming soon",
@@ -8,6 +17,15 @@ window.NOTION_COURSES.push(...[
     "domain": "01 Complete Search & Simulation",
     "content": "",
     "notionUrl": "https://app.notion.com/p/3e892ab76d40812aa397cb8b7dc9cb85"
+  },
+  {
+    "id": "3e892ab76d4081e9aacdce6b86ed8be8",
+    "title": "01-04 Casework / Ad Hoc",
+    "details": "",
+    "difficulty": null,
+    "domain": "01 Complete Search & Simulation",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081e9aacdce6b86ed8be8"
   },
   {
     "id": "3e892ab76d40816dbdc7f9cd010bfc59",
@@ -26,6 +44,51 @@ window.NOTION_COURSES.push(...[
     "domain": "04 Prefix Sums",
     "notionUrl": "https://app.notion.com/p/33092ab76d4080e79badf5a1f860fc8c",
     "content": "## prefix sum 前綴和\nkind of data structure ? 反正運作原理如下圖：\n![](https://prod-files-secure.s3.us-west-2.amazonaws.com/18192ab7-6d40-8113-8b36-0003bf3444bb/ca47a9cd-602b-4865-9510-d7489bdc240a/image.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB46626HTXBTL%2F20260927%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260927T150616Z&X-Amz-Expires=300&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEFUaCXVzLXdlc3QtMiJHMEUCIQC7Td5gKKQeH%2BbUITBtZ%2FjV4xXg0lbmKiQz8SlueyK9GwIgHYa7C1uepEMnXvS2GsS5qRSewZHtWgQ%2BrbCjPxpC5poq%2FwMIHhAAGgw2Mzc0MjMxODM4MDUiDJ7q4XCtv%2FdjmpkLdircAw2JT6UpCnomXJVLZAJgJNcTTGs8asycrKgznKcRicv2V5AhOw%2FLzTlFW4FIzGXkkfYfPj%2BHCvRa88NytNoZ%2BQ5gIwSDVa2tMHdmxntyvU7UkdxrmJ5SwaEmqGSmli%2ByOq%2BYZ6HfOprZBpCKj7ARdZMSZQ7YyijUBLFhxtlvGQMDamWrC5A2vY7ht4NapzuzMN0lzur%2BHZWIczVxZm%2FYSGLVzYmEMY4O1oC0K90%2Bd6jHYUZxxiKOc0SCQABO%2BEfzDKqpSRHcaLEkXVuYMNAIxJobGyb%2FBdtGl8dGvLvFY3%2BH16DLlt3sh%2BRpTfLSXnf54zB6sy5H7HSPmD8e7jaW7D5q%2Fxd8GCHrniEvAvWi4vT%2BdO6uQ3yvNIGeUSbvNle1%2FtH5aTRdP4yB4rz7mH3vY8TS5JhCSuMvjUjSeoZoOiDyZC3dwQmHY%2FiTmniHgDOiojb9oKktC1ahKtbHtrO%2BU%2B8cZv95oXySm94vbuEsxVij%2F6YAM4MYoD5YL09zVCoqbeNnsa6OX04j9UVkFyHyoE8UFj4pCVOcmjN9S75sAg51EuBqgoQWRSYo7nOEDpaO265c7IHbv1aLA91JV0mkNAUzgFnVktslUEDkX6KDgzSZYe5GbJVLiL%2FxJ1syMImn5NUGOqUBLWRLv%2BirJmte%2BMYyAr7%2BraqOPqIoUFUgFEWcb2FWDuSsHxNr8AUfHUyCrMiL9LZqPRVvM33VU9zSB6FxUp%2BPnCBwSbi3WqJPHaAQpcy9LxTMTduH3eW8lRmiHIvkaMDkVR3hNRhHFDIpdYbu%2BfusHgrGxEO8OaYaXInidALJW54AK4uOoxfqDXZvkKTIv07VaAgCgZpEmcJPSc5m9se2ZrZS2u2X&X-Amz-Signature=01d7f31ae2183f6efb3c1cb942717bf976ddf03a678f3ea75f9dea5d7461e705&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject)\n<details>\n<summary>怎麼寫 寫寫看</summary>\n\t```c++\n    int n;\n    cin >> n;\n    vector<int> v(n);\n    for(int i = 1 ; i <= n ; i++) cin >> v[i];\n    vector<int> pref(n+1);\n    pref[0] = 0;\n    for(int i = 1 ; i <= n ; i++)\n        pref[i] = pref[i-1] + v[i];\n\n\t```\n</details>\n### 可以幹嘛？\n<callout icon=\"👉\" color=\"yellow\">\n\t**例題**:[CSES - Static Range Sum Queries](https://cses.fi/problemset/task/1646)\n\t給定一個 n 還有 q ( n 暴力解會炸的那種範圍）\n\t接下來有 n 個數字 q 筆詢問\n\t請輸出每筆詢問當中 `v[l] ~ v[r]` 的總和\n\t<details>\n\t<summary>範測：</summary>\n\t\tInput:\n\t\t```plain text\n8 4\n3 2 4 5 1 1 5 3\n2 4\n5 6\n1 8\n3 3\n\t\t```\n\t\tOutput:\n\t\t```plain text\n11\n2\n24\n4\n\t\t```\n\t</details>\n</callout>\n如果用一般的寫法會怎麼寫？\n1. **暴力解**\n就每一次 q 都跑一個 `for(int i = l ; i ≤ r ; i++)`去加總sum\n<details>\n<summary>code</summary>\n\t```c++\n#include <bits/stdc++.h>\nusing namespace std;\nint main()\n{\n    long long n, q;\n    cin >> n >> q;\n    vector<long long> v(n, 0);\n    for (long long i = 0; i < n; i++)\n        cin >> v[i];\n    vector<pair<long long, long long>> p(q);\n    for (long long i = 0; i < q; i++)\n    {\n        cin >> p[i].first;\n        cin >> p[i].second;\n    }\n    long long in = 0;\n    for (long long i = 0; i < q; i++)\n    {\n        long long count = 0;\n        for (long long i = p[in].first; i <= p[in].second; i++)\n            count += v[i - 1];\n        cout << count << endl;\n        in++;\n    }\n}\n\t```\n</details>\n<details>\n<summary>複雜度：</summary>\n\t$`O(nq)`$ 一定炸\n\t<empty-block/>\n</details>\n<details>\n<summary>result</summary>\n\t必須炸開\n\t![](https://prod-files-secure.s3.us-west-2.amazonaws.com/18192ab7-6d40-8113-8b36-0003bf3444bb/948ad64c-3399-436d-86e9-f1657665a454/Screenshot_2026-03-27_at_1.40.56_PM.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB46626HTXBTL%2F20260927%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260927T150616Z&X-Amz-Expires=300&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEFUaCXVzLXdlc3QtMiJHMEUCIQC7Td5gKKQeH%2BbUITBtZ%2FjV4xXg0lbmKiQz8SlueyK9GwIgHYa7C1uepEMnXvS2GsS5qRSewZHtWgQ%2BrbCjPxpC5poq%2FwMIHhAAGgw2Mzc0MjMxODM4MDUiDJ7q4XCtv%2FdjmpkLdircAw2JT6UpCnomXJVLZAJgJNcTTGs8asycrKgznKcRicv2V5AhOw%2FLzTlFW4FIzGXkkfYfPj%2BHCvRa88NytNoZ%2BQ5gIwSDVa2tMHdmxntyvU7UkdxrmJ5SwaEmqGSmli%2ByOq%2BYZ6HfOprZBpCKj7ARdZMSZQ7YyijUBLFhxtlvGQMDamWrC5A2vY7ht4NapzuzMN0lzur%2BHZWIczVxZm%2FYSGLVzYmEMY4O1oC0K90%2Bd6jHYUZxxiKOc0SCQABO%2BEfzDKqpSRHcaLEkXVuYMNAIxJobGyb%2FBdtGl8dGvLvFY3%2BH16DLlt3sh%2BRpTfLSXnf54zB6sy5H7HSPmD8e7jaW7D5q%2Fxd8GCHrniEvAvWi4vT%2BdO6uQ3yvNIGeUSbvNle1%2FtH5aTRdP4yB4rz7mH3vY8TS5JhCSuMvjUjSeoZoOiDyZC3dwQmHY%2FiTmniHgDOiojb9oKktC1ahKtbHtrO%2BU%2B8cZv95oXySm94vbuEsxVij%2F6YAM4MYoD5YL09zVCoqbeNnsa6OX04j9UVkFyHyoE8UFj4pCVOcmjN9S75sAg51EuBqgoQWRSYo7nOEDpaO265c7IHbv1aLA91JV0mkNAUzgFnVktslUEDkX6KDgzSZYe5GbJVLiL%2FxJ1syMImn5NUGOqUBLWRLv%2BirJmte%2BMYyAr7%2BraqOPqIoUFUgFEWcb2FWDuSsHxNr8AUfHUyCrMiL9LZqPRVvM33VU9zSB6FxUp%2BPnCBwSbi3WqJPHaAQpcy9LxTMTduH3eW8lRmiHIvkaMDkVR3hNRhHFDIpdYbu%2BfusHgrGxEO8OaYaXInidALJW54AK4uOoxfqDXZvkKTIv07VaAgCgZpEmcJPSc5m9se2ZrZS2u2X&X-Amz-Signature=69e15c357fd162e2136729d6f5cd92dea044f026badc261ba2c5a6dfe74103e9&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject)\n\t<empty-block/>\n</details>\n<empty-block/>\n1. **前綴和解**\n先預處理前綴和陣列，每一次去查詢 `pref[r] - pref[l-1]` 之類的\n<details>\n<summary>code</summary>\n\t不考慮自己寫嗎…？\n\t```c++\n#include <bits/stdc++.h>\nusing namespace std;\nint main()\n{\n    long long n, q;\n    cin >> n >> q;\n    vector<long long> v(n + 1, 0);\n \n    for (long long i = 1; i <= n; i++)\n        cin >> v[i];\n \n    vector<long long> p(n + 1, 0);\n \n    for (long long i = 1; i <= n; i++)\n        p[i] = p[i - 1] + v[i];\n \n    while (q--)\n    {\n        long long a, b;\n        cin >> a >> b;\n        cout << p[b] - p[a - 1] << endl;\n    }\n}\n\t```\n</details>\n<details>\n<summary>複雜度：</summary>\n\t$`O(n)`$ 不會炸\n\t<empty-block/>\n</details>\n<details>\n<summary>result</summary>\n\t![](https://prod-files-secure.s3.us-west-2.amazonaws.com/18192ab7-6d40-8113-8b36-0003bf3444bb/cf08ab5f-4b61-453e-a54f-b999b00ff948/Screenshot_2026-03-27_at_1.42.52_PM.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB46626HTXBTL%2F20260927%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260927T150616Z&X-Amz-Expires=300&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEFUaCXVzLXdlc3QtMiJHMEUCIQC7Td5gKKQeH%2BbUITBtZ%2FjV4xXg0lbmKiQz8SlueyK9GwIgHYa7C1uepEMnXvS2GsS5qRSewZHtWgQ%2BrbCjPxpC5poq%2FwMIHhAAGgw2Mzc0MjMxODM4MDUiDJ7q4XCtv%2FdjmpkLdircAw2JT6UpCnomXJVLZAJgJNcTTGs8asycrKgznKcRicv2V5AhOw%2FLzTlFW4FIzGXkkfYfPj%2BHCvRa88NytNoZ%2BQ5gIwSDVa2tMHdmxntyvU7UkdxrmJ5SwaEmqGSmli%2ByOq%2BYZ6HfOprZBpCKj7ARdZMSZQ7YyijUBLFhxtlvGQMDamWrC5A2vY7ht4NapzuzMN0lzur%2BHZWIczVxZm%2FYSGLVzYmEMY4O1oC0K90%2Bd6jHYUZxxiKOc0SCQABO%2BEfzDKqpSRHcaLEkXVuYMNAIxJobGyb%2FBdtGl8dGvLvFY3%2BH16DLlt3sh%2BRpTfLSXnf54zB6sy5H7HSPmD8e7jaW7D5q%2Fxd8GCHrniEvAvWi4vT%2BdO6uQ3yvNIGeUSbvNle1%2FtH5aTRdP4yB4rz7mH3vY8TS5JhCSuMvjUjSeoZoOiDyZC3dwQmHY%2FiTmniHgDOiojb9oKktC1ahKtbHtrO%2BU%2B8cZv95oXySm94vbuEsxVij%2F6YAM4MYoD5YL09zVCoqbeNnsa6OX04j9UVkFyHyoE8UFj4pCVOcmjN9S75sAg51EuBqgoQWRSYo7nOEDpaO265c7IHbv1aLA91JV0mkNAUzgFnVktslUEDkX6KDgzSZYe5GbJVLiL%2FxJ1syMImn5NUGOqUBLWRLv%2BirJmte%2BMYyAr7%2BraqOPqIoUFUgFEWcb2FWDuSsHxNr8AUfHUyCrMiL9LZqPRVvM33VU9zSB6FxUp%2BPnCBwSbi3WqJPHaAQpcy9LxTMTduH3eW8lRmiHIvkaMDkVR3hNRhHFDIpdYbu%2BfusHgrGxEO8OaYaXInidALJW54AK4uOoxfqDXZvkKTIv07VaAgCgZpEmcJPSc5m9se2ZrZS2u2X&X-Amz-Signature=740a0acfba7e4dce61f745409100403fb69de4187110397e50447b61e67bded7&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject)\n</details>\n<empty-block/>\n[e339. 前綴和練習 - 高中生程式解題系統](https://zerojudge.tw/ShowProblem?problemid=e339) {color=\"green_bg\"}\n[CSES - Static Range Sum Queries](https://cses.fi/problemset/task/1646/) {color=\"yellow_bg\"}\n[CSES - Forest Queries](https://cses.fi/problemset/task/1652) {color=\"red_bg\"}\n<empty-block/>\n## 差分 difference array\n旨在解決以下問題的慢速\n我現在要多次將\nl \\~ r 加上 5 剪掉 4 之類的操作\n然後最後要求區間和 \n<callout icon=\"👉\" color=\"yellow\">\n\t**例題**:[Corporate Flight Bookings - LeetCode](https://leetcode.com/problems/corporate-flight-bookings/description/)\n\t我要多次在 l\\~r 加上 a\n\t最後求每一個的結果總和\n\t<details>\n\t<summary>範測：</summary>\n\t\tInput:\n\t\t```plain text\nbookings = [[1,2,10],[2,3,20],[2,5,25]], n = 5\n\t\t```\n\t\tOutput:\n\t\t```plain text\n[10,55,45,25,25]\n\t\t```\n\t</details>\n</callout>\n對就像上面那題，那要怎麼搞呢？\n先想想看前綴和的特性\n![](https://prod-files-secure.s3.us-west-2.amazonaws.com/18192ab7-6d40-8113-8b36-0003bf3444bb/ca47a9cd-602b-4865-9510-d7489bdc240a/image.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB46626HTXBTL%2F20260927%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260927T150616Z&X-Amz-Expires=300&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEFUaCXVzLXdlc3QtMiJHMEUCIQC7Td5gKKQeH%2BbUITBtZ%2FjV4xXg0lbmKiQz8SlueyK9GwIgHYa7C1uepEMnXvS2GsS5qRSewZHtWgQ%2BrbCjPxpC5poq%2FwMIHhAAGgw2Mzc0MjMxODM4MDUiDJ7q4XCtv%2FdjmpkLdircAw2JT6UpCnomXJVLZAJgJNcTTGs8asycrKgznKcRicv2V5AhOw%2FLzTlFW4FIzGXkkfYfPj%2BHCvRa88NytNoZ%2BQ5gIwSDVa2tMHdmxntyvU7UkdxrmJ5SwaEmqGSmli%2ByOq%2BYZ6HfOprZBpCKj7ARdZMSZQ7YyijUBLFhxtlvGQMDamWrC5A2vY7ht4NapzuzMN0lzur%2BHZWIczVxZm%2FYSGLVzYmEMY4O1oC0K90%2Bd6jHYUZxxiKOc0SCQABO%2BEfzDKqpSRHcaLEkXVuYMNAIxJobGyb%2FBdtGl8dGvLvFY3%2BH16DLlt3sh%2BRpTfLSXnf54zB6sy5H7HSPmD8e7jaW7D5q%2Fxd8GCHrniEvAvWi4vT%2BdO6uQ3yvNIGeUSbvNle1%2FtH5aTRdP4yB4rz7mH3vY8TS5JhCSuMvjUjSeoZoOiDyZC3dwQmHY%2FiTmniHgDOiojb9oKktC1ahKtbHtrO%2BU%2B8cZv95oXySm94vbuEsxVij%2F6YAM4MYoD5YL09zVCoqbeNnsa6OX04j9UVkFyHyoE8UFj4pCVOcmjN9S75sAg51EuBqgoQWRSYo7nOEDpaO265c7IHbv1aLA91JV0mkNAUzgFnVktslUEDkX6KDgzSZYe5GbJVLiL%2FxJ1syMImn5NUGOqUBLWRLv%2BirJmte%2BMYyAr7%2BraqOPqIoUFUgFEWcb2FWDuSsHxNr8AUfHUyCrMiL9LZqPRVvM33VU9zSB6FxUp%2BPnCBwSbi3WqJPHaAQpcy9LxTMTduH3eW8lRmiHIvkaMDkVR3hNRhHFDIpdYbu%2BfusHgrGxEO8OaYaXInidALJW54AK4uOoxfqDXZvkKTIv07VaAgCgZpEmcJPSc5m9se2ZrZS2u2X&X-Amz-Signature=01d7f31ae2183f6efb3c1cb942717bf976ddf03a678f3ea75f9dea5d7461e705&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject)\n你前面的加上 n 你是不是也會加上 n \n你前面減去 n 你也會啊 所以他有 連續影響性\n那要怎麼應用在例題上？\n1. 暴力解\n\t這邊就不示範了\n\t**~~反正一定會炸 TLE~~**\n2. 差分解\n\t我們觀察到區間加值的動作其實只要在你開始的地方加上 n 再從你結束的地方減掉 n ⇒ <span color=\"red\">***A***</span>\n\t形成一個 <span color=\"green\">**差分陣列 **</span>\n\t然後再對他跑一次 <span color=\"yellow\">前綴和 </span>就可以得到要的結果了 而且 <span color=\"red\">***A ***</span>操作只需要 $`O(1)`$ 量級的複雜度\n\t然後 <span color=\"yellow\">前綴和 </span>只要 $`O(n)`$ 所以總複雜度就是 $`O(n)`$\n\t<details>\n\t<summary>code</summary>\n\t\t```c++\nclass Solution {\npublic:\n    vector<int> corpFlightBookings(vector<vector<int>>& bookings, int n) {\n        vector<int> v(n+1,0);\n        for(int i = 0 ; i < bookings.size() ; i++){\n            int s = bookings[i][0]; // 起始點\n            int e = bookings[i][1]; // 終點\n            s--,e--; // 0 indexed\n            int a = bookings[i][2]; // 要加的值\n            v[s] += a,v[e+1] -= a; // 製作差分陣列 O(1 * bookings.size())\n        }\n        vector<int> pref(n,0); \n        pref[0] = v[0];\n        for(int i = 1 ; i < n ; i++){\n            pref[i] = pref[i-1] + v[i]; // O(n)\n        }\n        return pref;\n    }\n};\n\t\t```\n\t</details>\n\t<details>\n\t<summary>複雜度</summary>\n\t\t$`O(n)`$\n\t</details>\n\t<details>\n\t<summary>result</summary>\n\t\t![](https://prod-files-secure.s3.us-west-2.amazonaws.com/18192ab7-6d40-8113-8b36-0003bf3444bb/843fdb2e-058a-45e0-b68b-21b46a3f4dee/Screenshot_2026-03-27_at_1.59.00_PM.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB46626HTXBTL%2F20260927%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260927T150616Z&X-Amz-Expires=300&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEFUaCXVzLXdlc3QtMiJHMEUCIQC7Td5gKKQeH%2BbUITBtZ%2FjV4xXg0lbmKiQz8SlueyK9GwIgHYa7C1uepEMnXvS2GsS5qRSewZHtWgQ%2BrbCjPxpC5poq%2FwMIHhAAGgw2Mzc0MjMxODM4MDUiDJ7q4XCtv%2FdjmpkLdircAw2JT6UpCnomXJVLZAJgJNcTTGs8asycrKgznKcRicv2V5AhOw%2FLzTlFW4FIzGXkkfYfPj%2BHCvRa88NytNoZ%2BQ5gIwSDVa2tMHdmxntyvU7UkdxrmJ5SwaEmqGSmli%2ByOq%2BYZ6HfOprZBpCKj7ARdZMSZQ7YyijUBLFhxtlvGQMDamWrC5A2vY7ht4NapzuzMN0lzur%2BHZWIczVxZm%2FYSGLVzYmEMY4O1oC0K90%2Bd6jHYUZxxiKOc0SCQABO%2BEfzDKqpSRHcaLEkXVuYMNAIxJobGyb%2FBdtGl8dGvLvFY3%2BH16DLlt3sh%2BRpTfLSXnf54zB6sy5H7HSPmD8e7jaW7D5q%2Fxd8GCHrniEvAvWi4vT%2BdO6uQ3yvNIGeUSbvNle1%2FtH5aTRdP4yB4rz7mH3vY8TS5JhCSuMvjUjSeoZoOiDyZC3dwQmHY%2FiTmniHgDOiojb9oKktC1ahKtbHtrO%2BU%2B8cZv95oXySm94vbuEsxVij%2F6YAM4MYoD5YL09zVCoqbeNnsa6OX04j9UVkFyHyoE8UFj4pCVOcmjN9S75sAg51EuBqgoQWRSYo7nOEDpaO265c7IHbv1aLA91JV0mkNAUzgFnVktslUEDkX6KDgzSZYe5GbJVLiL%2FxJ1syMImn5NUGOqUBLWRLv%2BirJmte%2BMYyAr7%2BraqOPqIoUFUgFEWcb2FWDuSsHxNr8AUfHUyCrMiL9LZqPRVvM33VU9zSB6FxUp%2BPnCBwSbi3WqJPHaAQpcy9LxTMTduH3eW8lRmiHIvkaMDkVR3hNRhHFDIpdYbu%2BfusHgrGxEO8OaYaXInidALJW54AK4uOoxfqDXZvkKTIv07VaAgCgZpEmcJPSc5m9se2ZrZS2u2X&X-Amz-Signature=1a98418beba1ad062e994ba57025f48e5b97f57d914f7be582a919c7d1b95b0f&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject)\n\t</details>\n[Car Pooling - LeetCode](https://leetcode.com/problems/car-pooling/description/) {color=\"yellow_bg\"}\n<empty-block/>"
+  },
+  {
+    "id": "3e892ab76d4081dea137ee9bb24bddf9",
+    "title": "04-02 More Prefix Sums / 2D Prefix Sums",
+    "details": "",
+    "difficulty": null,
+    "domain": "04 Prefix Sums",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081dea137ee9bb24bddf9"
+  },
+  {
+    "id": "3e892ab76d4081ee95dceb60f0c01c7e",
+    "title": "05-02 Greedy with Sorting",
+    "details": "",
+    "difficulty": null,
+    "domain": "05 Greedy",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081ee95dceb60f0c01c7e"
+  },
+  {
+    "id": "2e392ab76d40801c8e05e50e3ef06c86",
+    "title": "06-03 Flood Fill",
+    "details": "圖的種類",
+    "difficulty": 3,
+    "domain": "06 Graphs",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/2e392ab76d40801c8e05e50e3ef06c86"
+  },
+  {
+    "id": "33092ab76d408043b128e639a17c2484",
+    "title": "06-05 Topological Sort",
+    "details": "最短路演算法",
+    "difficulty": 6,
+    "domain": "06 Graphs",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d408043b128e639a17c2484"
+  },
+  {
+    "id": "33092ab76d40804a8ddae8a9c6090a1f",
+    "title": "06-06 DSU & Minimum Spanning Tree",
+    "details": "最小生成樹",
+    "difficulty": 6,
+    "domain": "06 Graphs",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d40804a8ddae8a9c6090a1f"
   },
   {
     "id": "33092ab76d40802f813ed4ca344b6864",
@@ -55,6 +118,42 @@ window.NOTION_COURSES.push(...[
     "notionUrl": "https://app.notion.com/p/3e892ab76d4081d49132d6cc34d59c79"
   },
   {
+    "id": "33092ab76d4080b5be7beaa7cd896ef1",
+    "title": "07-01 Introduction to Trees",
+    "details": "樹 基礎",
+    "difficulty": 3,
+    "domain": "07 Trees",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d4080b5be7beaa7cd896ef1"
+  },
+  {
+    "id": "33092ab76d40808086f8e08bc241b356",
+    "title": "07-02 Euler Tour Technique",
+    "details": "樹 進階知識",
+    "difficulty": 8,
+    "domain": "07 Trees",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d40808086f8e08bc241b356"
+  },
+  {
+    "id": "3e892ab76d4081f4a3ebea631573b28c",
+    "title": "07-03 Tree DP",
+    "details": "",
+    "difficulty": null,
+    "domain": "07 Trees",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081f4a3ebea631573b28c"
+  },
+  {
+    "id": "3e892ab76d408102aec4ce3bc4fe29b0",
+    "title": "07-04 Binary Lifting & LCA",
+    "details": "",
+    "difficulty": null,
+    "domain": "07 Trees",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d408102aec4ce3bc4fe29b0"
+  },
+  {
     "id": "3e892ab76d40814d9dc6d44031417468",
     "title": "07-05 Rerooting DP",
     "details": "Coming soon",
@@ -80,6 +179,51 @@ window.NOTION_COURSES.push(...[
     "domain": "08 Dynamic Programming",
     "content": "",
     "notionUrl": "https://app.notion.com/p/3e892ab76d408178b59ff292e87b9256"
+  },
+  {
+    "id": "3e892ab76d4081ce9465cfa5633c9550",
+    "title": "08-04 Longest Increasing Subsequence",
+    "details": "",
+    "difficulty": null,
+    "domain": "08 Dynamic Programming",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081ce9465cfa5633c9550"
+  },
+  {
+    "id": "3e892ab76d4081b58001c57a495e4220",
+    "title": "08-05 Bitmask DP",
+    "details": "",
+    "difficulty": null,
+    "domain": "08 Dynamic Programming",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081b58001c57a495e4220"
+  },
+  {
+    "id": "3e892ab76d408121a81cee03805638ff",
+    "title": "08-06 Range DP",
+    "details": "",
+    "difficulty": null,
+    "domain": "08 Dynamic Programming",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d408121a81cee03805638ff"
+  },
+  {
+    "id": "3e892ab76d4081feb932e92efcede2f4",
+    "title": "08-07 Digit DP",
+    "details": "",
+    "difficulty": null,
+    "domain": "08 Dynamic Programming",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3e892ab76d4081feb932e92efcede2f4"
+  },
+  {
+    "id": "33092ab76d40809c9543d94c24efa37a",
+    "title": "09-01 Monotonic Stack",
+    "details": "單調棧",
+    "difficulty": 4,
+    "domain": "09 Data Structures & Range Queries",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d40809c9543d94c24efa37a"
   },
   {
     "id": "3e892ab76d4081c9a9f7dd9ac7bbb034",
@@ -145,6 +289,15 @@ window.NOTION_COURSES.push(...[
     "notionUrl": "https://app.notion.com/p/3e892ab76d40814a87f5d65fd9b9e353"
   },
   {
+    "id": "33092ab76d40802e8b3fe81a23b44576",
+    "title": "11-01 Geometry Basics",
+    "details": "計算幾何介紹",
+    "difficulty": 8,
+    "domain": "11 Geometry",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d40802e8b3fe81a23b44576"
+  },
+  {
     "id": "3e892ab76d40810f8e8ec16f2dc7a6ee",
     "title": "11-03 Convex Hull",
     "details": "Coming soon",
@@ -152,6 +305,24 @@ window.NOTION_COURSES.push(...[
     "domain": "11 Geometry",
     "content": "",
     "notionUrl": "https://app.notion.com/p/3e892ab76d40810f8e8ec16f2dc7a6ee"
+  },
+  {
+    "id": "33092ab76d408067a9b3c3459edb680a",
+    "title": "12-01 String Basics",
+    "details": "字串基礎知識",
+    "difficulty": 2,
+    "domain": "12 Strings",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d408067a9b3c3459edb680a"
+  },
+  {
+    "id": "33092ab76d4080e396c2d21276ba88db",
+    "title": "12-02 String Hashing",
+    "details": "字串演算法",
+    "difficulty": 7,
+    "domain": "12 Strings",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/33092ab76d4080e396c2d21276ba88db"
   },
   {
     "id": "3e892ab76d4081f8ad7aedb667c615ba",

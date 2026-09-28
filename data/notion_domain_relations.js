@@ -199,5 +199,32 @@ window.NOTION_DOMAIN_RELATIONS = {
   ],
   "3e892ab76d4081f8ad7aedb667c615ba": [
     "12 Strings"
+  ],
+  "3e892ab76d4081e9aacdce6b86ed8be8": [
+    "01 Complete Search & Simulation"
+  ],
+  "3e892ab76d4081dea137ee9bb24bddf9": [
+    "04 Prefix Sums"
+  ],
+  "3e892ab76d4081ee95dceb60f0c01c7e": [
+    "05 Greedy"
+  ],
+  "3e892ab76d4081f4a3ebea631573b28c": [
+    "07 Trees"
+  ],
+  "3e892ab76d408102aec4ce3bc4fe29b0": [
+    "07 Trees"
+  ],
+  "3e892ab76d4081ce9465cfa5633c9550": [
+    "08 Dynamic Programming"
+  ],
+  "3e892ab76d4081b58001c57a495e4220": [
+    "08 Dynamic Programming"
+  ],
+  "3e892ab76d408121a81cee03805638ff": [
+    "08 Dynamic Programming"
+  ],
+  "3e892ab76d4081feb932e92efcede2f4": [
+    "08 Dynamic Programming"
   ]
 };

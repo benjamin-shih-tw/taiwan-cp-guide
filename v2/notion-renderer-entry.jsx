@@ -4,7 +4,6 @@ import { NotionRenderer } from 'react-notion-x'
 import { Code } from 'react-notion-x/third-party/code'
 import { Collection } from 'react-notion-x/third-party/collection'
 import { Equation } from 'react-notion-x/third-party/equation'
-import { Modal } from 'react-notion-x/third-party/modal'
 import { Pdf } from 'react-notion-x/third-party/pdf'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/common'
@@ -47,7 +46,6 @@ function renderEntry(entry) {
           Code,
           Collection,
           Equation,
-          Modal,
           Pdf
         }
       })

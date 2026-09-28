@@ -36,6 +36,8 @@
       ? NOTION_DOMAIN_RELATIONS[course.id].slice()
       : [];
     course.domain = course.domains[0] || "";
+    course.hasContent = Boolean(String(course.content || "").trim());
+    course.isPlaceholder = !course.hasContent;
   });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
