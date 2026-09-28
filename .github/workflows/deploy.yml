@@ -36,6 +36,9 @@ jobs:
       - name: Build Notion renderer
         run: npm run build:notion
 
+      - name: Smoke test live Notion API
+        run: python3 scripts/production_smoke.py
+
       - name: Persist generated renderer
         run: |
           git config user.name "github-actions[bot]"
