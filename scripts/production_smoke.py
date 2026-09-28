@@ -44,10 +44,14 @@ assert len(lectures) >= 60, f"expected >=60 lectures, got {len(lectures)}"
 static_by_id = {}
 for path in sorted(glob.glob("data/notion_courses_part*.js")):
     raw = open(path, "r", encoding="utf-8").read()
-    match = re.search(r"push\\(\\.\\.\\.([\\s\\S]*?)\\);\\s*$", raw)
-    if not match:
+    marker = "window.NOTION_COURSES.push(..."
+    start = raw.find(marker)
+    if start < 0:
         continue
-    for item in json.loads(match.group(1)):
+    payload = raw[start + len(marker):].strip()
+    if payload.endswith(");"):
+        payload = payload[:-2]
+    for item in json.loads(payload):
         static_by_id[str(item.get("id", "")).replace("-", "")] = item
 
 by_id = {str(item.get("id", "")).replace("-", ""): item for item in items}
