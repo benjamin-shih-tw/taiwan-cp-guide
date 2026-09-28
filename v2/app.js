@@ -772,15 +772,35 @@
   }
 
   function openLesson(id, pushHash) {
-    let course = notionCourseMap.get(id);
+    const requestedId = String(id || "").replace(/-/g, "").toLowerCase();
+    let course = notionCourseMap.get(requestedId);
     if (!course) course = courseForRoadmap(id);
+
+    // Notion child pages are not necessarily catalog lessons. Keep them inside
+    // Coding Course and let the live page API render them in the same overlay.
+    if (!course && /^[0-9a-f]{32}$/.test(requestedId)) {
+      course = {
+        id: requestedId,
+        title: "載入 Notion 子頁…",
+        details: "",
+        difficulty: null,
+        domains: [],
+        domain: "",
+        hasContent: true,
+        isPlaceholder: false,
+        live: true,
+        isNotionSubpage: true,
+        content: ""
+      };
+    }
+
     if (!course) {
       toast("這堂課在 Coding Course 中沒有非空白內文");
       return;
     }
 
     state.activeTopic = { source: "notion", course };
-    localStorage.setItem(STORAGE.last, course.id);
+    if (!course.isNotionSubpage) localStorage.setItem(STORAGE.last, course.id);
 
     const domains = course.domains && course.domains.length ? course.domains : [];
     document.getElementById("lesson-breadcrumb").textContent =
@@ -965,6 +985,18 @@
     });
   }
 
+  function notionPageIdFromUrl(url) {
+    const raw = String(url || "").trim();
+    if (!/^https?:\/\/(?:www\.)?(?:app\.)?notion\.(?:so|com)\//i.test(raw)) return "";
+    const match = raw.match(/([0-9a-f]{32})(?=$|[?#/])/i);
+    return match ? match[1].toLowerCase() : "";
+  }
+
+  function routeNotionPageUrl(url) {
+    const id = notionPageIdFromUrl(url);
+    return id ? "#/lesson/" + id : url;
+  }
+
   function preprocessNotionMarkdown(markdown) {
     const normalized = normalizeNotionMath(markdown)
       .split("\n")
@@ -977,11 +1009,11 @@
 
     text = text.replace(
       /<(?:page)\s+url="([^"]*)"\s*>([\s\S]*?)<\/page>/gi,
-      (_, url, label) => '<a class="notion-page-block" href="' + url + '">' + label.trim() + '<span>↗</span></a>'
+      (_, url, label) => '<a class="notion-page-block" href="' + routeNotionPageUrl(url) + '">' + label.trim() + '<span>↗</span></a>'
     );
     text = text.replace(
       /<mention-page\s+url="([^"]*)"\s*>([\s\S]*?)<\/mention-page>/gi,
-      (_, url, label) => '<a class="notion-mention" href="' + url + '">' + label.trim() + "</a>"
+      (_, url, label) => '<a class="notion-mention" href="' + routeNotionPageUrl(url) + '">' + label.trim() + "</a>"
     );
     text = text.replace(
       /<embed\s+src="([^"]*)"\s*>\s*<\/embed>/gi,
@@ -991,7 +1023,7 @@
       /<unknown\s+url="([^"]*)"\s+alt="([^"]*)"\s*\/>/gi,
       (_, url, alt) => {
         const label = alt && alt.toLowerCase() !== "button" ? alt : "開啟";
-        return '<a class="notion-button-block" href="' + url + '">' + label + " ↗</a>";
+        return '<a class="notion-button-block" href="' + routeNotionPageUrl(url) + '">' + label + " ↗</a>";
       }
     );
     text = text.replace(
@@ -1063,6 +1095,12 @@
       const payload = await response.json();
 
       if (host.dataset.notionRenderToken !== token) return;
+
+      if (courseMeta?.isNotionSubpage && payload.title) {
+        courseMeta.title = String(payload.title);
+        const title = document.getElementById("lesson-title");
+        if (title) title.textContent = courseMeta.title;
+      }
 
       if (payload.hasContent === false) {
         renderLessonPlaceholder(host, courseMeta?.title || payload.title);
