@@ -25,11 +25,11 @@ const compact = value => String(value || '').replace(/-/g, '').toLowerCase()
 
 function mapPageUrl(id) {
   const clean = compact(id)
-  const ids = Array.isArray(window.CODING_COURSE_IDS)
-    ? window.CODING_COURSE_IDS
-    : []
-  if (ids.includes(clean)) return '#/lesson/' + clean
-  return 'https://www.notion.so/' + clean
+  if (/^[0-9a-f]{32}$/.test(clean)) return '#/lesson/' + clean
+
+  // Never send an internal Notion page/block click out to notion.so.
+  // Unknown non-page targets stay on the current Coding Course route.
+  return window.location.hash || '#/courses'
 }
 
 function renderEntry(entry) {
