@@ -29,6 +29,7 @@
 
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
   const NOTION_LADDERS = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
+  const NOTION_CHILD_PAGES = window.NOTION_CHILD_PAGES || {};
   const NOTION_DOMAIN_ORDER = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
   const NOTION_DOMAIN_RELATIONS = window.NOTION_DOMAIN_RELATIONS || {};
   NOTION_COURSES.forEach(course => {
@@ -779,9 +780,10 @@
     // Notion child pages are not necessarily catalog lessons. Keep them inside
     // Coding Course and let the live page API render them in the same overlay.
     if (!course && /^[0-9a-f]{32}$/.test(requestedId)) {
+      const fallbackPage = NOTION_CHILD_PAGES[requestedId] || {};
       course = {
         id: requestedId,
-        title: "載入 Notion 子頁…",
+        title: fallbackPage.title || "載入 Notion 子頁…",
         details: "",
         difficulty: null,
         domains: [],
@@ -790,7 +792,7 @@
         isPlaceholder: false,
         live: true,
         isNotionSubpage: true,
-        content: ""
+        content: fallbackPage.content || ""
       };
     }
 
@@ -987,7 +989,9 @@
 
   function notionPageIdFromUrl(url) {
     const raw = String(url || "").trim();
-    if (!/^https?:\/\/(?:www\.)?(?:app\.)?notion\.(?:so|com)\//i.test(raw)) return "";
+    const isNotionAbsolute = /^https?:\/\/(?:www\.)?(?:app\.)?notion\.(?:so|com)\//i.test(raw);
+    const isNotionRelative = /^\/p\/[0-9a-f]{32}(?=$|[?#/])/i.test(raw);
+    if (!isNotionAbsolute && !isNotionRelative) return "";
     const match = raw.match(/([0-9a-f]{32})(?=$|[?#/])/i);
     return match ? match[1].toLowerCase() : "";
   }
@@ -1103,7 +1107,12 @@
       }
 
       if (payload.hasContent === false) {
-        renderLessonPlaceholder(host, courseMeta?.title || payload.title);
+        if (String(fallbackMarkdown || "").trim()) {
+          host.className = "markdown-body";
+          renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
+        } else {
+          renderLessonPlaceholder(host, courseMeta?.title || payload.title);
+        }
         return;
       }
 
@@ -1281,9 +1290,17 @@
     });
 
     host.querySelectorAll("a").forEach(a => {
-      if (/^https?:/i.test(a.getAttribute("href") || "")) {
+      const rawHref = a.getAttribute("href") || "";
+      const routedHref = routeNotionPageUrl(rawHref);
+      if (routedHref !== rawHref) a.setAttribute("href", routedHref);
+
+      const finalHref = a.getAttribute("href") || "";
+      if (/^https?:/i.test(finalHref)) {
         a.target = "_blank";
         a.rel = "noreferrer";
+      } else {
+        a.removeAttribute("target");
+        a.removeAttribute("rel");
       }
     });
 
