@@ -64,15 +64,6 @@ window.NOTION_COURSES.push(...[
     "content": "<callout icon=\"https://prod-files-secure.s3.us-west-2.amazonaws.com/0b7c7ae7-4a84-4ec2-bad3-c71268153273/b7998a24-317b-4ec2-93c0-100eb50da98a/misty_thinking_glitch.png\" color=\"gray_bg\">\n\tResources\n\t<columns>\n\t\t<column ratio=\"33.33\">\n\t\t\t<unknown url=\"https://app.notion.com/p/37e92ab76d4080c68054cf028dd73ed0#fb192ab76d408265be6f01c72e8870c9\" alt=\"button\"/>\n\t\t</column>\n\t\t<column ratio=\"33.33\">\n\t\t\t<unknown url=\"https://app.notion.com/p/37e92ab76d4080c68054cf028dd73ed0#e4b92ab76d408332826381feff0b7458\" alt=\"button\"/>\n\t\t</column>\n\t\t<column ratio=\"33.33\">\n\t\t\t<unknown url=\"https://app.notion.com/p/37e92ab76d4080c68054cf028dd73ed0#41092ab76d408284a120016f78fbbbed\" alt=\"button\"/>\n\t\t</column>\n\t</columns>\n\t<details>\n\t<summary>Uploads</summary>\n\t\t<file src=\"\"></file>\n\t\t<pdf src=\"\"></pdf>\n\t</details>\n</callout>\n<empty-block/>"
   },
   {
-    "id": "2e392ab76d4080f59f95d0827281ae23",
-    "title": "00-13 Competitive Programming Essentials",
-    "details": "先備知識",
-    "difficulty": 0,
-    "domain": "00 Fundamentals",
-    "notionUrl": "https://app.notion.com/p/2e392ab76d4080f59f95d0827281ae23",
-    "content": "```c++\n#include <bits/stdc++.h>\n```\n萬用標頭檔(怕有人還不知道<br>他可以把幾乎所有的函式庫引入\n---\ninput output 優化\n```c++\nios::sync_with_stdio(0);\ncin.tie(0);\ncout.tie(0); \n```\n可以加速 對 就這樣\n---\n```c++\nauto xxx = xxx;\n```\n自動辨識資料型態\n---\nRow & Column\n<table>\n<colgroup>\n<col width=\"98.32501220703125\">\n<col width=\"92.32501220703125\">\n<col width=\"96.32501220703125\">\n</colgroup>\n<tr>\n<td>0,0</td>\n<td>0,1</td>\n<td>0,2</td>\n</tr>\n<tr>\n<td>1,0</td>\n<td>1,1</td>\n<td>1,2</td>\n</tr>\n<tr>\n<td>2,0</td>\n<td>2,1</td>\n<td>2,2</td>\n</tr>\n<tr>\n<td>3,0</td>\n<td>3,1</td>\n<td>3,2</td>\n</tr>\n</table>\n以上表格為 R x C 也就是 4 x 3\n先表示 **y座標** 再表示 **x座標**\n---\ngetline , cin\ngetline 是包含所有字元直接輸入一整行\ncin 則是輸入到空格\n```c++\nstring s,ss;\ncin >> s;// abc! abc?\ngetline(cin,ss);// abc! abs?\ncout << s << endl << ss;\n// abc!\n// abc! abs?\n```\n---\n關於換行 還有 ‘‘ “”\n換行可以用就用\n```c++\n'\\n'\n\"\\n\"\n```\n<empty-block/>\n不要用 {color=\"red\"}\n```c++\nendl;\n// 這傢伙很慢\n```\n---\nsites:\n[CSES](https://cses.fi/)\n[AtCoder](https://atcoder.jp/)\n[Codeforces](https://codeforces.com/)\n<empty-block/>"
-  },
-  {
     "id": "2e392ab76d4080e395f4f494a3e8f880",
     "title": "02-01 Vector, Pair & Iterator",
     "details": "vector 基礎應用",
