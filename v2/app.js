@@ -27,7 +27,8 @@
   };
 
   const ROADMAP = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
-  const TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
+  let TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
+  let templatesPromise = null;
 
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
   const NOTION_LADDERS = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
@@ -39,8 +40,12 @@
       ? NOTION_DOMAIN_RELATIONS[course.id].slice()
       : [];
     course.domain = course.domains[0] || "";
-    course.hasContent = Boolean(String(course.content || "").trim());
-    course.isPlaceholder = !course.hasContent;
+    const localContent = String(course.content || "").trim();
+    if (typeof course.hasContent !== "boolean") {
+      course.hasContent = localContent ? true : null;
+    }
+    course.isPlaceholder = course.hasContent === false ||
+      String(course.details || "").trim().toLowerCase() === "coming soon";
   });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
@@ -54,6 +59,7 @@
   const activePageRenders = new Map();
   const renderedViews = new Set();
   let notionRendererPromise = null;
+  let liveCatalogSignature = "";
   let lastCatalogRefresh = 0;
   window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
 
@@ -69,6 +75,32 @@
       (course.domains || []).join(" ") + " " + (course.content || "")).toLowerCase();
     courseSearchIndex.set(course, text);
     return text;
+  }
+
+  function ensureTemplates() {
+    if (TEMPLATES.length) return Promise.resolve(TEMPLATES);
+    if (templatesPromise) return templatesPromise;
+
+    templatesPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-template-data]');
+      const node = existing || document.createElement("script");
+      node.src = new URL("../data/templates.js", APP_ASSET_BASE).href;
+      node.async = true;
+      node.dataset.templateData = "1";
+      node.addEventListener("load", () => {
+        TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA))
+          ? TEMPLATE_DATA
+          : [];
+        resolve(TEMPLATES);
+      }, { once: true });
+      node.addEventListener("error", reject, { once: true });
+      if (!existing) document.head.appendChild(node);
+    }).catch(error => {
+      templatesPromise = null;
+      throw error;
+    });
+
+    return templatesPromise;
   }
 
   function ensureNotionRenderer() {
@@ -147,6 +179,23 @@
     const domains = Array.isArray(catalog.domains) && catalog.domains.length
       ? catalog.domains
       : NOTION_DOMAIN_ORDER.slice();
+
+    const signature = JSON.stringify([
+      domains,
+      catalog.items.map(item => [
+        String(item.id || "").replace(/-/g, ""),
+        item.type || "",
+        String(item.title || ""),
+        String(item.details || ""),
+        item.difficulty == null ? null : Number(item.difficulty),
+        Array.isArray(item.domains) ? item.domains : [],
+        item.hasContent !== false,
+        item.status || "",
+        item.mastery || ""
+      ]).sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+    ]);
+    if (signature === liveCatalogSignature) return false;
+    liveCatalogSignature = signature;
 
     NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...domains);
 
@@ -862,6 +911,19 @@
 
   function renderResources() {
     const host = document.getElementById("template-grid");
+    if (!TEMPLATES.length) {
+      host.innerHTML = '<div class="empty-state">載入模板…</div>';
+      ensureTemplates()
+        .then(() => {
+          if (state.baseView === "resources") renderResources();
+        })
+        .catch(error => {
+          console.warn("[Coding Course] template data unavailable", error);
+          host.innerHTML = '<div class="empty-state">模板載入失敗，請重新整理。</div>';
+        });
+      return;
+    }
+
     host.innerHTML = "";
     const data = TEMPLATES.slice(0, 12);
     data.forEach(temp => {
