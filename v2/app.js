@@ -27,7 +27,7 @@
   };
 
   const ROADMAP = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
-  let TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA)) ? TEMPLATE_DATA : [];
+  let TEMPLATES = Array.isArray(window.TEMPLATE_DATA) ? window.TEMPLATE_DATA : [];
   let templatesPromise = null;
 
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
@@ -88,9 +88,7 @@
       node.async = true;
       node.dataset.templateData = "1";
       node.addEventListener("load", () => {
-        TEMPLATES = (typeof TEMPLATE_DATA !== "undefined" && Array.isArray(TEMPLATE_DATA))
-          ? TEMPLATE_DATA
-          : [];
+        TEMPLATES = Array.isArray(window.TEMPLATE_DATA) ? window.TEMPLATE_DATA : [];
         resolve(TEMPLATES);
       }, { once: true });
       node.addEventListener("error", reject, { once: true });
