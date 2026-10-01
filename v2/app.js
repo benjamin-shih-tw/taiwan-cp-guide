@@ -33,6 +33,7 @@
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
   const NOTION_LADDERS = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
   const NOTION_CHILD_PAGES = window.NOTION_CHILD_PAGES || {};
+  const NOTION_FALLBACK_FILES = window.NOTION_FALLBACK_FILES || {};
   const NOTION_DOMAIN_ORDER = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
   const NOTION_DOMAIN_RELATIONS = window.NOTION_DOMAIN_RELATIONS || {};
   NOTION_COURSES.forEach(course => {
@@ -60,6 +61,7 @@
   const courseSearchIndex = new WeakMap();
   const pagePayloadCache = new Map();
   const pagePayloadPromises = new Map();
+  const legacyFallbackCache = new Map();
   const activePageRenders = new Map();
   const renderedViews = new Set();
   let notionRendererPromise = null;
@@ -224,6 +226,63 @@
     }
   }
 
+  async function loadLegacyFallback(pageId) {
+    const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
+    if (legacyFallbackCache.has(cleanId)) return legacyFallbackCache.get(cleanId);
+
+    const file = NOTION_FALLBACK_FILES[cleanId];
+    if (!file) {
+      legacyFallbackCache.set(cleanId, null);
+      return null;
+    }
+
+    const promise = (async () => {
+      const url = new URL("../" + file, APP_ASSET_BASE).href;
+      const response = await fetch(url, { cache: "force-cache" });
+      if (!response.ok) throw new Error("fallback " + response.status);
+      const text = await response.text();
+
+      let data = null;
+      if (file.includes("notion_courses_part")) {
+        const marker = "window.NOTION_COURSES.push(...";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim();
+          raw = raw.replace(/\);\s*$/, "");
+          data = JSON.parse(raw).find(item => item.id === cleanId) || null;
+        }
+      } else if (file.endsWith("notion_ladders.js")) {
+        const marker = "window.NOTION_LADDERS =";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim().replace(/;\s*$/, "");
+          data = JSON.parse(raw).find(item => item.id === cleanId) || null;
+        }
+      } else if (file.endsWith("notion_child_pages.js")) {
+        const marker = "window.NOTION_CHILD_PAGES =";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim().replace(/;\s*$/, "");
+          data = JSON.parse(raw)[cleanId] || null;
+        }
+      }
+
+      if (!data || !String(data.content || "").trim()) return null;
+      return {
+        title: String(data.title || ""),
+        content: String(data.content || "")
+      };
+    })().catch(error => {
+      console.warn("[Coding Course] static fallback unavailable", cleanId, error);
+      return null;
+    });
+
+    legacyFallbackCache.set(cleanId, promise);
+    const result = await promise;
+    legacyFallbackCache.set(cleanId, result);
+    return result;
+  }
+
   function cancelRendersWithin(parent) {
     if (!parent) return;
     for (const [host, render] of activePageRenders) {
@@ -325,6 +384,7 @@
       console.warn("[Coding Course] live catalog unavailable; using static fallback", error);
       return false;
     } finally {
+      previewCancelled = true;
       clearTimeout(timer);
     }
   }
@@ -1337,9 +1397,33 @@
       rendererError = error;
     });
 
+    let previewCancelled = false;
+    const fallbackPreview = (async () => {
+      await new Promise(resolve => setTimeout(resolve, 450));
+      if (previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      const legacy = String(fallbackMarkdown || "").trim()
+        ? { title: courseMeta?.title || "", content: String(fallbackMarkdown) }
+        : await loadLegacyFallback(pageId);
+      if (!legacy?.content || previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      await rendererReady;
+      if (rendererError || previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      // Show a fast same-origin snapshot while the live Notion request is still
+      // running. The live recordMap replaces this as soon as it arrives.
+      host.className = "markdown-body notion-snapshot-preview";
+      renderNotionMarkdownInto(host, legacy.content, makeToc);
+      if (host === document.getElementById("lesson-content") && legacy.title && courseMeta?.title) {
+        const title = document.getElementById("lesson-title");
+        if (title && /^載入課程內容/.test(title.textContent || "")) title.textContent = legacy.title;
+      }
+    })();
+
     try {
       const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
       const payload = await loadNotionPayload(cleanId, controller.signal);
+      previewCancelled = true;
       await rendererReady;
       if (rendererError) throw rendererError;
 
@@ -1379,7 +1463,7 @@
           console.error("[Coding Course] Notion render failed", cleanId, error);
           setTimeout(() => {
             if (host.dataset.notionRenderToken === token) {
-              renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, cleanId);
+              renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, cleanId).catch(() => {});
             }
           }, 0);
         }
@@ -1390,22 +1474,35 @@
       console.warn("[Coding Course] live page unavailable", pageId, error);
 
       await rendererReady;
-      renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId);
+      await renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId);
     } finally {
       clearTimeout(timer);
       if (activePageRenders.get(host)?.token === token) activePageRenders.delete(host);
     }
   }
 
-  function renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId) {
+  async function renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId) {
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
-    if (String(fallbackMarkdown || "").trim()) {
-      host.className = "markdown-body";
-      renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
-    } else if (courseMeta?.isPlaceholder) {
+
+    let markdown = String(fallbackMarkdown || "").trim();
+    let fallbackTitle = "";
+    if (!markdown) {
+      const legacy = await loadLegacyFallback(pageId);
+      markdown = String(legacy?.content || "").trim();
+      fallbackTitle = String(legacy?.title || "");
+    }
+
+    if (markdown) {
+      host.className = "markdown-body notion-static-fallback";
+      renderNotionMarkdownInto(host, markdown, makeToc);
+      if (fallbackTitle && host === document.getElementById("lesson-content")) {
+        const title = document.getElementById("lesson-title");
+        if (title && /^載入課程內容/.test(title.textContent || "")) title.textContent = fallbackTitle;
+      }
+    } else if (courseMeta?.hasContent === false) {
       renderLessonPlaceholder(host, courseMeta?.title);
     } else {
-      renderLessonError(host, courseMeta || { id: pageId }, "無法顯示 Notion 內容，請重新載入。");
+      renderLessonError(host, courseMeta || { id: pageId }, "暫時無法取得 Notion 內容，請稍後重試。");
     }
   }
 
