@@ -21,10 +21,70 @@
     return out.join("");
   }
 
+  // Put handbook lessons into the site's existing topic domains instead of
+  // creating a second parallel set of HB units.  The HB prefix stays in the
+  // lesson title so the PDF source/section is still obvious, but the course
+  // card and its Problem Ladder now live beside the matching existing unit.
   function domainFor(section) {
-    if (section === "A" || section === "B") return "HB 15｜附錄";
-    const ch = String(Number(section.split(".")[0])).padStart(2, "0");
-    return "HB " + ch + "｜" + CHAPTERS[String(Number(ch))];
+    if (section === "A" || section === "B") return "00 Fundamentals";
+
+    const [chapterRaw, subRaw] = String(section).split(".");
+    const chapter = Number(chapterRaw);
+    const sub = Number(subRaw);
+
+    if (chapter === 0 || chapter === 1) return "00 Fundamentals";
+    if (chapter === 2) return "01 Complete Search & Simulation";
+
+    if (chapter === 3) {
+      if (sub === 3 || sub === 6) return "03 Sorting & Searching";
+      if (sub === 8) return "00 Fundamentals";
+      return "02 STL & Basic Data Structures";
+    }
+
+    if (chapter === 4) {
+      if (sub === 1 || sub === 3 || sub === 4) return "03 Sorting & Searching";
+      return "05 Greedy";
+    }
+
+    if (chapter === 5) {
+      if (sub === 1 || sub === 2 || sub === 5) return "04 Prefix Sums";
+      return "03 Sorting & Searching";
+    }
+
+    if (chapter === 6) {
+      if (sub === 2) return "02 STL & Basic Data Structures";
+      if (sub === 3) return "09 Data Structures & Range Queries";
+      if (sub === 5) return "00 Fundamentals";
+      if (sub === 6) return "11 Geometry";
+      return "01 Complete Search & Simulation";
+    }
+
+    if (chapter === 7) return "08 Dynamic Programming";
+
+    if (chapter === 8) {
+      if (sub === 5) return "07 Trees";
+      return "06 Graphs";
+    }
+
+    if (chapter === 9) return "06 Graphs";
+
+    if (chapter === 10) {
+      if (sub === 3 || sub === 4 || sub === 6 || sub === 7) return "07 Trees";
+      return "06 Graphs";
+    }
+
+    if (chapter === 11) return "10 Math";
+    if (chapter === 12) return "09 Data Structures & Range Queries";
+    if (chapter === 13) return "12 Strings";
+
+    if (chapter === 14) {
+      if (sub === 1) return "03 Sorting & Searching";
+      if (sub === 3) return "05 Greedy";
+      if (sub === 4) return "08 Dynamic Programming";
+      return "09 Data Structures & Range Queries";
+    }
+
+    return "00 Fundamentals";
   }
 
   function titleFor(section, title) {
