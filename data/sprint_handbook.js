@@ -21,79 +21,129 @@
     return out.join("");
   }
 
-  // Put handbook lessons into the site's existing topic domains instead of
-  // creating a second parallel set of HB units.  The HB prefix stays in the
-  // lesson title so the PDF source/section is still obvious, but the course
-  // card and its Problem Ladder now live beside the matching existing unit.
-  function domainFor(section) {
-    if (section === "A" || section === "B") return "00 Fundamentals";
+  // Map every handbook knowledge point into the original Coding Course taxonomy.
+  // Existing topics reuse the existing Notion course ID. Only genuinely missing
+  // knowledge points create a new static course using the site's numbering style.
+  const TARGETS = {
+    "00-01": ["2f392ab76d4080d7a19af426c0398dce","00-01 寫程式小習慣","00 Fundamentals",false],
+    "00-03": ["37e92ab76d4080cea63ddd66fb4205b8","00-03 Variable","00 Fundamentals",false],
+    "00-04": ["37e92ab76d408078a97eef443858b3de","00-04 I/O","00 Fundamentals",false],
+    "00-06": ["37e92ab76d4080d29382c27edb67d8d5","00-06 Advanced Operations","00 Fundamentals",false],
+    "00-12": ["37e92ab76d4080458956cccda1cb88b5","00-12 Time Complexity","00 Fundamentals",false],
+    "00-13": [null,"00-13 Testing, Debugging & Stress Testing","00 Fundamentals",true],
 
-    const [chapterRaw, subRaw] = String(section).split(".");
-    const chapter = Number(chapterRaw);
-    const sub = Number(subRaw);
+    "01-01": ["3e892ab76d40812aa397cb8b7dc9cb85","01-01 Simulation with Arrays & Strings","01 Complete Search & Simulation",false],
+    "01-02": ["36e92ab76d40806bbf5af50e80105a2b","01-02 Basic Complete Search / Enumeration","01 Complete Search & Simulation",false],
+    "01-04": ["3e892ab76d4081e9aacdce6b86ed8be8","01-04 Casework / Ad Hoc","01 Complete Search & Simulation",false],
+    "01-05": ["3e892ab76d40816dbdc7f9cd010bfc59","01-05 Meet-in-the-Middle","01 Complete Search & Simulation",false],
 
-    if (chapter === 0 || chapter === 1) return "00 Fundamentals";
-    if (chapter === 2) return "01 Complete Search & Simulation";
+    "02-01": ["2e392ab76d4080e395f4f494a3e8f880","02-01 Vector, Pair & Iterator","02 STL & Basic Data Structures",false],
+    "02-02": ["2e392ab76d40804a8528e27899e46dc3","02-02 Queue Variants & Stack","02 STL & Basic Data Structures",false],
+    "02-03": ["2e392ab76d4080028b6ffbb7dc2b29ed","02-03 Sets & Maps","02 STL & Basic Data Structures",false],
 
-    if (chapter === 3) {
-      if (sub === 3 || sub === 6) return "03 Sorting & Searching";
-      if (sub === 8) return "00 Fundamentals";
-      return "02 STL & Basic Data Structures";
-    }
+    "03-01": ["2e392ab76d40803e83b7ec46acf28ffb","03-01 Introduction to Sorting","03 Sorting & Searching",false],
+    "03-02": ["2e392ab76d40806c873ac58c7f3d77a3","03-02 Sorting & Coordinate Compression","03 Sorting & Searching",false],
+    "03-03": ["38a92ab76d4080ad99d2ff847b5de635","03-03 Custom Comparators & Structs","03 Sorting & Searching",false],
+    "03-04": ["33092ab76d40808c9a81d540a6d662a1","03-04 Two Pointers & Sliding Window","03 Sorting & Searching",false],
+    "03-05": ["33092ab76d408008a0a7c08a54a35c52","03-05 Binary Search on Sorted Arrays","03 Sorting & Searching",false],
+    "03-06": ["38f92ab76d40807c8365dacdcacd8790","03-06 Binary Search on Answer","03 Sorting & Searching",false],
+    "03-07": [null,"03-07 Ternary Search","03 Sorting & Searching",true],
 
-    if (chapter === 4) {
-      if (sub === 1 || sub === 3 || sub === 4) return "03 Sorting & Searching";
-      return "05 Greedy";
-    }
+    "04-01": ["33092ab76d4080e79badf5a1f860fc8c","04-01 Prefix Sums & Difference Arrays","04 Prefix Sums",false],
+    "04-02": ["3e892ab76d4081dea137ee9bb24bddf9","04-02 More Prefix Sums / 2D Prefix Sums","04 Prefix Sums",false],
 
-    if (chapter === 5) {
-      if (sub === 1 || sub === 2 || sub === 5) return "04 Prefix Sums";
-      return "03 Sorting & Searching";
-    }
+    "05-01": ["2e392ab76d408025afbff43f58e25219","05-01 Introduction to Greedy","05 Greedy",false],
+    "05-03": [null,"05-03 Greedy with Priority Queue","05 Greedy",true],
 
-    if (chapter === 6) {
-      if (sub === 2) return "02 STL & Basic Data Structures";
-      if (sub === 3) return "09 Data Structures & Range Queries";
-      if (sub === 5) return "00 Fundamentals";
-      if (sub === 6) return "11 Geometry";
-      return "01 Complete Search & Simulation";
-    }
+    "06-01": ["2e392ab76d4080a894fed635920f9c3c","06-01 Introduction to Graphs & Representation","06 Graphs",false],
+    "06-02": ["3d492ab76d40807c8646ecb550723470","06-02 Graph Traversal (DFS/BFS)","06 Graphs",false],
+    "06-03": ["2e392ab76d40801c8e05e50e3ef06c86","06-03 Flood Fill","06 Graphs",false],
+    "06-04": ["33092ab76d4080ee9d38f7836636d5fa","06-04 Shortest Paths","06 Graphs",false],
+    "06-05": ["33092ab76d408043b128e639a17c2484","06-05 Topological Sort","06 Graphs",false],
+    "06-06": ["33092ab76d40804a8ddae8a9c6090a1f","06-06 DSU & Minimum Spanning Tree","06 Graphs",false],
+    "06-07": ["33092ab76d40802f813ed4ca344b6864","06-07 SCC & Condensation","06 Graphs",false],
+    "06-08": ["33092ab76d40803f9b93ca26e064c1bf","06-08 Bridges, Articulation Points & BCC","06 Graphs",false],
+    "06-09": ["3e892ab76d4081d49132d6cc34d59c79","06-09 Functional Graphs","06 Graphs",false],
+    "06-10": [null,"06-10 Directed Minimum Spanning Tree","06 Graphs",true],
+    "06-11": [null,"06-11 Maximum Flow & Min Cut","06 Graphs",true],
+    "06-12": [null,"06-12 Bipartite Matching","06 Graphs",true],
 
-    if (chapter === 7) return "08 Dynamic Programming";
+    "07-01": ["33092ab76d4080b5be7beaa7cd896ef1","07-01 Introduction to Trees","07 Trees",false],
+    "07-02": ["33092ab76d40808086f8e08bc241b356","07-02 Euler Tour Technique","07 Trees",false],
+    "07-03": ["3e892ab76d4081f4a3ebea631573b28c","07-03 Tree DP","07 Trees",false],
+    "07-04": ["3e892ab76d408102aec4ce3bc4fe29b0","07-04 Binary Lifting & LCA","07 Trees",false],
+    "07-05": ["3e892ab76d40814d9dc6d44031417468","07-05 Rerooting DP","07 Trees",false],
 
-    if (chapter === 8) {
-      if (sub === 5) return "07 Trees";
-      return "06 Graphs";
-    }
+    "08-01": ["2e392ab76d408076acd9d02a39ee64f3","08-01 Introduction to DP","08 Dynamic Programming",false],
+    "08-02": ["3e892ab76d408191a979d9f33c5f58c4","08-02 Knapsack DP","08 Dynamic Programming",false],
+    "08-03": ["3e892ab76d408178b59ff292e87b9256","08-03 Paths on Grids","08 Dynamic Programming",false],
+    "08-04": ["3e892ab76d4081ce9465cfa5633c9550","08-04 Longest Increasing Subsequence","08 Dynamic Programming",false],
+    "08-05": ["3e892ab76d4081b58001c57a495e4220","08-05 Bitmask DP","08 Dynamic Programming",false],
+    "08-06": ["3e892ab76d408121a81cee03805638ff","08-06 Range DP","08 Dynamic Programming",false],
+    "08-07": ["3e892ab76d4081feb932e92efcede2f4","08-07 Digit DP","08 Dynamic Programming",false],
+    "08-08": [null,"08-08 Edit Distance & LCS","08 Dynamic Programming",true],
+    "08-09": [null,"08-09 DP Reconstruction & Lexicographic Answers","08 Dynamic Programming",true],
+    "08-10": [null,"08-10 Monotonic Queue Optimization","08 Dynamic Programming",true],
+    "08-11": [null,"08-11 Convex Hull Trick Optimization","08 Dynamic Programming",true],
 
-    if (chapter === 9) return "06 Graphs";
+    "09-01": ["33092ab76d40809c9543d94c24efa37a","09-01 Monotonic Stack","09 Data Structures & Range Queries",false],
+    "09-02": ["3e892ab76d4081c9a9f7dd9ac7bbb034","09-02 Fenwick Tree (BIT)","09 Data Structures & Range Queries",false],
+    "09-03": ["33092ab76d4080199eaafc456a0f2fb7","09-03 Segment Tree","09 Data Structures & Range Queries",false],
+    "09-04": ["3e892ab76d40811faaedc77ac94b29e9","09-04 Sparse Table & RMQ","09 Data Structures & Range Queries",false],
 
-    if (chapter === 10) {
-      if (sub === 3 || sub === 4 || sub === 6 || sub === 7) return "07 Trees";
-      return "06 Graphs";
-    }
+    "10-01": ["33092ab76d40806a80b9c4a4d2d3fec0","10-01 Math Fundamentals","10 Math",false],
+    "10-02": ["33092ab76d408075bf02c0aecbacaf15","10-02 Number Theory & Modular Arithmetic","10 Math",false],
+    "10-03": ["3e892ab76d4081cfb499c9e8ab05a172","10-03 Combinatorics","10 Math",false],
+    "10-04": ["3e892ab76d40814a87f5d65fd9b9e353","10-04 Matrix Exponentiation","10 Math",false],
 
-    if (chapter === 11) return "10 Math";
-    if (chapter === 12) return "09 Data Structures & Range Queries";
-    if (chapter === 13) return "12 Strings";
+    "11-01": ["33092ab76d40802e8b3fe81a23b44576","11-01 Geometry Basics","11 Geometry",false],
 
-    if (chapter === 14) {
-      if (sub === 1) return "03 Sorting & Searching";
-      if (sub === 3) return "05 Greedy";
-      if (sub === 4) return "08 Dynamic Programming";
-      return "09 Data Structures & Range Queries";
-    }
+    "12-01": ["33092ab76d408067a9b3c3459edb680a","12-01 String Basics","12 Strings",false],
+    "12-02": ["33092ab76d4080e396c2d21276ba88db","12-02 String Hashing","12 Strings",false],
+    "12-04": [null,"12-04 KMP & Prefix Function","12 Strings",true],
+    "12-05": [null,"12-05 Z Algorithm","12 Strings",true],
+    "12-06": [null,"12-06 Trie","12 Strings",true]
+  };
 
-    return "00 Fundamentals";
-  }
+  const SECTION_TARGET = {
+    "0.2":"00-12",
+    "1.2":"00-01","1.3":"00-04","1.4":"00-13","1.5":"00-04","1.6":"00-03","1.7":"00-13","1.8":"00-13",
+    "2.2":"01-02","2.3":"08-01","2.5":"00-13","2.6":"00-13","2.7":"01-05","2.8":"01-04","2.9":"00-13",
+    "3.1":"02-01","3.2":"12-01","3.3":"03-01","3.4":"02-03","3.5":"02-02","3.6":"03-05","3.7":"00-01","3.8":"00-06",
+    "4.1":"03-03","4.2":"05-01","4.3":"01-01","4.4":"03-02","4.5":"05-03","4.6":"05-01",
+    "5.1":"04-01","5.2":"04-01","5.3":"03-04","5.4":"03-06","5.5":"04-02","5.6":"03-07",
+    "6.1":"01-01","6.2":"02-02","6.3":"09-01","6.4":"01-01","6.5":"00-03","6.6":"11-01",
+    "7.1":"08-01","7.2":"08-01","7.3":"08-02","7.4":"08-02","7.5":"08-02","7.6":"08-04","7.7":"08-08","7.8":"08-03","7.9":"08-06","7.10":"08-05","7.11":"08-09","7.12":"08-01","7.13":"08-10","7.14":"08-11","7.15":"08-07",
+    "8.1":"06-01","8.2":"06-02","8.3":"06-02","8.4":"06-03","8.5":"07-01","8.6":"06-06","8.7":"06-05","8.8":"06-01",
+    "9.1":"06-04","9.2":"06-04","9.3":"06-04","9.4":"06-04","9.5":"06-06","9.6":"06-10",
+    "10.1":"06-07","10.2":"06-08","10.3":"07-03","10.4":"07-05","10.5":"06-09","10.6":"07-04","10.7":"07-02","10.8":"06-11","10.9":"06-11","10.10":"06-12",
+    "11.1":"10-01","11.2":"10-02","11.3":"10-02","11.4":"10-03","11.5":"10-04",
+    "12.1":"09-02","12.2":"09-03","12.3":"09-04","12.4":"09-03","12.5":"09-03",
+    "13.1":"12-04","13.2":"12-05","13.3":"12-02","13.4":"12-06",
+    "14.1":"03-06","14.2":"09-02","14.3":"05-03","14.4":"08-04","14.5":"09-02"
+  };
 
-  function titleFor(section, title) {
-    if (section === "A") return "HB 15-01｜附錄 A：考古題對照表";
-    if (section === "B") return "HB 15-02｜附錄 B：錯題原因紀錄表";
-    const [ch, sub] = section.split(".");
-    return "HB " + String(Number(ch)).padStart(2, "0") + "-" +
-      String(Number(sub)).padStart(2, "0") + "｜" + title;
-  }
+  // Reference-only / contest-management pages are intentionally not lessons.
+  // A/B are the handbook appendices the user asked to remove.
+  const SKIP_SECTIONS = new Set(["0.0","0.1","0.3","1.1","2.1","2.4","2.10","A","B"]);
+
+  // Chapter-end exercises stay as problem ladders, but no longer create empty
+  // "chapter review" course cards.
+  const REVIEW_DOMAIN = {
+    "2.11":"01 Complete Search & Simulation",
+    "3.9":"02 STL & Basic Data Structures",
+    "4.7":"05 Greedy",
+    "5.7":"03 Sorting & Searching",
+    "6.7":"01 Complete Search & Simulation",
+    "7.16":"08 Dynamic Programming",
+    "8.9":"06 Graphs",
+    "9.7":"06 Graphs",
+    "10.11":"07 Trees",
+    "11.6":"10 Math",
+    "12.6":"09 Data Structures & Range Queries",
+    "13.5":"12 Strings",
+    "14.6":"09 Data Structures & Range Queries"
+  };
 
   function defaultTasks(section, title) {
     if (section === "0.0") return [
@@ -176,41 +226,139 @@
     ].join("\n");
   }
 
+  function sectionLadderBlock(section, title, page, core, cses, applications) {
+    const fallback = defaultTasks(section, title);
+    const coreItems = core.length ? core : fallback.slice(0, 2);
+    const related = cses.length
+      ? cses.map(([kind, name, id]) => "[" + kind + "｜CSES " + name + "（" + id + "）](https://cses.fi/problemset/task/" + id + ")")
+      : ["本節沒有額外列出的 CSES 對照題；先完成核心練習。"];
+    const finalItems = applications.slice();
+    if (title.includes("章末練習")) finalItems.push("重做本章 L1 辨識題：每題先寫方法與複雜度，再核對答案。");
+    else finalItems.push(...fallback.slice(-2));
+    const uniqueFinal = Array.from(new Set(finalItems));
+    const numbered = items => items.map((item, i) => (i + 1) + ". " + item).join("\n");
+
+    return [
+      "### §" + section + "｜" + title,
+      "> 《競程衝刺技術手冊》PDF p." + page,
+      "",
+      "<details>",
+      "<summary>01｜核心練習</summary>",
+      "",
+      numbered(coreItems),
+      "",
+      "</details>",
+      "",
+      "<details>",
+      "<summary>02｜同型／延伸題</summary>",
+      "",
+      numbered(related),
+      "",
+      "</details>",
+      "",
+      "<details>",
+      "<summary>03｜考古／實作檢查</summary>",
+      "",
+      numbered(uniqueFinal),
+      "",
+      "</details>"
+    ].join("\n");
+  }
+
+  const rowsByTarget = new Map();
+  const reviewRows = [];
+  const removedSections = [];
+
+  ROWS.forEach(row => {
+    const section = row[0];
+    if (SKIP_SECTIONS.has(section)) {
+      removedSections.push(section);
+      return;
+    }
+    if (REVIEW_DOMAIN[section]) {
+      reviewRows.push(row);
+      return;
+    }
+    const key = SECTION_TARGET[section];
+    if (!key || !TARGETS[key]) {
+      throw new Error("Unmapped Sprint Handbook section: " + section);
+    }
+    const list = rowsByTarget.get(key) || [];
+    list.push(row);
+    rowsByTarget.set(key, list);
+  });
+
   const courses = [];
   const ladders = [];
   const domains = [];
 
-  ROWS.forEach(([section, title, page, core, cses, applications]) => {
-    const domain = domainFor(section);
+  rowsByTarget.forEach((rows, key) => {
+    const raw = TARGETS[key];
+    const existingId = raw[0];
+    const courseTitle = raw[1];
+    const domain = raw[2];
+    const createCourse = raw[3];
+    const courseId = existingId || stableId("hb-merged-course", key);
     if (!domains.includes(domain)) domains.push(domain);
-    const courseId = stableId("hb-course", section);
-    const courseTitle = titleFor(section, title);
 
-    courses.push({
-      id: courseId,
-      title: courseTitle,
-      details: "《競程衝刺技術手冊》§" + section + " · PDF p." + page,
-      difficulty: null,
-      domain,
-      notionUrl: "",
-      content: "",
-      source: "sprint-handbook",
-      staticOnly: true,
-      handbookSection: section,
-      handbookPage: page
-    });
+    if (createCourse) {
+      const sections = rows.map(row => row[0]);
+      const pages = rows.map(row => row[2]);
+      courses.push({
+        id: courseId,
+        title: courseTitle,
+        details: "《競程衝刺技術手冊》§" + sections.join("、§") + " · PDF p." + pages.join("、"),
+        difficulty: null,
+        domain,
+        notionUrl: "",
+        content: "",
+        source: "sprint-handbook",
+        staticOnly: true,
+        handbookSections: sections,
+        handbookPages: pages
+      });
+    }
 
+    const blocks = rows.map(row => sectionLadderBlock(...row));
     ladders.push({
-      id: stableId("hb-ladder", section),
-      title: "Problem Ladder — " + courseTitle,
+      id: stableId("hb-merged-ladder", key),
+      title: "Problem Ladder — " + courseTitle + " · Sprint Handbook",
       domain,
       sourceCourseId: courseId,
       notionUrl: "",
-      content: ladderMarkdown(section, title, page, core, cses, applications),
+      content: [
+        "## Problem Ladder",
+        "> 已依原本 Coding Course 主題合併；不再建立重複的 Handbook 課程頁。",
+        "",
+        ...blocks
+      ].join("\n\n"),
       source: "sprint-handbook",
       staticOnly: true,
-      handbookSection: section,
-      handbookPage: page
+      handbookSections: rows.map(row => row[0]),
+      handbookPages: rows.map(row => row[2])
+    });
+  });
+
+  reviewRows.forEach(row => {
+    const [section, title, page] = row;
+    const domain = REVIEW_DOMAIN[section];
+    if (!domains.includes(domain)) domains.push(domain);
+    ladders.push({
+      id: stableId("hb-review-ladder", section),
+      title: "Problem Ladder — " + domain + " · Chapter Review",
+      domain,
+      sourceCourseId: "",
+      notionUrl: "",
+      content: [
+        "## Problem Ladder",
+        "> 章末練習只保留在題單，不建立沒有新知識點的空課程。",
+        "",
+        sectionLadderBlock(...row)
+      ].join("\n\n"),
+      source: "sprint-handbook",
+      staticOnly: true,
+      handbookSections: [section],
+      handbookPages: [page]
     });
   });
 
@@ -242,4 +390,5 @@
 
   window.SPRINT_HANDBOOK_COURSES = courses;
   window.SPRINT_HANDBOOK_LADDERS = ladders;
+  window.SPRINT_HANDBOOK_REMOVED_SECTIONS = removedSections;
 })();
