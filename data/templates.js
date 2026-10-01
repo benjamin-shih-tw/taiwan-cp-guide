@@ -1,7 +1,7 @@
 // 台灣競程修練指南 (Taiwan CP Guide) - 演算法代碼模板庫數據
 // 採全域物件載入，方便單檔 HTML 連接
 
-const TEMPLATE_DATA = [
+window.TEMPLATE_DATA = [
   {
     id: "cpp-fast-io",
     title: "C++ 競程標準標頭檔與快速 I/O",
