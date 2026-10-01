@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v37";
+const CACHE_NAME = "taiwan-cp-guide-v38";
 const CORE = [
   "./",
   "./index.html",
@@ -6,19 +6,9 @@ const CORE = [
   "./v2/style.css",
   "./v2/effects.css",
   "./v2/effects.js",
-  "./v2/notion-renderer.js",
-  "./v2/notion-renderer.css",
   "./v2/app.js",
   "./data/roadmap.js",
-  "./data/templates.js",
-  "./data/notion_courses_part1.js",
-  "./data/notion_courses_part2.js",
-  "./data/notion_courses_part3.js",
-  "./data/notion_courses_part4.js",
-  "./data/notion_courses_part5.js",
-  "./data/notion_domain_relations.js",
-  "./data/notion_ladders.js",
-  "./data/notion_child_pages.js",
+  "./data/notion_catalog_snapshot.js",
   "./manifest.json"
 ];
 
@@ -59,9 +49,9 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  const isRendererAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/(?:notion_child_pages)\.js)$/.test(url.pathname);
+  const isNetworkFirstAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/notion_catalog_snapshot\.js)$/.test(url.pathname);
   event.respondWith(
-    isRendererAsset
+    isNetworkFirstAsset
       ? fetch(event.request)
           .then(response => {
             if (response && response.ok) {
