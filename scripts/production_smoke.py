@@ -13,6 +13,22 @@ SEGMENT_ID = "33092ab76d4080199eaafc456a0f2fb7"
 SEGMENT_CHILD_ID = "3c492ab76d40800ba2f5dd6bfd0026c1"
 SEGMENT_CHILD_PAGE = f"https://benjaminshih.vercel.app/api/coding-course/page/{SEGMENT_CHILD_ID}"
 
+REQUIRED_NOTION_TITLES = {
+    "00-15 Testing, Debugging & Stress Testing",
+    "03-07 Ternary Search",
+    "05-03 Greedy with Priority Queue",
+    "06-10 Directed Minimum Spanning Tree",
+    "06-11 Maximum Flow & Min Cut",
+    "06-12 Bipartite Matching",
+    "08-08 Edit Distance & LCS",
+    "08-09 DP Reconstruction & Lexicographic Answers",
+    "08-10 Monotonic Queue Optimization",
+    "08-11 Convex Hull Trick Optimization",
+    "12-04 KMP & Prefix Function",
+    "12-05 Z Algorithm",
+    "12-06 Trie",
+}
+
 def get_json(url, attempts=4, timeout=30):
     last = None
     for attempt in range(1, attempts + 1):
@@ -34,14 +50,46 @@ def get_json(url, attempts=4, timeout=30):
                 time.sleep(2 * attempt)
     raise RuntimeError(f"Failed after {attempts} attempts: {url}: {last}")
 
-catalog = get_json(CATALOG)
-domains = catalog.get("domains") or []
-items = catalog.get("items") or []
-lectures = [item for item in items if item.get("type") == "lecture"]
+catalog = None
+domains = []
+items = []
+lectures = []
+ladders = []
+
+# Notion is the source of truth. Give the live catalog a short grace period
+# to observe freshly-created/edited Notion pages before failing deployment.
+for attempt in range(1, 7):
+    catalog = get_json(CATALOG)
+    domains = catalog.get("domains") or []
+    items = catalog.get("items") or []
+    lectures = [item for item in items if item.get("type") == "lecture"]
+    ladders = [
+        item for item in items
+        if item.get("type") == "assignment"
+        and re.match(r"^Problem Ladder\s*[—-]", str(item.get("title") or ""), re.I)
+    ]
+    live_titles = {str(item.get("title") or "").strip() for item in lectures}
+    missing_required = sorted(REQUIRED_NOTION_TITLES - live_titles)
+    if not missing_required and len(ladders) >= 75:
+        break
+    if attempt < 6:
+        time.sleep(10)
 
 assert len(domains) == 13, f"expected 13 active domains, got {len(domains)}: {domains}"
 assert all("APCS" not in name for name in domains), f"archived APCS domain leaked: {domains}"
-assert len(lectures) >= 60, f"expected >=60 lectures, got {len(lectures)}"
+assert len(lectures) >= 80, f"expected >=80 lectures from Notion, got {len(lectures)}"
+assert len(ladders) >= 75, f"expected >=75 Problem Ladders from Notion, got {len(ladders)}"
+
+lecture_titles = [str(item.get("title") or "").strip() for item in lectures]
+ladder_titles = [str(item.get("title") or "").strip() for item in ladders]
+assert len(lecture_titles) == len(set(lecture_titles)), "duplicate lecture titles in live Notion catalog"
+assert len(ladder_titles) == len(set(ladder_titles)), "duplicate Problem Ladder titles in live Notion catalog"
+assert not (REQUIRED_NOTION_TITLES - set(lecture_titles)), (
+    "new Notion curriculum pages missing from live catalog: "
+    + ", ".join(sorted(REQUIRED_NOTION_TITLES - set(lecture_titles)))
+)
+assert not any(title.startswith("HB ") for title in lecture_titles), "legacy HB course leaked into live catalog"
+assert not any(("附錄" in title or "appendix" in title.lower()) for title in lecture_titles), "appendix course leaked into live catalog"
 
 static_by_id = {}
 for path in sorted(glob.glob("data/notion_courses_part*.js")):
@@ -66,16 +114,18 @@ missing_live = sorted(static_ids - live_lecture_ids)
 extra_live = sorted(live_lecture_ids - static_ids)
 if missing_live or extra_live:
     print(json.dumps({
-        "catalog_mismatch": True,
+        "catalog_snapshot_diff": True,
         "missing_live": [
             {"id": page_id, "title": static_by_id.get(page_id, {}).get("title")}
             for page_id in missing_live
         ],
-        "extra_live": extra_live,
+        "notion_only": extra_live,
     }, ensure_ascii=False))
-assert not missing_live, f"live catalog is missing {len(missing_live)} static lectures"
-assert not extra_live, f"live catalog has {len(extra_live)} unexpected lectures"
-assert len(lectures) == len(static_ids), f"live/static lecture count mismatch: {len(lectures)} vs {len(static_ids)}"
+
+# Static files are only the emergency/offline snapshot now. Every snapshot page
+# must still exist in Notion, but Notion is allowed to contain newer pages.
+assert not missing_live, f"live catalog is missing {len(missing_live)} static snapshot lectures"
+assert len(lectures) >= len(static_ids), f"live Notion catalog unexpectedly smaller than static snapshot: {len(lectures)} vs {len(static_ids)}"
 
 segment = by_id.get(SEGMENT_ID)
 placeholder = by_id.get(PLACEHOLDER_ID)
@@ -103,6 +153,8 @@ print(json.dumps({
     "domains": len(domains),
     "lectures": len(lectures),
     "catalog_items": len(items),
+    "problem_ladders": len(ladders),
+    "notion_only_lectures": len(extra_live),
     "segment_tree_blocks": len(blocks),
     "segment_tree_child_blocks": len(child_blocks),
     "generatedAt": catalog.get("generatedAt"),
