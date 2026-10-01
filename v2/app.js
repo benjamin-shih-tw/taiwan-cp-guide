@@ -48,20 +48,13 @@
   const PAGE_CACHE_TTL = 45_000;
   const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
   const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
-  const STATIC_HANDBOOK_COURSES = NOTION_COURSES
-    .filter(course => course.source === "sprint-handbook")
-    .map(course => ({ ...course, domains: (course.domains || []).slice() }));
-  const STATIC_HANDBOOK_LADDERS = NOTION_LADDERS
-    .filter(ladder => ladder.source === "sprint-handbook")
-    .map(ladder => ({ ...ladder }));
-  const STATIC_HANDBOOK_DOMAINS = Array.from(new Set(
-    STATIC_HANDBOOK_COURSES.flatMap(course => course.domains || (course.domain ? [course.domain] : []))
-  ));
+  const CATALOG_REFRESH_TTL = 30_000;
   const courseSearchIndex = new WeakMap();
   const pagePayloadCache = new Map();
   const activePageRenders = new Map();
   const renderedViews = new Set();
   let notionRendererPromise = null;
+  let lastCatalogRefresh = 0;
   window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
 
   function rebuildCourseMap() {
@@ -155,11 +148,7 @@
       ? catalog.domains
       : NOTION_DOMAIN_ORDER.slice();
 
-    const mergedDomains = domains.slice();
-    STATIC_HANDBOOK_DOMAINS.forEach(domain => {
-      if (!mergedDomains.includes(domain)) mergedDomains.push(domain);
-    });
-    NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...mergedDomains);
+    NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...domains);
 
     const lectures = [];
     const ladders = [];
@@ -194,23 +183,6 @@
     if (!lectures.length) return false;
 
     const hasLiveLadders = ladders.length > 0;
-    const lectureIds = new Set(lectures.map(item => item.id));
-    STATIC_HANDBOOK_COURSES.forEach(course => {
-      if (!lectureIds.has(course.id)) {
-        lectures.push({ ...course, domains: (course.domains || []).slice() });
-        lectureIds.add(course.id);
-      }
-    });
-
-    if (hasLiveLadders) {
-      const ladderIds = new Set(ladders.map(item => item.id));
-      STATIC_HANDBOOK_LADDERS.forEach(ladder => {
-        if (!ladderIds.has(ladder.id)) {
-          ladders.push({ ...ladder });
-          ladderIds.add(ladder.id);
-        }
-      });
-    }
 
     lectures.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
     ladders.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
@@ -1733,7 +1705,10 @@
     window.addEventListener("popstate", scheduleRouter);
     router();
 
-    loadLiveCatalog().then(changed => {
+    const refreshCatalog = async (forceContentRefresh = false) => {
+      if (forceContentRefresh) pagePayloadCache.clear();
+      const changed = await loadLiveCatalog();
+      lastCatalogRefresh = Date.now();
       if (!changed) return;
       showView(state.baseView, true);
       const activeCourse = state.activeTopic?.course;
@@ -1741,6 +1716,19 @@
       if (activeCourse?.isPlaceholder && liveCourse && !liveCourse.isPlaceholder) {
         openLesson(liveCourse.id, false);
       }
+    };
+
+    refreshCatalog();
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      if (Date.now() - lastCatalogRefresh < CATALOG_REFRESH_TTL) return;
+      refreshCatalog(true);
+    });
+
+    window.addEventListener("pageshow", event => {
+      if (!event.persisted) return;
+      refreshCatalog(true);
     });
   }
 
