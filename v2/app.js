@@ -33,6 +33,7 @@
   const NOTION_COURSES = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
   const NOTION_LADDERS = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
   const NOTION_CHILD_PAGES = window.NOTION_CHILD_PAGES || {};
+  const NOTION_FALLBACK_FILES = window.NOTION_FALLBACK_FILES || {};
   const NOTION_DOMAIN_ORDER = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
   const NOTION_DOMAIN_RELATIONS = window.NOTION_DOMAIN_RELATIONS || {};
   NOTION_COURSES.forEach(course => {
@@ -44,18 +45,23 @@
     if (typeof course.hasContent !== "boolean") {
       course.hasContent = localContent ? true : null;
     }
-    course.isPlaceholder = course.hasContent === false ||
-      String(course.details || "").trim().toLowerCase() === "coming soon";
+    // "Coming soon" in details is presentation metadata only. Content may have
+    // been added later in Notion, so never suppress a live page based on it.
+    course.isPlaceholder = course.hasContent === false;
   });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
   const LIVE_API_BASE = "https://benjaminshih.vercel.app/api/coding-course";
-  const PAGE_CACHE_TTL = 45_000;
+  const PAGE_CACHE_TTL = 90_000;
+  const PAGE_CACHE_LIMIT = 24;
+  const PREFETCH_LIMIT = 3;
   const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
   const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
   const CATALOG_REFRESH_TTL = 30_000;
   const courseSearchIndex = new WeakMap();
   const pagePayloadCache = new Map();
+  const pagePayloadPromises = new Map();
+  const legacyFallbackCache = new Map();
   const activePageRenders = new Map();
   const renderedViews = new Set();
   let notionRendererPromise = null;
@@ -142,23 +148,145 @@
     return notionRendererPromise;
   }
 
-  async function loadNotionPayload(pageId, signal) {
+  function rememberPagePayload(pageId, payload) {
+    pagePayloadCache.delete(pageId);
+    pagePayloadCache.set(pageId, { payload, savedAt: Date.now() });
+    while (pagePayloadCache.size > PAGE_CACHE_LIMIT) {
+      pagePayloadCache.delete(pagePayloadCache.keys().next().value);
+    }
+    return payload;
+  }
+
+  async function fetchNotionPayload(pageId) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
+        cache: "default",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("Notion API " + response.status);
+
+      const payload = await response.json();
+      const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
+      if (payloadId !== pageId || !payload.blockMap?.block) {
+        throw new Error("Notion API returned a mismatched page");
+      }
+      return rememberPagePayload(pageId, payload);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function loadNotionPayload(pageId) {
     const cached = pagePayloadCache.get(pageId);
     if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
 
-    const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
-      cache: "no-store",
-      signal
+    // A hover/touch prefetch and the subsequent open share the same request.
+    // We intentionally let the shared request finish even if one overlay closes,
+    // because the result becomes useful cache for the next lesson open.
+    if (pagePayloadPromises.has(pageId)) return pagePayloadPromises.get(pageId);
+
+    const promise = fetchNotionPayload(pageId);
+    pagePayloadPromises.set(pageId, promise);
+    promise.finally(() => {
+      if (pagePayloadPromises.get(pageId) === promise) pagePayloadPromises.delete(pageId);
     });
-    if (!response.ok) throw new Error("Notion API " + response.status);
-    const payload = await response.json();
-    const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
-    if (payloadId !== pageId || !payload.blockMap?.block) {
-      throw new Error("Notion API returned a mismatched page");
+    return promise;
+  }
+
+  function warmLesson(pageId) {
+    const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(cleanId)) return;
+
+    const known = notionCourseMap.get(cleanId) || NOTION_LADDERS.find(item => item.id === cleanId);
+    if (known?.hasContent === false) return;
+
+    // Start both expensive pieces before the user actually opens the overlay.
+    ensureNotionRenderer().catch(() => {});
+    loadNotionPayload(cleanId).catch(() => {});
+  }
+
+  function bindLessonWarmup(node, pageId) {
+    if (!node) return;
+    const warm = () => warmLesson(pageId);
+    node.addEventListener("pointerenter", warm, { once: true, passive: true });
+    node.addEventListener("pointerdown", warm, { once: true, passive: true });
+    node.addEventListener("focus", warm, { once: true, passive: true });
+  }
+
+  function idleWarmLessons(courses) {
+    const ids = Array.from(new Set(
+      (courses || [])
+        .filter(course => course && course.hasContent !== false)
+        .map(course => course.id)
+        .filter(Boolean)
+    )).slice(0, PREFETCH_LIMIT);
+    if (!ids.length) return;
+
+    const run = () => ids.forEach(warmLesson);
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      setTimeout(run, 900);
     }
-    pagePayloadCache.set(pageId, { payload, savedAt: Date.now() });
-    if (pagePayloadCache.size > 12) pagePayloadCache.delete(pagePayloadCache.keys().next().value);
-    return payload;
+  }
+
+  async function loadLegacyFallback(pageId) {
+    const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
+    if (legacyFallbackCache.has(cleanId)) return legacyFallbackCache.get(cleanId);
+
+    const file = NOTION_FALLBACK_FILES[cleanId];
+    if (!file) {
+      legacyFallbackCache.set(cleanId, null);
+      return null;
+    }
+
+    const promise = (async () => {
+      const url = new URL("../" + file, APP_ASSET_BASE).href;
+      const response = await fetch(url, { cache: "force-cache" });
+      if (!response.ok) throw new Error("fallback " + response.status);
+      const text = await response.text();
+
+      let data = null;
+      if (file.includes("notion_courses_part")) {
+        const marker = "window.NOTION_COURSES.push(...";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim();
+          raw = raw.replace(/\);\s*$/, "");
+          data = JSON.parse(raw).find(item => item.id === cleanId) || null;
+        }
+      } else if (file.endsWith("notion_ladders.js")) {
+        const marker = "window.NOTION_LADDERS =";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim().replace(/;\s*$/, "");
+          data = JSON.parse(raw).find(item => item.id === cleanId) || null;
+        }
+      } else if (file.endsWith("notion_child_pages.js")) {
+        const marker = "window.NOTION_CHILD_PAGES =";
+        const start = text.indexOf(marker);
+        if (start >= 0) {
+          let raw = text.slice(start + marker.length).trim().replace(/;\s*$/, "");
+          data = JSON.parse(raw)[cleanId] || null;
+        }
+      }
+
+      if (!data || !String(data.content || "").trim()) return null;
+      return {
+        title: String(data.title || ""),
+        content: String(data.content || "")
+      };
+    })().catch(error => {
+      console.warn("[Coding Course] static fallback unavailable", cleanId, error);
+      return null;
+    });
+
+    legacyFallbackCache.set(cleanId, promise);
+    const result = await promise;
+    legacyFallbackCache.set(cleanId, result);
+    return result;
   }
 
   function cancelRendersWithin(parent) {
@@ -217,7 +345,7 @@
         status: item.status || "",
         mastery: item.mastery || "",
         hasContent: item.hasContent !== false,
-        isPlaceholder: item.hasContent === false || String(item.details || "").trim().toLowerCase() === "coming soon",
+        isPlaceholder: item.hasContent === false,
         live: true,
         notionUrl: item.notionUrl || fallback.notionUrl || ("https://app.notion.com/p/" + id),
         content: fallback.content || ""
@@ -252,7 +380,7 @@
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(LIVE_API_BASE + "/catalog", {
-        cache: "no-store",
+        cache: "no-cache",
         signal: controller.signal
       });
       if (!response.ok) throw new Error("catalog " + response.status);
@@ -262,6 +390,7 @@
       console.warn("[Coding Course] live catalog unavailable; using static fallback", error);
       return false;
     } finally {
+      previewCancelled = true;
       clearTimeout(timer);
     }
   }
@@ -602,6 +731,7 @@
       continueDesc.hidden = true;
       continueDesc.textContent = "";
       continueBtn.hidden = false;
+      bindLessonWarmup(continueBtn, next.id);
       continueBtn.onclick = () => openLesson(next.id, true);
     } else {
       continueTitle.textContent = "";
@@ -658,6 +788,7 @@
         node.innerHTML =
           '<div class="node-top"><h3>' + esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "");
+        bindLessonWarmup(node, course.id);
         node.onclick = () => openLesson(course.id, true);
         nodes.appendChild(node);
       });
@@ -734,6 +865,7 @@
           "<h3>" + esc(courseDisplayTitle(course)) + "</h3>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
           footer;
+        bindLessonWarmup(card, course.id);
         card.onclick = () => openLesson(course.id, true);
         grid.appendChild(card);
       });
@@ -743,6 +875,12 @@
     });
 
     document.getElementById("course-empty").hidden = shown !== 0;
+
+    const visibleCourses = groups.flatMap(group => {
+      if (state.courseDomain !== "all" && state.courseDomain !== group.domain.name) return [];
+      return group.courses.filter(matches);
+    });
+    idleWarmLessons(visibleCourses);
   }
 
   function renderProblems() {
@@ -793,6 +931,7 @@
         '<span class="problem-course-name">' + esc(courseDisplayTitle(course)) + "</span>" +
         (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
         '<span class="problem-course-arrow">→</span>';
+      bindLessonWarmup(row, course.id);
       row.onclick = () => openLesson(course.id, true);
       courseHost.appendChild(row);
     });
@@ -822,6 +961,7 @@
         body.dataset.loaded = "1";
         renderNotionPageInto(body, ladder.id, ladder.content || "", false, ladder);
       };
+      bindLessonWarmup(summary, ladder.id);
       details.addEventListener("toggle", loadLadder);
       details.append(summary, body);
       migratedHost.appendChild(details);
@@ -1244,7 +1384,7 @@
       return;
     }
 
-    if (courseMeta?.isPlaceholder || courseMeta?.hasContent === false) {
+    if (courseMeta?.hasContent === false) {
       renderLessonPlaceholder(host, courseMeta?.title);
       return;
     }
@@ -1263,9 +1403,33 @@
       rendererError = error;
     });
 
+    let previewCancelled = false;
+    const fallbackPreview = (async () => {
+      await new Promise(resolve => setTimeout(resolve, 450));
+      if (previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      const legacy = String(fallbackMarkdown || "").trim()
+        ? { title: courseMeta?.title || "", content: String(fallbackMarkdown) }
+        : await loadLegacyFallback(pageId);
+      if (!legacy?.content || previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      await rendererReady;
+      if (rendererError || previewCancelled || host.dataset.notionRenderToken !== token) return;
+
+      // Show a fast same-origin snapshot while the live Notion request is still
+      // running. The live recordMap replaces this as soon as it arrives.
+      host.className = "markdown-body notion-snapshot-preview";
+      renderNotionMarkdownInto(host, legacy.content, makeToc);
+      if (host === document.getElementById("lesson-content") && legacy.title && courseMeta?.title) {
+        const title = document.getElementById("lesson-title");
+        if (title && /^載入課程內容/.test(title.textContent || "")) title.textContent = legacy.title;
+      }
+    })();
+
     try {
       const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
       const payload = await loadNotionPayload(cleanId, controller.signal);
+      previewCancelled = true;
       await rendererReady;
       if (rendererError) throw rendererError;
 
@@ -1305,7 +1469,7 @@
           console.error("[Coding Course] Notion render failed", cleanId, error);
           setTimeout(() => {
             if (host.dataset.notionRenderToken === token) {
-              renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, cleanId);
+              renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, cleanId).catch(() => {});
             }
           }, 0);
         }
@@ -1316,22 +1480,35 @@
       console.warn("[Coding Course] live page unavailable", pageId, error);
 
       await rendererReady;
-      renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId);
+      await renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId);
     } finally {
       clearTimeout(timer);
       if (activePageRenders.get(host)?.token === token) activePageRenders.delete(host);
     }
   }
 
-  function renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId) {
+  async function renderNotionFallback(host, fallbackMarkdown, makeToc, courseMeta, pageId) {
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
-    if (String(fallbackMarkdown || "").trim()) {
-      host.className = "markdown-body";
-      renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
-    } else if (courseMeta?.isPlaceholder) {
+
+    let markdown = String(fallbackMarkdown || "").trim();
+    let fallbackTitle = "";
+    if (!markdown) {
+      const legacy = await loadLegacyFallback(pageId);
+      markdown = String(legacy?.content || "").trim();
+      fallbackTitle = String(legacy?.title || "");
+    }
+
+    if (markdown) {
+      host.className = "markdown-body notion-static-fallback";
+      renderNotionMarkdownInto(host, markdown, makeToc);
+      if (fallbackTitle && host === document.getElementById("lesson-content")) {
+        const title = document.getElementById("lesson-title");
+        if (title && /^載入課程內容/.test(title.textContent || "")) title.textContent = fallbackTitle;
+      }
+    } else if (courseMeta?.hasContent === false) {
       renderLessonPlaceholder(host, courseMeta?.title);
     } else {
-      renderLessonError(host, courseMeta || { id: pageId }, "無法顯示 Notion 內容，請重新載入。");
+      renderLessonError(host, courseMeta || { id: pageId }, "暫時無法取得 Notion 內容，請稍後重試。");
     }
   }
 
@@ -1680,6 +1857,7 @@
         item.innerHTML =
           "<strong>" + esc(courseDisplayTitle(course)) + "</strong>" +
           "<small>" + ((course.domains || []).length ? esc(course.domains.join(" · ")) : "未歸類") + "</small>";
+        bindLessonWarmup(item, course.id);
         item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
       });
@@ -1765,8 +1943,7 @@
     window.addEventListener("popstate", scheduleRouter);
     router();
 
-    const refreshCatalog = async (forceContentRefresh = false) => {
-      if (forceContentRefresh) pagePayloadCache.clear();
+    const refreshCatalog = async () => {
       const changed = await loadLiveCatalog();
       lastCatalogRefresh = Date.now();
       if (!changed) return;
@@ -1780,15 +1957,22 @@
 
     refreshCatalog();
 
+    const warmRenderer = () => ensureNotionRenderer().catch(() => {});
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(warmRenderer, { timeout: 2200 });
+    } else {
+      setTimeout(warmRenderer, 1200);
+    }
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
       if (Date.now() - lastCatalogRefresh < CATALOG_REFRESH_TTL) return;
-      refreshCatalog(true);
+      refreshCatalog();
     });
 
     window.addEventListener("pageshow", event => {
       if (!event.persisted) return;
-      refreshCatalog(true);
+      refreshCatalog();
     });
   }
 
