@@ -253,6 +253,15 @@ window.NOTION_COURSES.push(...[
     "notionUrl": "https://app.notion.com/p/3e892ab76d40811faaedc77ac94b29e9"
   },
   {
+    "id": "3ea92ab76d4080f59e7bc42436b5466b",
+    "title": "09-05 Sqrt skill",
+    "details": "",
+    "difficulty": null,
+    "domain": "09 Data Structures & Range Queries",
+    "content": "",
+    "notionUrl": "https://app.notion.com/p/3ea92ab76d4080f59e7bc42436b5466b"
+  },
+  {
     "id": "33092ab76d40806a80b9c4a4d2d3fec0",
     "title": "10-01 Math Fundamentals",
     "details": "數論基礎",

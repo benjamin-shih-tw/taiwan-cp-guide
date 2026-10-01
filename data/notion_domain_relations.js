@@ -188,6 +188,9 @@ window.NOTION_DOMAIN_RELATIONS = {
   "3e892ab76d40811faaedc77ac94b29e9": [
     "09 Data Structures & Range Queries"
   ],
+  "3ea92ab76d4080f59e7bc42436b5466b": [
+    "09 Data Structures & Range Queries"
+  ],
   "3e892ab76d4081cfb499c9e8ab05a172": [
     "10 Math"
   ],
