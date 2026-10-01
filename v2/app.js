@@ -44,18 +44,22 @@
     if (typeof course.hasContent !== "boolean") {
       course.hasContent = localContent ? true : null;
     }
-    course.isPlaceholder = course.hasContent === false ||
-      String(course.details || "").trim().toLowerCase() === "coming soon";
+    // "Coming soon" in details is presentation metadata only. Content may have
+    // been added later in Notion, so never suppress a live page based on it.
+    course.isPlaceholder = course.hasContent === false;
   });
   const notionCourseMap = new Map(NOTION_COURSES.map(course => [course.id, course]));
 
   const LIVE_API_BASE = "https://benjaminshih.vercel.app/api/coding-course";
-  const PAGE_CACHE_TTL = 45_000;
+  const PAGE_CACHE_TTL = 90_000;
+  const PAGE_CACHE_LIMIT = 24;
+  const PREFETCH_LIMIT = 3;
   const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
   const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
   const CATALOG_REFRESH_TTL = 30_000;
   const courseSearchIndex = new WeakMap();
   const pagePayloadCache = new Map();
+  const pagePayloadPromises = new Map();
   const activePageRenders = new Map();
   const renderedViews = new Set();
   let notionRendererPromise = null;
@@ -142,23 +146,82 @@
     return notionRendererPromise;
   }
 
-  async function loadNotionPayload(pageId, signal) {
-    const cached = pagePayloadCache.get(pageId);
-    if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
+  function rememberPagePayload(pageId, payload) {
+    pagePayloadCache.delete(pageId);
+    pagePayloadCache.set(pageId, { payload, savedAt: Date.now() });
+    while (pagePayloadCache.size > PAGE_CACHE_LIMIT) {
+      pagePayloadCache.delete(pagePayloadCache.keys().next().value);
+    }
+    return payload;
+  }
 
+  async function fetchNotionPayload(pageId, signal) {
     const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
-      cache: "no-store",
+      cache: "default",
       signal
     });
     if (!response.ok) throw new Error("Notion API " + response.status);
+
     const payload = await response.json();
     const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
     if (payloadId !== pageId || !payload.blockMap?.block) {
       throw new Error("Notion API returned a mismatched page");
     }
-    pagePayloadCache.set(pageId, { payload, savedAt: Date.now() });
-    if (pagePayloadCache.size > 12) pagePayloadCache.delete(pagePayloadCache.keys().next().value);
-    return payload;
+    return rememberPagePayload(pageId, payload);
+  }
+
+  async function loadNotionPayload(pageId, signal) {
+    const cached = pagePayloadCache.get(pageId);
+    if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
+
+    // Deduplicate concurrent opens / hover-prefetches for the same Notion page.
+    if (!signal && pagePayloadPromises.has(pageId)) return pagePayloadPromises.get(pageId);
+
+    const promise = fetchNotionPayload(pageId, signal);
+    if (!signal) {
+      pagePayloadPromises.set(pageId, promise);
+      promise.finally(() => {
+        if (pagePayloadPromises.get(pageId) === promise) pagePayloadPromises.delete(pageId);
+      });
+    }
+    return promise;
+  }
+
+  function warmLesson(pageId) {
+    const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(cleanId)) return;
+
+    const known = notionCourseMap.get(cleanId) || NOTION_LADDERS.find(item => item.id === cleanId);
+    if (known?.hasContent === false) return;
+
+    // Start both expensive pieces before the user actually opens the overlay.
+    ensureNotionRenderer().catch(() => {});
+    loadNotionPayload(cleanId).catch(() => {});
+  }
+
+  function bindLessonWarmup(node, pageId) {
+    if (!node) return;
+    const warm = () => warmLesson(pageId);
+    node.addEventListener("pointerenter", warm, { once: true, passive: true });
+    node.addEventListener("pointerdown", warm, { once: true, passive: true });
+    node.addEventListener("focus", warm, { once: true, passive: true });
+  }
+
+  function idleWarmLessons(courses) {
+    const ids = Array.from(new Set(
+      (courses || [])
+        .filter(course => course && course.hasContent !== false)
+        .map(course => course.id)
+        .filter(Boolean)
+    )).slice(0, PREFETCH_LIMIT);
+    if (!ids.length) return;
+
+    const run = () => ids.forEach(warmLesson);
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      setTimeout(run, 900);
+    }
   }
 
   function cancelRendersWithin(parent) {
@@ -217,7 +280,7 @@
         status: item.status || "",
         mastery: item.mastery || "",
         hasContent: item.hasContent !== false,
-        isPlaceholder: item.hasContent === false || String(item.details || "").trim().toLowerCase() === "coming soon",
+        isPlaceholder: item.hasContent === false,
         live: true,
         notionUrl: item.notionUrl || fallback.notionUrl || ("https://app.notion.com/p/" + id),
         content: fallback.content || ""
@@ -252,7 +315,7 @@
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(LIVE_API_BASE + "/catalog", {
-        cache: "no-store",
+        cache: "no-cache",
         signal: controller.signal
       });
       if (!response.ok) throw new Error("catalog " + response.status);
@@ -602,6 +665,7 @@
       continueDesc.hidden = true;
       continueDesc.textContent = "";
       continueBtn.hidden = false;
+      bindLessonWarmup(continueBtn, next.id);
       continueBtn.onclick = () => openLesson(next.id, true);
     } else {
       continueTitle.textContent = "";
@@ -658,6 +722,7 @@
         node.innerHTML =
           '<div class="node-top"><h3>' + esc(courseDisplayTitle(course)) + "</h3>" + badge + "</div>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "");
+        bindLessonWarmup(node, course.id);
         node.onclick = () => openLesson(course.id, true);
         nodes.appendChild(node);
       });
@@ -734,6 +799,7 @@
           "<h3>" + esc(courseDisplayTitle(course)) + "</h3>" +
           (course.details ? "<p>" + esc(course.details) + "</p>" : "") +
           footer;
+        bindLessonWarmup(card, course.id);
         card.onclick = () => openLesson(course.id, true);
         grid.appendChild(card);
       });
@@ -743,6 +809,12 @@
     });
 
     document.getElementById("course-empty").hidden = shown !== 0;
+
+    const visibleCourses = groups.flatMap(group => {
+      if (state.courseDomain !== "all" && state.courseDomain !== group.domain.name) return [];
+      return group.courses.filter(matches);
+    });
+    idleWarmLessons(visibleCourses);
   }
 
   function renderProblems() {
@@ -793,6 +865,7 @@
         '<span class="problem-course-name">' + esc(courseDisplayTitle(course)) + "</span>" +
         (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
         '<span class="problem-course-arrow">→</span>';
+      bindLessonWarmup(row, course.id);
       row.onclick = () => openLesson(course.id, true);
       courseHost.appendChild(row);
     });
@@ -822,6 +895,7 @@
         body.dataset.loaded = "1";
         renderNotionPageInto(body, ladder.id, ladder.content || "", false, ladder);
       };
+      bindLessonWarmup(summary, ladder.id);
       details.addEventListener("toggle", loadLadder);
       details.append(summary, body);
       migratedHost.appendChild(details);
@@ -1244,7 +1318,7 @@
       return;
     }
 
-    if (courseMeta?.isPlaceholder || courseMeta?.hasContent === false) {
+    if (courseMeta?.hasContent === false) {
       renderLessonPlaceholder(host, courseMeta?.title);
       return;
     }
@@ -1680,6 +1754,7 @@
         item.innerHTML =
           "<strong>" + esc(courseDisplayTitle(course)) + "</strong>" +
           "<small>" + ((course.domains || []).length ? esc(course.domains.join(" · ")) : "未歸類") + "</small>";
+        bindLessonWarmup(item, course.id);
         item.onclick = () => { close(); openLesson(course.id, true); };
         results.appendChild(item);
       });
@@ -1765,8 +1840,7 @@
     window.addEventListener("popstate", scheduleRouter);
     router();
 
-    const refreshCatalog = async (forceContentRefresh = false) => {
-      if (forceContentRefresh) pagePayloadCache.clear();
+    const refreshCatalog = async () => {
       const changed = await loadLiveCatalog();
       lastCatalogRefresh = Date.now();
       if (!changed) return;
@@ -1780,15 +1854,22 @@
 
     refreshCatalog();
 
+    const warmRenderer = () => ensureNotionRenderer().catch(() => {});
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(warmRenderer, { timeout: 2200 });
+    } else {
+      setTimeout(warmRenderer, 1200);
+    }
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
       if (Date.now() - lastCatalogRefresh < CATALOG_REFRESH_TTL) return;
-      refreshCatalog(true);
+      refreshCatalog();
     });
 
     window.addEventListener("pageshow", event => {
       if (!event.persisted) return;
-      refreshCatalog(true);
+      refreshCatalog();
     });
   }
 
