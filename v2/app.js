@@ -656,7 +656,10 @@
     if (parts[0] === "problems") {
       closeLesson(false);
       state.problemDomain = parts.length > 1 ? decodeURIComponent(parts.slice(1).join("/")) : "";
-      showView("problems");
+      // The route can change while staying inside the same Problems view
+      // (#/problems -> #/problems/<domain>). Force a render so the selected
+      // domain actually opens instead of being skipped by showView's cache.
+      showView("problems", true);
       return;
     }
 
