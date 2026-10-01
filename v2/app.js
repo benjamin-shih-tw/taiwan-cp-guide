@@ -157,35 +157,41 @@
     return payload;
   }
 
-  async function fetchNotionPayload(pageId, signal) {
-    const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
-      cache: "default",
-      signal
-    });
-    if (!response.ok) throw new Error("Notion API " + response.status);
+  async function fetchNotionPayload(pageId) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
+        cache: "default",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("Notion API " + response.status);
 
-    const payload = await response.json();
-    const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
-    if (payloadId !== pageId || !payload.blockMap?.block) {
-      throw new Error("Notion API returned a mismatched page");
+      const payload = await response.json();
+      const payloadId = String(payload.id || "").replace(/-/g, "").toLowerCase();
+      if (payloadId !== pageId || !payload.blockMap?.block) {
+        throw new Error("Notion API returned a mismatched page");
+      }
+      return rememberPagePayload(pageId, payload);
+    } finally {
+      clearTimeout(timer);
     }
-    return rememberPagePayload(pageId, payload);
   }
 
-  async function loadNotionPayload(pageId, signal) {
+  async function loadNotionPayload(pageId) {
     const cached = pagePayloadCache.get(pageId);
     if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
 
-    // Deduplicate concurrent opens / hover-prefetches for the same Notion page.
-    if (!signal && pagePayloadPromises.has(pageId)) return pagePayloadPromises.get(pageId);
+    // A hover/touch prefetch and the subsequent open share the same request.
+    // We intentionally let the shared request finish even if one overlay closes,
+    // because the result becomes useful cache for the next lesson open.
+    if (pagePayloadPromises.has(pageId)) return pagePayloadPromises.get(pageId);
 
-    const promise = fetchNotionPayload(pageId, signal);
-    if (!signal) {
-      pagePayloadPromises.set(pageId, promise);
-      promise.finally(() => {
-        if (pagePayloadPromises.get(pageId) === promise) pagePayloadPromises.delete(pageId);
-      });
-    }
+    const promise = fetchNotionPayload(pageId);
+    pagePayloadPromises.set(pageId, promise);
+    promise.finally(() => {
+      if (pagePayloadPromises.get(pageId) === promise) pagePayloadPromises.delete(pageId);
+    });
     return promise;
   }
 
