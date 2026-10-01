@@ -48,6 +48,15 @@
   const PAGE_CACHE_TTL = 45_000;
   const STATIC_COURSE_FALLBACK = new Map(NOTION_COURSES.map(course => [course.id, { ...course }]));
   const STATIC_LADDER_FALLBACK = new Map(NOTION_LADDERS.map(ladder => [ladder.id, { ...ladder }]));
+  const STATIC_HANDBOOK_COURSES = NOTION_COURSES
+    .filter(course => course.source === "sprint-handbook")
+    .map(course => ({ ...course, domains: (course.domains || []).slice() }));
+  const STATIC_HANDBOOK_LADDERS = NOTION_LADDERS
+    .filter(ladder => ladder.source === "sprint-handbook")
+    .map(ladder => ({ ...ladder }));
+  const STATIC_HANDBOOK_DOMAINS = Array.from(new Set(
+    STATIC_HANDBOOK_COURSES.flatMap(course => course.domains || (course.domain ? [course.domain] : []))
+  ));
   const courseSearchIndex = new WeakMap();
   const pagePayloadCache = new Map();
   const activePageRenders = new Map();
@@ -146,7 +155,11 @@
       ? catalog.domains
       : NOTION_DOMAIN_ORDER.slice();
 
-    NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...domains);
+    const mergedDomains = domains.slice();
+    STATIC_HANDBOOK_DOMAINS.forEach(domain => {
+      if (!mergedDomains.includes(domain)) mergedDomains.push(domain);
+    });
+    NOTION_DOMAIN_ORDER.splice(0, NOTION_DOMAIN_ORDER.length, ...mergedDomains);
 
     const lectures = [];
     const ladders = [];
@@ -180,11 +193,30 @@
 
     if (!lectures.length) return false;
 
+    const hasLiveLadders = ladders.length > 0;
+    const lectureIds = new Set(lectures.map(item => item.id));
+    STATIC_HANDBOOK_COURSES.forEach(course => {
+      if (!lectureIds.has(course.id)) {
+        lectures.push({ ...course, domains: (course.domains || []).slice() });
+        lectureIds.add(course.id);
+      }
+    });
+
+    if (hasLiveLadders) {
+      const ladderIds = new Set(ladders.map(item => item.id));
+      STATIC_HANDBOOK_LADDERS.forEach(ladder => {
+        if (!ladderIds.has(ladder.id)) {
+          ladders.push({ ...ladder });
+          ladderIds.add(ladder.id);
+        }
+      });
+    }
+
     lectures.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
     ladders.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"en",{numeric:true}));
 
     NOTION_COURSES.splice(0, NOTION_COURSES.length, ...lectures);
-    if (ladders.length) NOTION_LADDERS.splice(0, NOTION_LADDERS.length, ...ladders);
+    if (hasLiveLadders) NOTION_LADDERS.splice(0, NOTION_LADDERS.length, ...ladders);
 
     Object.keys(NOTION_DOMAIN_RELATIONS).forEach(key => delete NOTION_DOMAIN_RELATIONS[key]);
     NOTION_COURSES.forEach(course => {
@@ -1173,6 +1205,12 @@
     activePageRenders.get(host)?.controller.abort();
 
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(host);
+
+    if (courseMeta?.staticOnly && String(fallbackMarkdown || "").trim()) {
+      host.className = "markdown-body";
+      renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
+      return;
+    }
 
     if (courseMeta?.isPlaceholder || courseMeta?.hasContent === false) {
       renderLessonPlaceholder(host, courseMeta?.title);
