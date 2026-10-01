@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v36";
+const CACHE_NAME = "taiwan-cp-guide-v37";
 const CORE = [
   "./",
   "./index.html",
@@ -18,7 +18,6 @@ const CORE = [
   "./data/notion_courses_part5.js",
   "./data/notion_domain_relations.js",
   "./data/notion_ladders.js",
-  "./data/sprint_handbook.js",
   "./data/notion_child_pages.js",
   "./manifest.json"
 ];
@@ -60,7 +59,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  const isRendererAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/(?:notion_child_pages|sprint_handbook)\.js)$/.test(url.pathname);
+  const isRendererAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/(?:notion_child_pages)\.js)$/.test(url.pathname);
   event.respondWith(
     isRendererAsset
       ? fetch(event.request)
