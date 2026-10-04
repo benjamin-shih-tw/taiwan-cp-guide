@@ -1274,6 +1274,21 @@
       .replace(/```[ \t]*(?=\n|$)/g, "```\n");
   }
 
+  function normalizeNotionLayoutBlocks(markdown) {
+    return String(markdown || "")
+      // Legacy Notion exports use non-HTML layout tags. Convert them before
+      // marked sees the document so tags never leak as literal text.
+      .replace(/<callout(?:\s+icon=["']([^"']*)["'])?\s*>/gi, (_, icon) =>
+        '<div class="notion-callout">' +
+        (icon ? '<span class="notion-callout-icon">' + esc(icon) + '</span>' : '') +
+        '<div class="notion-callout-body">')
+      .replace(/<\/callout>/gi, '</div></div>')
+      .replace(/<columns\s*>/gi, '<div class="notion-columns">')
+      .replace(/<\/columns>/gi, '</div>')
+      .replace(/<column\s*>/gi, '<div class="notion-column">')
+      .replace(/<\/column>/gi, '</div>');
+  }
+
   function escapeNonHtmlAngles(markdown) {
     const allowed = new Set([
       "a","abbr","b","blockquote","br","code","col","colgroup","dd","del","details","div","dl","dt",
@@ -1343,6 +1358,7 @@
       }
     );
 
+    text = normalizeNotionLayoutBlocks(text);
     text = convertNotionToggleHeadings(text);
     text = deindentNotionDetails(text);
     text = isolateNotionHtmlBlocks(text);
