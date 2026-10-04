@@ -1577,6 +1577,11 @@
         return fragment;
       }
 
+      // These text nodes are the raw Markdown left inside the <details>
+      // HTML block by marked. Remove them before appending the parsed result;
+      // otherwise both the raw source and rendered Markdown remain visible.
+      nodes.forEach(node => node.remove());
+
       const holder = document.createElement("div");
       holder.innerHTML = window.marked.parse(preprocessNotionMarkdown(source));
       while (holder.firstChild) fragment.appendChild(holder.firstChild);
