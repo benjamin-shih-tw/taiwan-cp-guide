@@ -153,12 +153,13 @@
     return payload;
   }
 
-  async function fetchNotionPayload(pageId) {
+  async function fetchNotionPayload(pageId, fresh = false) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
     try {
-      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId), {
-        cache: "default",
+      const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId) +
+        (fresh ? "?fresh=" + Date.now() : ""), {
+        cache: fresh ? "no-store" : "default",
         signal: controller.signal
       });
       if (!response.ok) throw new Error("Notion API " + response.status);
@@ -174,7 +175,8 @@
     }
   }
 
-  async function loadNotionPayload(pageId) {
+  async function loadNotionPayload(pageId, fresh = false) {
+    if (fresh) return fetchNotionPayload(pageId, true);
     const cached = pagePayloadCache.get(pageId);
     if (cached && Date.now() - cached.savedAt < PAGE_CACHE_TTL) return cached.payload;
 
@@ -882,7 +884,7 @@
     document.getElementById("ladder-title").textContent = selected.title.replace(/^Problem Ladder\s*[—-]\s*/i, "");
     const notionLink = document.getElementById("ladder-notion");
     notionLink.href = selected.notionUrl || ("https://app.notion.com/p/" + selected.id);
-    renderNotionPageInto(content, selected.id, selected.content || "", false, selected);
+    renderNotionPageInto(content, selected.id, selected.content || "", false, { ...selected, fresh: true });
   }
 
   function renderResources() {
@@ -1283,7 +1285,7 @@
 
     try {
       const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
-      const payload = await loadNotionPayload(cleanId, controller.signal);
+      const payload = await loadNotionPayload(cleanId, Boolean(courseMeta?.fresh));
       previewCancelled = true;
       await rendererReady;
       if (rendererError) throw rendererError;
