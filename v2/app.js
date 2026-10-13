@@ -726,7 +726,16 @@
 
       const nodes = document.createElement("div");
       nodes.className = "roadmap-nodes";
-      group.courses.forEach(course => {
+      const units = new Map(group.courses.map(course => [
+        (course.title || "").match(/^00-\d{2}/)?.[0], course
+      ]));
+      ladders.forEach(ladder => {
+        const code = (ladder.title || "").match(/\b00-\d{2}\b/)?.[0];
+        if (code && !units.has(code)) units.set(code, {
+          title: ladder.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")
+        });
+      });
+      [...units.values()].sort((a, b) => a.title.localeCompare(b.title, "en", { numeric: true })).forEach(course => {
         const done = state.read.includes(course.id);
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "") + (course.isPlaceholder ? " coming-soon" : "");
@@ -884,7 +893,7 @@
     document.getElementById("ladder-title").textContent = selected.title.replace(/^Problem Ladder\s*[—-]\s*/i, "");
     const notionLink = document.getElementById("ladder-notion");
     notionLink.href = selected.notionUrl || ("https://app.notion.com/p/" + selected.id);
-    renderNotionPageInto(content, selected.id, selected.content || "", false, { ...selected, fresh: true });
+    renderNotionPageInto(content, selected.id, selected.content || "", false, selected);
   }
 
   function renderResources() {
@@ -1224,7 +1233,14 @@
       '<strong>內容暫時載入失敗</strong>' +
       '<p>' + esc(message || "請稍後再試。") + '</p>' +
       '<button type="button" class="btn small ghost">重新載入</button>';
-    host.querySelector("button")?.addEventListener("click", () => renderCourseContent(course));
+    host.querySelector("button")?.addEventListener("click", () => {
+      if (host === document.getElementById("ladder-content")) {
+        pagePayloadCache.delete(course.id);
+        renderProblems();
+      } else {
+        renderCourseContent(course);
+      }
+    });
   }
 
   async function renderNotionPageInto(host, pageId, fallbackMarkdown, makeToc, courseMeta, blockId) {
