@@ -4,24 +4,18 @@
   const APP_ASSET_BASE = new URL(".", document.currentScript?.src || location.href);
 
   const STORAGE = {
-    solved: "taiwan_cp_solved_problems",
     read: "taiwan_cp_read_topics",
     theme: "taiwan_cp_theme_v2",
     last: "taiwan_cp_last_topic_v2"
   };
 
   const state = {
-    solved: safeArray(localStorage.getItem(STORAGE.solved)),
     read: safeArray(localStorage.getItem(STORAGE.read)),
     theme: localStorage.getItem(STORAGE.theme) || "system",
     roadmapFilter: "all",
     courseSearch: "",
     courseDomain: "all",
     courseLevel: "all",
-    problemSearch: "",
-    problemPlatform: "all",
-    problemDomain: "",
-    hideSolved: false,
     activeTopic: null,
     baseView: "home"
   };
@@ -67,12 +61,12 @@
   let notionRendererPromise = null;
   let liveCatalogSignature = "";
   let lastCatalogRefresh = 0;
-  window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
+  window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id);
 
   function rebuildCourseMap() {
     notionCourseMap.clear();
     NOTION_COURSES.forEach(course => notionCourseMap.set(course.id, course));
-    window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id).concat(NOTION_LADDERS.map(ladder => ladder.id));
+    window.CODING_COURSE_IDS = NOTION_COURSES.map(course => course.id);
   }
 
   function courseSearchText(course) {
@@ -199,7 +193,7 @@
     const cleanId = String(pageId || "").replace(/-/g, "").toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(cleanId)) return;
 
-    const known = notionCourseMap.get(cleanId) || NOTION_LADDERS.find(item => item.id === cleanId);
+    const known = notionCourseMap.get(cleanId);
     if (known?.hasContent === false) return;
 
     // Start both expensive pieces before the user actually opens the overlay.
@@ -458,9 +452,6 @@
     "未歸類": ["•", "未歸類"]
   };
 
-  const allTopics = [];
-  const topicMap = new Map();
-  const problemMap = new Map();
 
   function safeArray(raw) {
     try {
@@ -481,28 +472,6 @@
 
   function courseDisplayTitle(course) {
     return String((course && course.title) || "").trim();
-  }
-
-
-  function initData() {
-    const roadmapData = (typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA)) ? ROADMAP_DATA : [];
-    if (!roadmapData.length) return;
-    roadmapData.forEach((level, levelIndex) => {
-      (level.topics || []).forEach((topic, topicIndex) => {
-        const row = {
-          topic: topic,
-          level: level,
-          levelIndex: levelIndex,
-          topicIndex: topicIndex,
-          difficulty: Math.min(10, 1 + levelIndex * 2)
-        };
-        allTopics.push(row);
-        topicMap.set(topic.id, row);
-        (topic.problems || []).forEach(problem => {
-          problemMap.set(problem.id, { problem: problem, row: row });
-        });
-      });
-    });
   }
 
 
@@ -562,31 +531,7 @@
     return null;
   }
 
-  function coursesForRoadmap(slug) {
-    const ids = roadmapToNotion.get(slug) || [];
-    return ids.map(id => notionCourseMap.get(id)).filter(Boolean);
-  }
-
-  function problemEntriesForDomain(domainName) {
-    const entries = [];
-    allTopics.forEach(row => {
-      const linkedCourses = coursesForRoadmap(row.topic.id);
-      const belongs = domainName === "未歸類"
-        ? linkedCourses.length === 0 || linkedCourses.every(course => !(course.domains || []).length)
-        : linkedCourses.some(course => (course.domains || []).includes(domainName));
-      if (!belongs) return;
-      entries.push({ row, linkedCourses });
-    });
-    return entries;
-  }
-
-  function problemCountForDomain(domainName) {
-    return problemEntriesForDomain(domainName)
-      .reduce((sum, entry) => sum + (entry.row.topic.problems || []).length, 0);
-  }
-
   function persist() {
-    localStorage.setItem(STORAGE.solved, JSON.stringify(state.solved));
     localStorage.setItem(STORAGE.read, JSON.stringify(state.read));
   }
 
@@ -613,7 +558,7 @@
   }
 
   function showView(name, forceRender) {
-    const valid = ["welcome", "home", "roadmap", "courses", "problems", "resources"];
+    const valid = ["welcome", "home", "roadmap", "courses", "resources"];
     if (!valid.includes(name)) name = "home";
     const activeView = document.querySelector(".view.active")?.dataset.view;
     const viewChanged = activeView !== name;
@@ -634,7 +579,6 @@
     if (name === "home") renderHome();
     if (name === "roadmap") renderRoadmap();
     if (name === "courses") renderCourses();
-    if (name === "problems") renderProblems();
     if (name === "resources") renderResources();
     renderedViews.add(name);
   }
@@ -654,12 +598,7 @@
     const parts = clean.split("/").filter(Boolean);
 
     if (parts[0] === "problems") {
-      closeLesson(false);
-      state.problemDomain = parts.length > 1 ? decodeURIComponent(parts.slice(1).join("/")) : "";
-      // The route can change while staying inside the same Problems view
-      // (#/problems -> #/problems/<domain>). Force a render so the selected
-      // domain actually opens instead of being skipped by showView's cache.
-      showView("problems", true);
+      location.replace("#/courses");
       return;
     }
 
@@ -670,14 +609,13 @@
   function renderWelcome() {
     const totalCourses = NOTION_COURSES.length;
     const totalDomains = NOTION_DOMAIN_ORDER.length;
-    const totalLadders = NOTION_LADDERS.length;
     const doneCourses = state.read.filter(id => notionCourseMap.has(id)).length;
     const progress = totalCourses ? Math.round(doneCourses / totalCourses * 100) : 0;
 
     const stats = [
       ["welcome-course-count", totalCourses, ""],
       ["welcome-domain-count", totalDomains, ""],
-      ["welcome-ladder-count", totalLadders, ""],
+      ["welcome-completed-count", doneCourses, ""],
       ["welcome-progress-count", progress, "%"]
     ];
 
@@ -701,11 +639,10 @@
   }
 
   function renderHome() {
-    const totalProblems = Array.from(problemMap.keys()).length;
     const doneCourses = state.read.filter(id => notionCourseMap.has(id)).length;
     const progress = NOTION_COURSES.length ? Math.round(doneCourses / NOTION_COURSES.length * 100) : 0;
     document.getElementById("stat-topics").textContent = NOTION_COURSES.length;
-    document.getElementById("stat-problems").textContent = totalProblems;
+    document.getElementById("stat-completed").textContent = doneCourses;
     document.getElementById("stat-progress").textContent = progress + "%";
     document.getElementById("stat-levels").textContent = NOTION_DOMAIN_ORDER.length;
 
@@ -886,170 +823,6 @@
     idleWarmLessons(visibleCourses);
   }
 
-  function renderProblems() {
-    const home = document.getElementById("problem-domain-home");
-    const detail = document.getElementById("problem-domain-detail");
-    const groups = notionDomainGroups();
-
-    if (!state.problemDomain) {
-      home.hidden = false;
-      detail.hidden = true;
-
-      const grid = document.getElementById("problem-domain-grid");
-      grid.innerHTML = "";
-      groups.forEach(group => {
-        const problemCount = problemCountForDomain(group.domain.name);
-        const ladderCount = NOTION_LADDERS.filter(ladder => ladder.domain === group.domain.name).length;
-        const card = document.createElement("article");
-        card.className = "problem-domain-card";
-        card.innerHTML =
-          "<h2>" + esc(group.domain.name) + "</h2>" +
-          '<div class="problem-domain-meta"><span>' + group.courses.length + " 課</span><span>" +
-          ladderCount + " 題單</span><span>" + problemCount + " 題</span></div>";
-        card.onclick = () => {
-          location.hash = "#/problems/" + encodeURIComponent(group.domain.name);
-        };
-        grid.appendChild(card);
-      });
-      return;
-    }
-
-    const group = groups.find(item => item.domain.name === state.problemDomain);
-    if (!group) {
-      state.problemDomain = "";
-      location.hash = "#/problems";
-      return;
-    }
-
-    home.hidden = true;
-    detail.hidden = false;
-    document.getElementById("problem-domain-title").textContent = group.domain.name;
-
-    const courseHost = document.getElementById("problem-course-list");
-    courseHost.innerHTML = "";
-    group.courses.forEach(course => {
-      const row = document.createElement("button");
-      row.className = "problem-course-row";
-      row.innerHTML =
-        '<span class="problem-course-name">' + esc(courseDisplayTitle(course)) + "</span>" +
-        (course.difficulty == null ? "" : '<span class="problem-course-diff">' + esc(course.difficulty) + "/10</span>") +
-        '<span class="problem-course-arrow">→</span>';
-      bindLessonWarmup(row, course.id);
-      row.onclick = () => openLesson(course.id, true);
-      courseHost.appendChild(row);
-    });
-
-    const migratedHost = document.getElementById("migrated-ladders");
-    cancelRendersWithin(migratedHost);
-    if (window.NotionXBridge?.unmountWithin) window.NotionXBridge.unmountWithin(migratedHost);
-    migratedHost.innerHTML = "";
-    const migrated = NOTION_LADDERS
-      .filter(ladder => ladder.domain === group.domain.name)
-      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "en", { numeric: true }));
-
-    migrated.forEach((ladder, index) => {
-      const details = document.createElement("details");
-      details.className = "migrated-ladder";
-      if (migrated.length === 1) details.open = true;
-      const summary = document.createElement("summary");
-      let label = String(ladder.title || "");
-      label = label.replace("Problem Ladder — ", "").replace("Problem Ladder - ", "");
-      summary.innerHTML =
-        '<span class="ladder-step-index">' + String(index + 1).padStart(2, "0") + "</span>" +
-        "<span>" + esc(label) + "</span>";
-      const body = document.createElement("div");
-      body.className = "migrated-ladder-body markdown-body";
-      const loadLadder = () => {
-        if (!details.open || body.dataset.loaded === "1") return;
-        body.dataset.loaded = "1";
-        renderNotionPageInto(body, ladder.id, ladder.content || "", false, ladder);
-      };
-      bindLessonWarmup(summary, ladder.id);
-      details.addEventListener("toggle", loadLadder);
-      details.append(summary, body);
-      migratedHost.appendChild(details);
-      loadLadder();
-    });
-    const platformSelect = document.getElementById("problem-platform");
-    if (platformSelect.options.length <= 1) {
-      const platforms = Array.from(new Set(Array.from(problemMap.values()).map(x => x.problem.platform).filter(Boolean))).sort();
-      platforms.forEach(p => {
-        const op = document.createElement("option");
-        op.value = p;
-        op.textContent = p;
-        platformSelect.appendChild(op);
-      });
-    }
-    platformSelect.value = state.problemPlatform;
-    document.getElementById("problem-search").value = state.problemSearch;
-    document.getElementById("hide-solved").checked = state.hideSolved;
-
-    const allEntries = problemEntriesForDomain(group.domain.name);
-    const allDomainProblems = allEntries.flatMap(entry => entry.row.topic.problems || []);
-    const solved = allDomainProblems.filter(problem => state.solved.includes(problem.id)).length;
-    const pct = allDomainProblems.length ? Math.round(solved / allDomainProblems.length * 100) : 0;
-    document.getElementById("problem-progress").innerHTML =
-      '<div class="ladder-progress-line"><span>' + solved + " / " + allDomainProblems.length +
-      '</span><strong>' + pct + '%</strong></div>' +
-      '<div class="mini-progress"><span style="width:' + pct + '%"></span></div>';
-
-    const q = state.problemSearch.trim().toLowerCase();
-    const ladder = document.getElementById("problem-ladder");
-    ladder.innerHTML = "";
-
-    allEntries.forEach(({ row }, entryIndex) => {
-      const problems = (row.topic.problems || []).filter(problem => {
-        const solvedNow = state.solved.includes(problem.id);
-        const text = ((problem.name || "") + " " + (problem.platform || "")).toLowerCase();
-        return (!q || text.includes(q)) &&
-          (state.problemPlatform === "all" || problem.platform === state.problemPlatform) &&
-          (!state.hideSolved || !solvedNow);
-      });
-      if (!problems.length) return;
-
-      const step = entryIndex + 1;
-      const block = document.createElement("section");
-      block.className = "ladder-step";
-
-      const head = document.createElement("div");
-      head.className = "ladder-step-head";
-      const doneCount = (row.topic.problems || []).filter(problem => state.solved.includes(problem.id)).length;
-      head.innerHTML =
-        '<span class="ladder-step-index">' + String(step).padStart(2, "0") + "</span>" +
-        '<div><h3>' + esc(row.topic.title) + '</h3><small>' +
-        doneCount + " / " + (row.topic.problems || []).length + "</small></div>";
-      block.appendChild(head);
-
-      problems.forEach(problem => {
-        const solvedNow = state.solved.includes(problem.id);
-        const line = document.createElement("div");
-        line.className = "problem-row";
-        line.innerHTML =
-          '<input type="checkbox" ' + (solvedNow ? "checked" : "") + ' aria-label="完成題目">' +
-          '<div><div class="problem-name">' + esc(problem.name) + '</div><div class="problem-meta">' +
-          esc(problem.platform || "") + "</div></div>" +
-          '<span class="problem-diff">' + esc(problem.difficulty || "") + "</span>" +
-          '<a href="' + esc(problem.url || "#") + '" target="_blank" rel="noreferrer">開啟 ↗</a>';
-        line.querySelector("input").addEventListener("change", event => toggleProblem(problem.id, event.target.checked));
-        block.appendChild(line);
-      });
-
-      ladder.appendChild(block);
-    });
-
-    if (!ladder.children.length) ladder.innerHTML = '<div class="empty-state">目前沒有題目</div>';
-  }
-
-  function toggleProblem(id, checked) {
-    if (checked && !state.solved.includes(id)) state.solved.push(id);
-    if (!checked) state.solved = state.solved.filter(x => x !== id);
-    persist();
-    renderHome();
-    renderProblems();
-    if (state.activeTopic) refreshLessonProgress();
-    toast(checked ? "已標記完成" : "已取消完成");
-  }
-
   function renderResources() {
     const host = document.getElementById("template-grid");
     if (!TEMPLATES.length) {
@@ -1126,7 +899,6 @@
     document.getElementById("lesson-tags").innerHTML = tags;
 
     document.getElementById("lesson-prereq").style.display = "none";
-    document.querySelector(".lesson-end").style.display = "none";
 
     refreshLessonProgress();
     renderCourseContent(course, blockId);
@@ -1150,7 +922,7 @@
     cancelRendersWithin(lessonHost);
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(lessonHost);
     state.activeTopic = null;
-    if (pushHash) location.hash = state.baseView === "problems" && state.problemDomain ? "#/problems/" + encodeURIComponent(state.problemDomain) : "#/" + state.baseView;
+    if (pushHash) location.hash = "#/" + state.baseView;
   }
 
   function refreshLessonProgress() {
@@ -1838,7 +1610,7 @@
       modal.classList.add("open");
       modal.setAttribute("aria-hidden", "false");
       input.value = "";
-      results.innerHTML = '<div class="empty-state">輸入關鍵字搜尋課程與題目。</div>';
+      results.innerHTML = '<div class="empty-state">輸入關鍵字搜尋課程。</div>';
       setTimeout(() => input.focus(), 0);
     };
     const close = () => {
@@ -1864,17 +1636,13 @@
       const q = input.value.trim().toLowerCase();
       results.innerHTML = "";
       if (!q) {
-        results.innerHTML = '<div class="empty-state">輸入關鍵字搜尋課程與題目。</div>';
+        results.innerHTML = '<div class="empty-state">輸入關鍵字搜尋課程。</div>';
         return;
       }
 
       const courseResults = NOTION_COURSES.filter(course =>
         courseSearchText(course).includes(q)
       ).slice(0, 8);
-      const problemResults = Array.from(problemMap.values()).filter(x =>
-        ((x.problem.name || "") + " " + (x.problem.platform || "")).toLowerCase().includes(q)
-      ).slice(0, 8);
-
       courseResults.forEach(course => {
         const item = document.createElement("div");
         item.className = "search-result";
@@ -1886,15 +1654,6 @@
         results.appendChild(item);
       });
 
-      problemResults.forEach(x => {
-        const item = document.createElement("div");
-        item.className = "search-result";
-        item.innerHTML =
-          "<strong>" + esc(x.problem.name) + "</strong><small>題目 · " + esc(x.problem.platform || "") + "</small>";
-        item.onclick = () => { window.open(x.problem.url, "_blank", "noopener"); };
-        results.appendChild(item);
-      });
-
       if (!results.children.length) {
         results.innerHTML = '<div class="empty-state">沒有找到結果。</div>';
       }
@@ -1903,7 +1662,6 @@
 
   function setupControls() {
     let courseSearchFrame = 0;
-    let problemSearchFrame = 0;
     document.getElementById("theme-toggle").onclick = event => {
       const button = event.currentTarget;
       const current = document.documentElement.dataset.theme;
@@ -1931,27 +1689,9 @@
       renderCourses();
     });
 
-    document.getElementById("problem-search").addEventListener("input", e => {
-      state.problemSearch = e.target.value;
-      cancelAnimationFrame(problemSearchFrame);
-      problemSearchFrame = requestAnimationFrame(renderProblems);
-    });
-    document.getElementById("problem-platform").addEventListener("change", e => {
-      state.problemPlatform = e.target.value;
-      renderProblems();
-    });
-    document.getElementById("hide-solved").addEventListener("change", e => {
-      state.hideSolved = e.target.checked;
-      renderProblems();
-    });
-
-    document.getElementById("problem-domain-back").addEventListener("click", () => {
-      location.hash = "#/problems";
-    });
   }
 
   function bootstrap() {
-    initData();
     setTheme(state.theme);
     setupControls();
     setupSearch();

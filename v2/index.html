@@ -17,7 +17,6 @@
     <nav class="main-nav">
       <a href="#/roadmap" data-nav="roadmap">單元</a>
       <a href="#/courses" data-nav="courses">課程</a>
-      <a href="#/problems" data-nav="problems">題庫</a>
       <a href="#/resources" data-nav="resources">資源</a>
     </nav>
     <div class="top-actions">
@@ -64,8 +63,8 @@
             <span>單元</span>
           </div>
           <div>
-            <strong id="welcome-ladder-count" data-count="0">0</strong>
-            <span>題單</span>
+            <strong id="welcome-completed-count" data-count="0">0</strong>
+            <span>已完成課程</span>
           </div>
           <div>
             <strong id="welcome-progress-count" data-count="0" data-suffix="%">0%</strong>
@@ -98,11 +97,11 @@
             <span class="welcome-feature-arrow">↗</span>
           </a>
 
-          <a class="welcome-feature-card" href="#/problems" data-welcome-reveal>
+          <a class="welcome-feature-card" href="#/roadmap" data-welcome-reveal>
             <span class="welcome-feature-no">02</span>
             <div>
-              <h3>題單</h3>
-              <p>依照難度排序 以連貫的方式讓你掌握單一觀念的全面應用</p>
+              <h3>單元</h3>
+              <p>依照主題整理課程，循序學習競程觀念。</p>
             </div>
             <span class="welcome-feature-arrow">↗</span>
           </a>
@@ -111,7 +110,7 @@
             <span class="welcome-feature-no">03</span>
             <div>
               <h3>Progress</h3>
-              <p>記住完成的課程與題目，回來就從上次的位置繼續。</p>
+              <p>記住完成的課程，回來就從上次的位置繼續。</p>
             </div>
             <span class="welcome-feature-arrow">↗</span>
           </a>
@@ -150,7 +149,7 @@
 
       <div class="stats-strip">
         <div><strong id="stat-topics">0</strong><span>課程</span></div>
-        <div><strong id="stat-problems">0</strong><span>題目</span></div>
+        <div><strong id="stat-completed">0</strong><span>已完成</span></div>
         <div><strong id="stat-progress">0%</strong><span>進度</span></div>
         <div><strong id="stat-levels">0</strong><span>單元</span></div>
       </div>
@@ -189,37 +188,6 @@
       <div id="course-empty" class="empty-state" hidden>沒有結果</div>
     </section>
 
-    <section class="view" data-view="problems">
-      <div id="problem-domain-home">
-        <div class="page-head"><h1>題庫</h1></div>
-        <div id="problem-domain-grid" class="problem-domain-grid"></div>
-      </div>
-
-      <div id="problem-domain-detail" hidden>
-        <div class="problem-detail-head">
-          <button id="problem-domain-back" class="text-button">← 題庫</button>
-          <h1 id="problem-domain-title"></h1>
-        </div>
-
-        <section class="problem-subsection">
-          <div class="problem-subsection-head"><h2>課程</h2></div>
-          <div id="problem-course-list" class="problem-course-list"></div>
-        </section>
-
-        <section class="problem-subsection">
-          <div class="problem-subsection-head"><h2>Problem Ladder</h2></div>
-          <div id="migrated-ladders" class="migrated-ladders"></div>
-          <div class="toolbar problem-toolbar">
-            <label class="searchbox"><span>⌕</span><input id="problem-search" type="search" placeholder="搜尋題目"></label>
-            <select id="problem-platform"><option value="all">全部平台</option></select>
-            <label class="check-control"><input id="hide-solved" type="checkbox"> 隱藏完成</label>
-          </div>
-          <div id="problem-progress" class="progress-card"></div>
-          <div id="problem-ladder" class="problem-ladder"></div>
-        </section>
-      </div>
-    </section>
-
     <section class="view" data-view="resources">
       <div class="page-head"><h1>資源</h1></div>
       <div class="resource-grid">
@@ -253,7 +221,6 @@
           </div>
           <div id="lesson-prereq" class="prereq-box"></div>
           <div id="lesson-content" class="markdown-body"></div>
-          <section class="lesson-end"><h2>練習</h2><div id="lesson-problems"></div></section>
         </article>
         <aside class="lesson-side">
           <div class="side-card">
