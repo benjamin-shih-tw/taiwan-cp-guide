@@ -187,9 +187,10 @@
 
     const promise = fetchNotionPayload(pageId);
     pagePayloadPromises.set(pageId, promise);
-    promise.finally(() => {
+    const clearPending = () => {
       if (pagePayloadPromises.get(pageId) === promise) pagePayloadPromises.delete(pageId);
-    });
+    };
+    promise.then(clearPending, clearPending);
     return promise;
   }
 
@@ -388,7 +389,6 @@
       console.warn("[Coding Course] live catalog unavailable; using static fallback", error);
       return false;
     } finally {
-      previewCancelled = true;
       clearTimeout(timer);
     }
   }
