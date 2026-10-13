@@ -726,16 +726,7 @@
 
       const nodes = document.createElement("div");
       nodes.className = "roadmap-nodes";
-      const units = new Map(group.courses.map(course => [
-        (course.title || "").match(/^00-\d{2}/)?.[0], course
-      ]));
-      ladders.forEach(ladder => {
-        const code = (ladder.title || "").match(/\b00-\d{2}\b/)?.[0];
-        if (code && !units.has(code)) units.set(code, {
-          title: ladder.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")
-        });
-      });
-      [...units.values()].sort((a, b) => a.title.localeCompare(b.title, "en", { numeric: true })).forEach(course => {
+      group.courses.forEach(course => {
         const done = state.read.includes(course.id);
         const node = document.createElement("article");
         node.className = "roadmap-node" + (done ? " done" : "") + (course.isPlaceholder ? " coming-soon" : "");
@@ -876,7 +867,16 @@
       if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(content);
       unitsHost.innerHTML = '<a class="ladder-crumb" href="#/problems">← 返回大單元</a>' +
         '<h2>' + esc(domain) + '</h2>';
-      group.courses.forEach(course => {
+      const units = new Map(group.courses.map(course => [
+        (course.title || "").match(/^00-\d{2}/)?.[0], course
+      ]));
+      ladders.forEach(ladder => {
+        const code = (ladder.title || "").match(/\b00-\d{2}\b/)?.[0];
+        if (code && !units.has(code)) units.set(code, {
+          title: ladder.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")
+        });
+      });
+      [...units.values()].sort((a, b) => a.title.localeCompare(b.title, "en", { numeric: true })).forEach(course => {
         const code = (course.title || "").match(/^00-\d{2}/)?.[0];
         const ladder = ladderByCode.get(code);
         const row = document.createElement(ladder ? "a" : "div");
