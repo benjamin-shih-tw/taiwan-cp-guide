@@ -883,7 +883,7 @@
         row.className = "ladder-nav-row" + (ladder ? "" : " unavailable");
         if (ladder) row.href = domainPath + "/" + ladder.id;
         row.innerHTML = '<strong>' + esc(course.title) + '</strong><span>' +
-          (ladder ? '6 階提單 →' : '準備中') + '</span>';
+          (ladder ? '開啟提單 →' : '準備中') + '</span>';
         unitsHost.appendChild(row);
       });
       return;
