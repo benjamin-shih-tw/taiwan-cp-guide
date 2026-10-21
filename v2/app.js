@@ -184,7 +184,7 @@
 
   async function fetchNotionPayload(pageId, fresh = false) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15_000);
+    const timer = setTimeout(() => controller.abort(), 40_000);
     try {
       const response = await fetch(LIVE_API_BASE + "/page/" + encodeURIComponent(pageId) +
         (fresh ? "?fresh=" + Date.now() : ""), {
@@ -1284,7 +1284,7 @@
 
     const controller = new AbortController();
     activePageRenders.set(host, { token, controller });
-    const timer = setTimeout(() => controller.abort(), 25000);
+    const timer = setTimeout(() => controller.abort(), 45000);
     let rendererError = null;
     const rendererReady = ensureNotionRenderer().catch(error => {
       rendererError = error;
@@ -1570,6 +1570,15 @@
     });
 
     host.querySelectorAll("img").forEach(img => {
+      try {
+        const source = new URL(img.getAttribute("src"), location.href);
+        if (source.hostname.startsWith("prod-files-secure.s3.")) {
+          const imageId = source.pathname.match(/\/[0-9a-f-]{36}\/([0-9a-f-]{36})\/[^/]+$/i)?.[1]?.toLowerCase();
+          const mirror = window.NOTION_IMAGE_MIRROR?.[imageId];
+          if (mirror) img.src = new URL(mirror, APP_ASSET_BASE).href;
+          else img.replaceWith(document.createTextNode("圖片暫時無法載入"));
+        }
+      } catch (_) {}
       img.loading = "lazy";
       img.decoding = "async";
     });

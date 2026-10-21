@@ -39,11 +39,14 @@ jobs:
       - name: Smoke test live Notion API
         run: python3 scripts/production_smoke.py
 
+      - name: Mirror Notion images for static previews
+        run: python3 scripts/sync_notion_images.py
+
       - name: Persist generated renderer
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f v2/notion-renderer.js v2/notion-renderer.css v2/notion-assets || true
+          git add -f v2/notion-renderer.js v2/notion-renderer.css v2/notion-assets v2/notion-images data/notion_image_mirror.js || true
           if ! git diff --cached --quiet; then
             git commit -m "build: update Notion renderer bundle"
             git push
