@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://benjaminshih.vercel.app" crossorigin>
   <link rel="dns-prefetch" href="//benjaminshih.vercel.app">
-  <link rel="stylesheet" href="style.css?v=41">
+  <link rel="stylesheet" href="style.css?v=42">
   <link rel="stylesheet" href="effects.css">
 </head>
 <body>
@@ -23,6 +23,7 @@
     <div class="top-actions">
       <button id="search-open" class="icon-btn" aria-label="搜尋">⌕</button>
       <button id="theme-toggle" class="icon-btn" aria-label="切換深淺色">◐</button>
+      <button id="appearance-open" class="icon-btn" aria-label="外觀設定" title="外觀設定">⚙</button>
     </div>
   </header>
 
@@ -257,9 +258,18 @@
 
   <div id="toast" class="toast"></div>
 
+  <dialog id="appearance-dialog" class="appearance-dialog" aria-labelledby="appearance-title">
+    <form method="dialog"><button class="appearance-close" aria-label="關閉">×</button></form>
+    <h2 id="appearance-title">外觀設定</h2>
+    <label>網站字體<select id="appearance-font"></select></label>
+    <label>背景主題<select id="appearance-mode"><option value="system">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></label>
+    <label>程式碼主題<select id="appearance-code-theme"></select></label>
+  </dialog>
+
   <script src="../data/notion_catalog_snapshot.js"></script>
   <script src="../data/notion_image_mirror.js"></script>
   <script src="effects.js"></script>
-  <script src="app.js?v=48"></script>
+  <script src="app.js?v=49"></script>
+  <script src="appearance.js?v=1"></script>
 </body>
 </html>

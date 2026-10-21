@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
+@font-face{font-family:'GenSeki Gothic TW';src:url('fonts/GenSekiGothic2TW-R.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'GenSen Rounded TW';src:url('fonts/GenSenRounded2TW-R.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Reader LuoYan Web';src:url('fonts/ReaderLuoYanWeb-Thin.woff2') format('woff2');font-display:swap}
+
 :root{
   --bg:#fff;--surface:#fff;--surface-2:#f7f7f7;--text:#111;--muted:#777;
   --line:#e8e8e8;--brand:#111;--green:#16865c;--max:1080px;
@@ -141,6 +145,33 @@ footer{width:min(var(--max),calc(100% - 40px));margin:0 auto;padding:20px 0 70px
 .hljs-meta,.hljs-meta .hljs-keyword{color:#116329}
 .hljs-variable,.hljs-template-variable,.hljs-attr{color:#953800}
 .hljs-params{color:#24292f}
+
+.appearance-dialog{width:min(440px,calc(100vw - 28px));padding:22px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:0 20px 60px #0004}
+.appearance-dialog::backdrop{background:#0008}
+.appearance-dialog h2{margin:0 0 20px;font-size:18px}
+.appearance-dialog label{display:block;margin:14px 0;font-size:12px;font-weight:600}
+.appearance-dialog select{display:block;width:100%;margin-top:6px;padding:9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text)}
+.appearance-close{float:right;border:0;background:transparent;font-size:22px;line-height:1;color:var(--muted)}
+
+html[data-code-theme][data-theme] .code-block{background:var(--code-bg);border-color:var(--code-border)}
+html[data-code-theme][data-theme] .code-toolbar{background:var(--code-bg);border-color:var(--code-border);color:var(--code-comment)}
+html[data-code-theme][data-theme] .markdown-body .code-block pre,
+html[data-code-theme][data-theme] .markdown-body pre:not(.code-block pre){background:var(--code-bg);color:var(--code-fg)}
+html[data-code-theme][data-theme] .hljs{color:var(--code-fg)}
+html[data-code-theme][data-theme] .hljs-comment,html[data-code-theme][data-theme] .hljs-quote{color:var(--code-comment)}
+html[data-code-theme][data-theme] .hljs-keyword,html[data-code-theme][data-theme] .hljs-selector-tag,html[data-code-theme][data-theme] .hljs-literal{color:var(--code-keyword)}
+html[data-code-theme][data-theme] .hljs-string,html[data-code-theme][data-theme] .hljs-regexp{color:var(--code-string)}
+html[data-code-theme][data-theme] .hljs-number,html[data-code-theme][data-theme] .hljs-symbol,html[data-code-theme][data-theme] .hljs-bullet{color:var(--code-number)}
+html[data-code-theme][data-theme] .hljs-title,html[data-code-theme][data-theme] .hljs-function .hljs-title{color:var(--code-function)}
+html[data-code-theme][data-theme] .hljs-type,html[data-code-theme][data-theme] .hljs-built_in{color:var(--code-type)}
+html[data-code-theme][data-theme] .hljs-variable,html[data-code-theme][data-theme] .hljs-template-variable,html[data-code-theme][data-theme] .hljs-attr{color:var(--code-variable)}
+html[data-code-theme][data-theme] .notion-live-host .notion-code{background:var(--code-bg)!important;color:var(--code-fg)!important;border:1px solid var(--code-border)}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.comment{color:var(--code-comment)!important}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.keyword{color:var(--code-keyword)!important}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.string{color:var(--code-string)!important}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.number{color:var(--code-number)!important}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.function{color:var(--code-function)!important}
+html[data-code-theme][data-theme] .notion-live-host .notion-code .token.class-name{color:var(--code-type)!important}
 
 html[data-theme="dark"] .code-block{background:#161b22;border-color:#30363d}
 html[data-theme="dark"] .code-toolbar{background:#161b22;border-color:#30363d;color:#8b949e}

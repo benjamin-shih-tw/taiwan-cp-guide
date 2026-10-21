@@ -573,7 +573,10 @@
     if (window.NotionXBridge && typeof window.NotionXBridge.setTheme === "function") {
       window.NotionXBridge.setTheme(dark);
     }
+    document.dispatchEvent(new CustomEvent("course-theme-change", { detail: mode }));
   }
+
+  window.setCourseTheme = setTheme;
 
   function showView(name, forceRender) {
     const valid = ["welcome", "home", "roadmap", "courses", "problems", "resources"];
