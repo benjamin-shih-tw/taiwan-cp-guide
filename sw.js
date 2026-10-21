@@ -1,4 +1,4 @@
-const CACHE_NAME = "taiwan-cp-guide-v46";
+const CACHE_NAME = "taiwan-cp-guide-v49";
 const CORE = [
   "./",
   "./index.html",
@@ -7,9 +7,10 @@ const CORE = [
   "./v2/effects.css",
   "./v2/effects.js",
   "./v2/app.js",
-  "./data/roadmap.js",
+  "./v2/appearance.js",
+  "./v2/appearance-options.json",
   "./data/notion_catalog_snapshot.js",
-  "./data/notion_unit00_snapshot.js",
+  "./data/notion_image_mirror.js",
   "./manifest.json"
 ];
 
@@ -92,7 +93,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  const isNetworkFirstAsset = /\/(?:v2\/(?:app|notion-renderer)\.(?:js|css)|data\/notion_catalog_snapshot\.js)$/.test(url.pathname);
+  const isNetworkFirstAsset = /\/(?:v2\/(?:app|style|appearance|notion-renderer)\.(?:js|css)|v2\/appearance-options\.json|data\/(?:notion_catalog_snapshot|notion_image_mirror)\.js)$/.test(url.pathname);
   event.respondWith(
     isNetworkFirstAsset
       ? fetch(event.request)
