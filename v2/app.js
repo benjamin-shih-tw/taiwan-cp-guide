@@ -155,7 +155,7 @@
       const existing = document.querySelector('script[data-notion-renderer]');
       if (window.NotionXBridge?.render) return resolve();
       const node = existing || document.createElement("script");
-      node.src = new URL("notion-renderer.js", APP_ASSET_BASE).href;
+      node.src = new URL("notion-renderer.js?v=51", APP_ASSET_BASE).href;
       node.async = true;
       node.dataset.notionRenderer = "1";
       node.addEventListener("load", () => window.NotionXBridge?.render
@@ -1071,34 +1071,45 @@
     const stack = [];
 
     lines.forEach(originalLine => {
-      let line = originalLine;
-      let removeTabs = stack.length;
-      while (removeTabs > 0 && line.startsWith("\t")) {
-        line = line.slice(1);
-        removeTabs--;
+      const trimmed = originalLine.trim();
+      if (!trimmed || trimmed === "<empty-block/>") {
+        out.push(originalLine);
+        return;
       }
+
+      let tabs = 0;
+      while (tabs < originalLine.length && originalLine[tabs] === "\t") {
+        tabs++;
+      }
+
+      while (stack.length && tabs < stack[stack.length - 1].depth) {
+        out.push("\n</details>\n");
+        stack.pop();
+      }
+
+      let line = originalLine.slice(tabs);
 
       const toggle = line.match(/^(#{1,6})\s+(.+?)\s*\{toggle\s*=\s*["']true["']\}\s*$/i);
       const heading = toggle || line.match(/^(#{1,6})\s+/);
       const level = heading ? heading[1].length : null;
 
       if (level != null) {
-        while (stack.length && stack[stack.length - 1] >= level) {
-          out.push("</details>");
+        while (stack.length && stack[stack.length - 1].level >= level) {
+          out.push("\n</details>\n");
           stack.pop();
         }
       }
 
       if (toggle) {
-        out.push('<details class="notion-toggle notion-toggle-h' + level + '"><summary>' + toggle[2].trim() + "</summary>");
-        stack.push(level);
+        out.push('<details class="notion-toggle notion-toggle-h' + level + '">\n<summary>' + toggle[2].trim() + "</summary>\n");
+        stack.push({ level, depth: tabs + 1 });
       } else {
         out.push(line);
       }
     });
 
     while (stack.length) {
-      out.push("</details>");
+      out.push("\n</details>\n");
       stack.pop();
     }
     return out.join("\n");
@@ -1130,12 +1141,13 @@
 
   function isolateNotionHtmlBlocks(markdown) {
     return String(markdown || "")
-      .replace(/(^|\n)[ \t]*(<table\b)/gi, "$1\n$2")
+      .replace(/(^|\n)[ \t]*(<table\b)/gi, "$1\n\n$2")
       .replace(/<\/table>[ \t]*(?=\n|$)/gi, "</table>\n\n")
-      .replace(/(^|\n)[ \t]*(<details\b)/gi, "$1\n$2")
-      .replace(/<\/details>[ \t]*(?=\n|$)/gi, "</details>\n\n")
-      .replace(/(^|\n)[ \t]*```/g, "$1```")
-      .replace(/```[ \t]*(?=\n|$)/g, "```\n");
+      .replace(/(^|\n)[ \t]*(<details\b[^>]*>)/gi, "$1\n\n$2\n")
+      .replace(/<\/summary>[ \t]*(?=\n|$)/gi, "</summary>\n\n")
+      .replace(/(^|\n)[ \t]*(<\/details>[ \t]*)/gi, "$1\n\n$2\n\n")
+      .replace(/(^|\n)[ \t]*(```)/g, "$1\n\n$2")
+      .replace(/(```)[ \t]*(?=\n|$)/g, "$1\n\n");
   }
 
   function normalizeNotionLayoutBlocks(markdown) {
@@ -1160,14 +1172,15 @@
       "ol","p","pre","s","small","span","strong","sub","summary","sup","table","tbody","td","tfoot",
       "th","thead","tr","u","ul"
     ]);
-    return String(markdown || "").replace(/<([^>\n]+)>/g, full => {
-      const inner = full.slice(1, -1).trim();
-      const cleaned = inner.replace(/^\//, "").trim();
+    let text = String(markdown || "").replace(/<(?=[^a-zA-Z/!]|$)/g, "&lt;");
+    text = text.replace(/<([^<>\n]+)>/g, (full, inner) => {
+      const cleaned = inner.trim().replace(/^\//, "").trim();
       const nameMatch = cleaned.match(/^([a-zA-Z][\w-]*)\b/);
       const name = nameMatch ? nameMatch[1].toLowerCase() : "";
       if (allowed.has(name) || inner.startsWith("!--")) return full;
-      return full.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return "&lt;" + inner + "&gt;";
     });
+    return text;
   }
 
   function notionPageIdFromUrl(url) {
@@ -1185,12 +1198,7 @@
   }
 
   function preprocessNotionMarkdown(markdown) {
-    const normalized = normalizeNotionMath(markdown)
-      .split("\n")
-      .map(line => line.replace(/^\t+/, ""))
-      .join("\n");
-    const protectedCode = protectMarkdownCode(normalized);
-    let text = protectedCode.text;
+    let text = normalizeNotionMath(markdown);
 
     text = text.replace(/<empty-block\s*\/>/gi, "");
 
@@ -1225,9 +1233,13 @@
     text = normalizeNotionLayoutBlocks(text);
     text = convertNotionToggleHeadings(text);
     text = deindentNotionDetails(text);
+    const protectedCode = protectMarkdownCode(text);
+    text = protectedCode.text;
     text = isolateNotionHtmlBlocks(text);
     text = escapeNonHtmlAngles(text);
-    return protectedCode.restore(text);
+    text = protectedCode.restore(text);
+    text = isolateNotionHtmlBlocks(text);
+    return text;
   }
 
   let notionRenderCounter = 0;
@@ -1695,7 +1707,9 @@
       if (!h.id) h.id = "lesson-section-" + idx;
       const a = document.createElement("a");
       a.href = location.hash;
-      a.textContent = h.textContent;
+      const clone = h.cloneNode(true);
+      clone.querySelectorAll(".notion-link-mention-preview, .notion-header-anchor").forEach(el => el.remove());
+      a.textContent = clone.textContent.trim();
       const level = h.matches("h3,.notion-h3") ? 3 : (h.matches("h2,.notion-h2") ? 2 : 1);
       a.style.paddingLeft = (level - 1) * 9 + "px";
       a.addEventListener("click", event => {

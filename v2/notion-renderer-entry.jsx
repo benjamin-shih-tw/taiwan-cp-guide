@@ -21,6 +21,34 @@ import 'prismjs/components/prism-bash.js'
 const mounts = new Map()
 let darkMode = document.documentElement.dataset.theme === 'dark'
 
+const DEFAULT_LINK_ICON =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E"
+
+function normalizeRecordMap(recordMap) {
+  if (!recordMap?.block) return recordMap
+  for (const blockId of Object.keys(recordMap.block)) {
+    const block = recordMap.block[blockId]?.value
+    if (!block?.properties) continue
+    for (const key of Object.keys(block.properties)) {
+      const val = block.properties[key]
+      if (Array.isArray(val)) {
+        for (const item of val) {
+          if (Array.isArray(item) && Array.isArray(item[1])) {
+            for (const format of item[1]) {
+              if (format[0] === 'lm' && format[1] && typeof format[1] === 'object') {
+                if (!format[1].icon_url || !String(format[1].icon_url).trim()) {
+                  format[1].icon_url = DEFAULT_LINK_ICON
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return recordMap
+}
+
 const compact = value => String(value || '').replace(/-/g, '').toLowerCase()
 
 function mapPageUrl(id) {
@@ -84,9 +112,26 @@ function internalNotionRoute(href) {
 }
 
 function NotionContent({ entry }) {
+  const containerRef = React.useRef(null)
+
   React.useEffect(() => {
     entry.onReady?.()
   }, [entry.recordMap, entry.onReady])
+
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const handleError = event => {
+      const target = event.target
+      if (target instanceof HTMLImageElement && target.classList.contains('notion-link-mention-icon')) {
+        if (target.src !== DEFAULT_LINK_ICON) {
+          target.src = DEFAULT_LINK_ICON
+        }
+      }
+    }
+    container.addEventListener('error', handleError, true)
+    return () => container.removeEventListener('error', handleError, true)
+  }, [])
 
   const handleClick = event => {
     const anchor = event.target.closest?.('a[href]')
@@ -99,7 +144,7 @@ function NotionContent({ entry }) {
 
   return React.createElement(
     'div',
-    { className: 'coding-course-notion-renderer', onClickCapture: handleClick },
+    { ref: containerRef, className: 'coding-course-notion-renderer', onClickCapture: handleClick },
     React.createElement(
       NotionErrorBoundary,
       { key: entry.version, onError: entry.onError },
@@ -125,6 +170,7 @@ function renderEntry(entry) {
 
 function render(container, recordMap, options = {}) {
   if (!container || !recordMap?.block) return false
+  normalizeRecordMap(recordMap)
 
   let entry = mounts.get(container)
   if (!entry) {

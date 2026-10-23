@@ -242,33 +242,74 @@ html[data-theme="dark"] .markdown-body mark{background:#5f5319}
 .notion-toggle+.notion-toggle{border-top:0;margin-top:-10px}
 .notion-toggle>summary{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   gap:8px;
-  padding:10px 2px;
+  padding:6px 2px;
   cursor:pointer;
   list-style:none;
   font-weight:600;
   user-select:none;
 }
-.notion-toggle>summary::-webkit-details-marker{display:none}
+.notion-toggle>summary::-webkit-details-marker,
+.notion-toggle>summary::marker{display:none}
 .notion-toggle>summary::before{
   content:"›";
   flex:0 0 auto;
   width:14px;
-  margin-top:-1px;
+  margin:0;
   color:var(--muted);
   font-size:17px;
-  line-height:1.2;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   transform:rotate(0deg);
   transition:transform .14s ease;
 }
 .notion-toggle[open]>summary::before{transform:rotate(90deg)}
 .notion-toggle>summary:hover{background:var(--surface-2)}
+.notion-toggle>summary>.notion-h,
+.notion-toggle>summary>h1,
+.notion-toggle>summary>h2,
+.notion-toggle>summary>h3,
+.notion-toggle>summary>h4,
+.notion-toggle>summary>h5,
+.notion-toggle>summary>h6{
+  margin:0!important;
+  padding:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  width:auto!important;
+  min-width:0!important;
+  line-height:1.3!important;
+}
 .notion-toggle-body{
   padding:2px 2px 14px 22px;
 }
 .notion-toggle-body>:first-child{margin-top:4px}
 .notion-toggle-body>:last-child{margin-bottom:0}
+
+.notion-link-mention{
+  vertical-align:middle;
+}
+.notion-link-mention-link{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:.35rem!important;
+}
+.notion-link-mention-icon{
+  width:1.15em!important;
+  height:1.15em!important;
+  border-radius:3px!important;
+  vertical-align:-0.15em!important;
+  object-fit:contain!important;
+  flex-shrink:0!important;
+}
+img.notion-link-mention-icon:not([src]),
+img.notion-link-mention-icon[src=""],
+img.notion-link-mention-icon[src="undefined"]{
+  content:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E")!important;
+}
 
 .notion-table-wrap{
   width:100%;
@@ -401,6 +442,9 @@ html[data-theme="dark"] .notion-color-background{
 }
 .notion-live-host .notion-toggle{
   border-color:transparent;
+}
+.notion-live-host .notion-toggle>div{
+  margin-left:22px!important;
 }
 .notion-live-host .notion-link{
   color:inherit;
