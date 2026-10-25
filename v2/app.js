@@ -132,6 +132,34 @@
     return unit00Promise;
   }
 
+  let compLaddersPromise = null;
+  function ensureCompetitionLadders() {
+    if (window.COMPETITION_LADDERS && window.COMPETITION_LADDERS.length) {
+      return Promise.resolve();
+    }
+    if (compLaddersPromise) return compLaddersPromise;
+    compLaddersPromise = new Promise((resolve) => {
+      const node = document.createElement("script");
+      node.src = new URL("../data/competition_ladders.js", APP_ASSET_BASE).href;
+      node.async = true;
+      node.addEventListener("load", () => resolve(), { once: true });
+      node.addEventListener("error", () => resolve(), { once: true });
+      document.head.appendChild(node);
+    });
+    return compLaddersPromise;
+  }
+
+  function getAllProblemLadders() {
+    const list = [...NOTION_LADDERS];
+    if (Array.isArray(window.COMPETITION_LADDERS)) {
+      const existingIds = new Set(list.map(l => l.id));
+      for (const item of window.COMPETITION_LADDERS) {
+        if (!existingIds.has(item.id)) list.push(item);
+      }
+    }
+    return list;
+  }
+
   function ensureNotionRenderer() {
     if (window.NotionXBridge?.render) return Promise.resolve();
     if (notionRendererPromise) return notionRendererPromise;
@@ -620,8 +648,18 @@
     const parts = clean.split("/").filter(Boolean);
 
     if (parts[0] === "problems") {
-      state.problemDomain = parts[1] ? decodeURIComponent(parts[1]) : "";
-      state.problemLadder = parts[2] || "";
+      let p1 = parts[1] ? decodeURIComponent(parts[1]) : "";
+      let p2 = parts[2] || "";
+      if (p1 && !p2) {
+        const all = getAllProblemLadders();
+        const found = all.find(l => l.id === p1);
+        if (found) {
+          p2 = found.id;
+          p1 = found.domain || (found.domains && found.domains[0]) || "";
+        }
+      }
+      state.problemDomain = p1;
+      state.problemLadder = p2;
       closeLesson(false);
       showView("problems", true);
       return;
@@ -849,16 +887,19 @@
         if (state.baseView === "problems") renderProblems();
       });
     }
+    if (!window.COMPETITION_LADDERS || !window.COMPETITION_LADDERS.length) {
+      ensureCompetitionLadders().then(() => {
+        if (state.baseView === "problems") renderProblems();
+      });
+    }
+
     const domainsHost = document.getElementById("ladder-domains");
     const unitsHost = document.getElementById("ladder-units");
     const page = document.getElementById("ladder-page");
     const content = document.getElementById("ladder-content");
-    const group = notionDomainGroups().find(item => /^00\b/.test(item.domain.name));
-    const domain = group?.domain.name || "";
-    const domainPath = "#/problems/" + encodeURIComponent(domain);
-    const ladders = NOTION_LADDERS.filter(item => (item.domains || []).includes(domain));
-    const ladderByCode = new Map(ladders.map(item => [(item.title || "").match(/\b00-\d{2}\b/)?.[0], item]));
-    const selected = ladders.find(item => item.id === state.problemLadder);
+
+    const allLadders = getAllProblemLadders();
+    const selected = allLadders.find(item => item.id === state.problemLadder);
 
     domainsHost.hidden = Boolean(state.problemDomain);
     unitsHost.hidden = !state.problemDomain || Boolean(selected);
@@ -867,13 +908,94 @@
     if (!state.problemDomain) {
       cancelRendersWithin(content);
       if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(content);
-      domainsHost.innerHTML = group
-        ? '<a class="ladder-nav-row" href="' + domainPath + '"><strong>' + esc(domain) + '</strong><span>' + ladders.length + ' 個小單元 →</span></a>'
-        : '<p class="empty-state">題庫正在載入…</p>';
+
+      let html = "";
+
+      // Section 1: 臺灣學科能力競賽 00～15 實戰題單 (324 題)
+      const compLadders = window.COMPETITION_LADDERS || [];
+      if (compLadders.length > 0) {
+        const compDomainMap = new Map();
+        compLadders.forEach(l => {
+          const d = l.domain;
+          if (!compDomainMap.has(d)) compDomainMap.set(d, { master: null, subs: [] });
+          const entry = compDomainMap.get(d);
+          if (l.id.endsWith("-master")) entry.master = l;
+          else entry.subs.push(l);
+        });
+
+        const sortedDomains = Array.from(compDomainMap.keys()).sort((a, b) =>
+          a.localeCompare(b, "en", { numeric: true })
+        );
+
+        html += '<div class="problem-domain-section">' +
+          '<div class="problem-domain-heading"><h2>臺灣學科能力競賽 00～15 實戰題單 (324 題)</h2></div>';
+
+        sortedDomains.forEach(domainName => {
+          const entry = compDomainMap.get(domainName);
+          const domainPath = "#/problems/" + encodeURIComponent(domainName);
+          const countText = entry.subs.length + ' 個小單元 / 全單元精熟題單 →';
+          html += '<a class="ladder-nav-row" href="' + domainPath + '">' +
+            '<strong>' + esc(domainName) + '</strong>' +
+            '<span>' + countText + '</span>' +
+            '</a>';
+        });
+
+        html += '</div>';
+      }
+
+      // Section 2: Notion 課程延伸題單
+      const notionGroups = notionDomainGroups();
+      if (notionGroups.length > 0) {
+        html += '<div class="problem-domain-section">' +
+          '<div class="problem-domain-heading"><h2>Notion 課程延伸題單</h2></div>';
+
+        notionGroups.forEach(group => {
+          const domainName = group.domain.name;
+          const domainPath = "#/problems/" + encodeURIComponent(domainName);
+          const domainLadders = NOTION_LADDERS.filter(item =>
+            (item.domains || []).includes(domainName) || item.domain === domainName
+          );
+          if (domainLadders.length > 0) {
+            html += '<a class="ladder-nav-row" href="' + domainPath + '">' +
+              '<strong>' + esc(domainName) + '</strong>' +
+              '<span>' + domainLadders.length + ' 個小單元 →</span>' +
+              '</a>';
+          } else {
+            html += '<div class="ladder-nav-row unavailable">' +
+              '<strong>' + esc(domainName) + '</strong>' +
+              '<span>準備中</span>' +
+              '</div>';
+          }
+        });
+
+        html += '</div>';
+      }
+
+      domainsHost.innerHTML = html || '<p class="empty-state">題庫正在載入…</p>';
       return;
     }
 
-    if (state.problemDomain !== domain || !group) {
+    // Checking domain
+    const currentDomain = state.problemDomain;
+    const compLaddersForDomain = (window.COMPETITION_LADDERS || []).filter(item =>
+      item.domain === currentDomain ||
+      (item.domains || []).includes(currentDomain) ||
+      (/^\d{2}$/.test(currentDomain) && item.domain.startsWith(currentDomain + " "))
+    );
+    const isCompDomain = compLaddersForDomain.length > 0;
+    const actualDomainName = isCompDomain
+      ? compLaddersForDomain[0].domain
+      : currentDomain;
+    const domainPath = "#/problems/" + encodeURIComponent(actualDomainName);
+
+    const notionGroup = isCompDomain
+      ? null
+      : notionDomainGroups().find(item =>
+          item.domain.name === currentDomain ||
+          (/^\d{2}$/.test(currentDomain) && item.domain.name.startsWith(currentDomain + " "))
+        );
+
+    if (!isCompDomain && !notionGroup) {
       unitsHost.hidden = false;
       unitsHost.innerHTML = '<a class="ladder-crumb" href="#/problems">← 返回大單元</a><p class="empty-state">找不到這個大單元。</p>';
       return;
@@ -883,33 +1005,70 @@
       cancelRendersWithin(content);
       if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(content);
       unitsHost.innerHTML = '<a class="ladder-crumb" href="#/problems">← 返回大單元</a>' +
-        '<h2>' + esc(domain) + '</h2>';
-      const units = new Map(group.courses.map(course => [
-        (course.title || "").match(/^00-\d{2}/)?.[0], course
-      ]));
-      ladders.forEach(ladder => {
-        const code = (ladder.title || "").match(/\b00-\d{2}\b/)?.[0];
-        if (code && !units.has(code)) units.set(code, {
-          title: ladder.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")
+        '<h2>' + esc(actualDomainName) + '</h2>';
+
+      if (isCompDomain) {
+        const master = compLaddersForDomain.find(l => l.id.endsWith("-master"));
+        if (master) {
+          const row = document.createElement("a");
+          row.className = "ladder-nav-row";
+          row.href = domainPath + "/" + master.id;
+          row.innerHTML = '<strong>🌟 ' + esc(master.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")) + '</strong><span>開啟全單元精熟題單 →</span>';
+          unitsHost.appendChild(row);
+        }
+
+        const subs = compLaddersForDomain
+          .filter(l => !l.id.endsWith("-master"))
+          .sort((a, b) => (a.title || "").localeCompare(b.title || "", "en", { numeric: true }));
+
+        subs.forEach(sub => {
+          const row = document.createElement("a");
+          row.className = "ladder-nav-row";
+          row.href = domainPath + "/" + sub.id;
+          row.innerHTML = '<strong>' + esc(sub.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")) + '</strong><span>開啟題單 →</span>';
+          unitsHost.appendChild(row);
         });
-      });
-      [...units.values()].sort((a, b) => a.title.localeCompare(b.title, "en", { numeric: true })).forEach(course => {
-        const code = (course.title || "").match(/^00-\d{2}/)?.[0];
-        const ladder = ladderByCode.get(code);
-        const row = document.createElement(ladder ? "a" : "div");
-        row.className = "ladder-nav-row" + (ladder ? "" : " unavailable");
-        if (ladder) row.href = domainPath + "/" + ladder.id;
-        row.innerHTML = '<strong>' + esc(course.title) + '</strong><span>' +
-          (ladder ? '開啟提單 →' : '準備中') + '</span>';
-        unitsHost.appendChild(row);
-      });
+      } else {
+        const targetDomainName = notionGroup.domain.name;
+        const notionLadders = NOTION_LADDERS.filter(item =>
+          (item.domains || []).includes(targetDomainName) || item.domain === targetDomainName
+        );
+        const ladderByCode = new Map(notionLadders.map(item => [(item.title || "").match(/\b\d{2}-\d{2}\b/)?.[0], item]));
+        const units = new Map((notionGroup.courses || []).map(course => [
+          (course.title || "").match(/^\d{2}-\d{2}/)?.[0], course
+        ]));
+        notionLadders.forEach(ladder => {
+          const code = (ladder.title || "").match(/\b\d{2}-\d{2}\b/)?.[0];
+          if (code && !units.has(code)) units.set(code, {
+            title: ladder.title.replace(/^Problem Ladder\s*[—-]\s*/i, "")
+          });
+        });
+        [...units.values()].sort((a, b) => a.title.localeCompare(b.title, "en", { numeric: true })).forEach(course => {
+          const code = (course.title || "").match(/^\d{2}-\d{2}/)?.[0];
+          const ladder = ladderByCode.get(code);
+          const row = document.createElement(ladder ? "a" : "div");
+          row.className = "ladder-nav-row" + (ladder ? "" : " unavailable");
+          if (ladder) row.href = domainPath + "/" + ladder.id;
+          row.innerHTML = '<strong>' + esc(course.title) + '</strong><span>' +
+            (ladder ? '開啟題單 →' : '準備中') + '</span>';
+          unitsHost.appendChild(row);
+        });
+      }
       return;
     }
 
-    document.getElementById("ladder-back").href = domainPath;
+    // Selected ladder view
+    const ladderDomain = selected.domain || (selected.domains && selected.domains[0]) || actualDomainName;
+    document.getElementById("ladder-back").href = "#/problems/" + encodeURIComponent(ladderDomain);
     document.getElementById("ladder-title").textContent = selected.title.replace(/^Problem Ladder\s*[—-]\s*/i, "");
     const notionLink = document.getElementById("ladder-notion");
-    notionLink.href = selected.notionUrl || ("https://app.notion.com/p/" + selected.id);
+    if (selected.hackerrankUrl) {
+      notionLink.href = selected.hackerrankUrl;
+      notionLink.textContent = "在 HackerRank 練習 ↗";
+    } else {
+      notionLink.href = selected.notionUrl || ("https://app.notion.com/p/" + selected.id);
+      notionLink.textContent = "在 Notion 編輯 ↗";
+    }
     renderNotionPageInto(content, selected.id, selected.content || "", false, selected);
   }
 
@@ -1282,6 +1441,9 @@
 
     if (courseMeta?.staticOnly && String(fallbackMarkdown || "").trim()) {
       host.className = "markdown-body";
+      if (!window.marked) {
+        await ensureNotionRenderer().catch(console.warn);
+      }
       renderNotionMarkdownInto(host, fallbackMarkdown, makeToc);
       return;
     }
