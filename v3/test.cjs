@@ -68,6 +68,12 @@ S.recordAttempt(C.problems[0].id,"wa","演算法觀念","needs reconsideration")
 assert(S.read().mistakes[C.problems[0].id],"wrong-answer mistake recorded");
 S.recordAttempt(C.problems[0].id,"ac","","");
 assert.equal(S.read().mistakes[C.problems[0].id].resolved,true,"AC resolves mistake");
+const backup=JSON.parse(JSON.stringify(S.read()));
+S.markRead(first,false);
+assert(!S.read().done[first],"temporary clear for import test");
+S.importBackup(backup);
+assert(S.read().done[first],"JSON backup restores completed lesson");
+assert.throws(()=>S.importBackup({invalid:42}),/不是 Coding Course/,"reject unrelated backup");
 assert(S.nextSuggestions(C.lessons,5,C.prerequisitesForLesson).length>0,"recommendations available");
 const html=fs.readFileSync(path.join(root,"v3/index.html"),"utf8");
 const matches=[...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1].split("?")[0]);
