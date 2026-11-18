@@ -56,10 +56,22 @@
   // Prerequisites are copied from the existing roadmap; no implicit edges are fabricated.
   const edges = [...topicById.values()].flatMap(t => t.prerequisites.filter(dep => topicById.has(dep)).map(dep => ({ from: dep, to: t.id })));
   const problems = [];
-  const seen = new Set();
+  const seen = new Map();
   const append = (p) => {
-    if (!p.url || !/^https:\/\//i.test(p.url) || seen.has(p.url)) return;
-    seen.add(p.url);
+    if (!p.url || !/^https:\/\//i.test(p.url)) return;
+    const previous = seen.get(p.url);
+    if (previous) {
+      if (p.lessonId) {
+        previous.lessonIds ||= previous.lessonId ? [previous.lessonId] : [];
+        if (!previous.lessonIds.includes(p.lessonId)) previous.lessonIds.push(p.lessonId);
+        if (!previous.lessonId) previous.lessonId = p.lessonId;
+      }
+      if (p.domain && !previous.domain) previous.domain = p.domain;
+      if (p.difficulty !== "Unrated" && previous.difficulty === "Unrated") previous.difficulty = p.difficulty;
+      return;
+    }
+    if (p.lessonId) p.lessonIds = [p.lessonId];
+    seen.set(p.url, p);
     problems.push(p);
   };
   for (const group of topicGroups) {
@@ -137,7 +149,7 @@
   }
   function byLesson(id) {
     const c = lessonById.get(id);
-    return problems.filter(p => p.lessonId === id || (!p.lessonId && c && p.domain === c.domain));
+    return problems.filter(p => p.lessonId === id || p.lessonIds?.includes(id) || (!p.lessonId && c && p.domain === c.domain));
   }
   function byDomain(domain) { return problems.filter(p => p.domain === domain); }
   function path(lesson) {
