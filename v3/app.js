@@ -293,12 +293,18 @@ function renderProgress(){
   app.innerHTML=title("LEARNING ANALYTICS","學習掌握度","閱讀進度、自我評分、作答紀錄分開計算；沒有作答資料的維度不會被當成滿分。")+
     '<div class="grid stats-grid">'+DIMS.map(([k,label])=>{const vals=rated.map(l=>s.mastery[l.id]?.[k]).filter(v=>Number.isFinite(v));const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):"—";return '<div class="card stat"><strong>'+avg+'</strong><span>'+label+' / 4</span></div>';}).join("")+'</div>'+
     '<div class="section-head"><h2>各 Course 閱讀進度</h2></div><div class="stack">'+rows+'</div>'+
-    '<div class="section-head"><h2>備份學習資料</h2></div><div class="card"><p class="muted">可將本機紀錄匯出為 JSON，方便自行保管。匯出不包含任何原始教材內容。</p><button class="button secondary" id="export-progress">匯出 JSON</button></div>';
+    '<div class="section-head"><h2>備份學習資料</h2></div><div class="card"><p class="muted">可將本機紀錄匯出為 JSON，方便自行保管。匯出不包含任何原始教材內容。匯入會覆蓋目前的本機學習紀錄。</p><div class="actions"><button class="button secondary" id="export-progress">匯出 JSON</button><label class="button secondary" for="import-progress">匯入 JSON</label><input id="import-progress" type="file" accept=".json,application/json" hidden></div></div>';
   document.getElementById("export-progress").onclick=()=>{
     const blob=new Blob([JSON.stringify(S.read(),null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download="coding-course-v3-progress.json";a.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  document.getElementById("import-progress").onchange=async event=>{
+    const file=event.target.files?.[0];if(!file)return;
+    if(!window.confirm("匯入備份會覆蓋目前瀏覽器的學習紀錄。要繼續嗎？"))return;
+    try {const count=S.importBackup(JSON.parse(await file.text()));renderProgress();showToast("已匯入 "+count+" 筆閱讀紀錄");}
+    catch(error){showToast("匯入失敗："+String(error.message||error));}
   };
 }
 function notFound(){app.innerHTML=title("NOT FOUND","找不到這個頁面","可能是連結過期或教材目錄尚未同步。")+navbtn("#/courses","返回課程總覽");}
