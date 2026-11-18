@@ -90,6 +90,7 @@ function renderChapter(domain,chapterId) {
   const course = getCourse(domain),chapter = course?.chapters.find(c=>c.id===chapterId);
   if(!chapter) return notFound();
   const matchedLadders = [...new Map(chapter.lessons.flatMap(l=>C.setByLesson.get(l.id)||[]).map(x=>[x.id,x])).values()];
+  const relatedProblems = [...new Map(chapter.lessons.flatMap(l=>C.byLesson(l.id)).map(p=>[p.url,p])).values()];
   app.innerHTML=title(course.name+" / "+chapter.title,"本章課程",chapter.lessons.length+" 篇 Lesson · 原始內容不做修改")+
     '<div class="actions">'+navbtn("#/courses/"+enc(domain),"← "+course.name)+'</div>'+
     '<div class="section-head"><h2>Lessons</h2><span class="muted">'+doneCount(chapter.lessons)+' 已閱讀</span></div>'+
@@ -99,7 +100,16 @@ function renderChapter(domain,chapterId) {
     '<div class="card"><h3>必學題型</h3><div class="chip-row">'+chapter.lessons.map(l=>'<span class="pill">'+esc(l.title)+'</span>').join("")+'</div></div>'+
     '<div class="grid two-col" style="margin-top:15px">'+
        matchedLadders.map(l=>card(l.notionUrl||"../v2/#/problems",l.title,"原始 Notion 題單（內容完整保留）","PROBLEM SET")).join("")+
-       (matchedLadders.length?"":'<div class="empty">此章尚未在既有資料中找到直接關聯的 Problem Ladder。</div>')+'</div>';
+       (matchedLadders.length?"":'<div class="empty">此章尚未在既有資料中找到直接關聯的 Problem Ladder。</div>')+'</div>'+
+    '<div class="section-head"><h2>既有題目分級索引</h2><span class="muted">'+relatedProblems.length+' 題</span></div>'+
+    (relatedProblems.length
+      ? ["Easy","Medium","Hard","Extreme","Advanced","Unrated"].map(level=>{
+          const subset=relatedProblems.filter(p=>p.difficulty===level);
+          if(!subset.length)return "";
+          return '<section><h3>'+esc(({Easy:"入門",Medium:"中階",Hard:"進階",Extreme:"挑戰",Advanced:"進階題單",Unrated:"未標示難度"}[level]))+' · '+subset.length+'</h3><div class="stack">'+subset.slice(0,12).map(problemRow).join("")+'</div></section>';
+        }).join("")
+      : renderEmpty("目前沒有直接對應且可索引的外部題目；請使用上方原始題單。"));
+  bindAttempts();
 }
 function stageNavigation() {
   const s=S.read(),stage=lessonView.stage,headings=lessonView.headings||[];
@@ -139,7 +149,7 @@ function studyPrompt() {
   document.getElementById("complete-stage").onchange=e=>{S.completeStep(id,stage,e.target.checked);stageNavigation();updateLessonProgress();};
   document.getElementById("prev-stage").onclick=()=>{lessonView.stage--;stageNavigation();studyPrompt();};
   document.getElementById("next-stage").onclick=()=>{lessonView.stage++;stageNavigation();studyPrompt();};
-  if(mode==="interactive")document.getElementById("save-note").onclick=()=>{S.setNote(id,document.getElementById("self-check-note").value);showToast("筆記已儲存在此瀏覽器");};
+  if(mode==="interactive"){const field=document.getElementById("self-check-note");field.oninput=()=>S.setNote(id,field.value);document.getElementById("save-note").onclick=()=>{S.setNote(id,field.value);showToast("筆記已儲存在此瀏覽器");};}
 }
 function updateStudyPanel(){studyPrompt();}
 function updateLessonProgress(){
