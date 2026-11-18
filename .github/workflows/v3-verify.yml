@@ -1,0 +1,61 @@
+name: Coding Course v3 — feature branch checks
+
+on:
+  push:
+    branches:
+      - feature/coding-course-v3
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch with history
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate JavaScript syntax
+        run: |
+          set -eu
+          node --check v3/catalog.js
+          node --check v3/topic-mappings.js
+          node --check v3/learning.js
+          node --check v3/source.js
+          node --check v3/app.js
+          node --check v3/test.cjs
+
+      - name: Run data and learning regression tests
+        run: node v3/test.cjs
+
+      - name: Install headless browser test dependency
+        run: npm install --no-save --ignore-scripts playwright@1.56.1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Test real browser interactions
+        run: node v3/browser-smoke.cjs
+
+      - name: Verify all existing content and v2 files are unchanged
+        run: |
+          set -eu
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          echo "$changed"
+          if printf "%s\n" "$changed" | grep -E '^(tutorials/|data/|scripts/|v2/|app\.js$|style\.css$|index\.html$|legacy\.html$)' ; then
+            echo "::error::Existing content or v2 app was modified."
+            exit 1
+          fi
+          echo "Existing course data and v2 files unchanged."
