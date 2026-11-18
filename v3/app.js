@@ -47,7 +47,7 @@ function showToast(message) {
 function navigate(href) { location.hash = href.replace(/^#/,""); }
 function renderDashboard() {
   const store = S.read(), complete = doneCount(C.lessons), due = S.dueCourses(C.lessons);
-  const next = S.nextSuggestions(C.lessons, 8);
+  const next = S.nextSuggestions(C.lessons, 8, C.prerequisitesForLesson);
   app.innerHTML = title("YOUR LEARNING SPACE","Learn. Practice. Review.","沿用原本的 Coding Course 教材，將閱讀、實作與複習串成一條清楚的學習路徑。")+
     '<div class="grid stats-grid">'+
       '<div class="card stat"><strong>'+C.lessons.length+'</strong><span>課程 Lesson</span></div>'+
@@ -156,15 +156,19 @@ function renderLesson(id,mode="reader") {
   const index=all.findIndex(l=>l.id===id);
   const prev=all[index-1],next=all[index+1];
   const ladder=C.setByLesson.get(id)||[];
+  const prereqs=C.prerequisitesForLesson(id);
+  const prereqUI=prereqs.length
+    ? '<div class="card" style="margin-top:18px"><h3>先修知識</h3><p class="muted">以下關聯取自既有 Roadmap 與 v2 課程對應表。</p><div class="stack">'+prereqs.map(p=>p.lessonId?'<a href="'+C.path(findLesson(p.lessonId))+'">◦ '+esc(p.title)+' → 對應 Lesson</a>':'<a href="'+topicLink(p.topicId)+'">◦ '+esc(p.title)+' → 知識節點</a>').join("")+'</div></div>'
+    : '';
   app.innerHTML=title("COURSE / "+(chapter?.title||"CHAPTER")+" / LESSON",lesson.title,lesson.domain)+
     '<div class="actions">'+navbtn("#/courses/"+enc(lesson.domain)+"/"+enc(chapter?.id||"chapter-1"),"← 返回本章")+
     '<button class="button mode-btn" data-mode="reader">閱讀模式</button><button class="button mode-btn" data-mode="interactive">互動模式</button>'+
     (lesson.notionUrl?navbtn(lesson.notionUrl,"原始 Notion ↗"):"")+'</div>'+
     '<div class="lesson-layout v3-lesson-layout"><aside class="card side"><p class="eyebrow">LEARNING PATH</p><h3>六段式學習</h3><div id="step-progress"></div><div id="stage-nav"></div><hr><p class="eyebrow">原文章節</p><div id="source-toc" class="toc"></div></aside>'+
     '<section class="lesson-main"><div class="card source-card"><div class="row"><h2>原始教材</h2><span class="pill" id="source-status">載入中</span></div><p class="muted">以下直接渲染原始 Notion 資料，未改寫文字、公式、圖片或程式碼。</p><div id="source-content" class="notion-live-host" aria-live="polite"></div></div>'+
-    '<div class="card" style="margin-top:20px"><h3>相關題單</h3>'+
+    prereqUI+'<div class="card" style="margin-top:20px"><h3>相關題單</h3>'+
       (ladder.length?ladder.map(l=>'<p><a href="'+attr(l.notionUrl||"../v2/#/problems")+'" target="_blank" rel="noopener noreferrer">'+esc(l.title)+' ↗</a></p>').join(""):renderEmpty("尚無直接對應的原始題單，可到題庫依主題尋找。"))+
-    '</div><div class="card" style="margin-top:20px"><div class="row"><div><h3>閱讀紀錄</h3><p class="muted">閱讀完成與掌握程度分開計算。</p></div><button id="mark-read" class="button secondary"></button></div></div>'+
+    '</div><div class="card" style="margin-top:20px"><div class="row"><div><h3>閱讀紀錄</h3><p class="muted">閱讀完成與掌握程度分開計算。</p></div><div class="actions"><button id="mark-read" class="button secondary"></button><button id="plan-review" class="button secondary">加入複習清單</button></div></div></div>'+
     '<div class="actions">'+(prev?navbtn(C.path(prev),"← "+prev.title):"")+(next?navbtn(C.path(next),next.title+" →",false):"")+'</div></section>'+
     '<aside id="study-panel" class="card study-side"></aside></div>';
   document.querySelectorAll(".mode-btn").forEach(button=>button.onclick=()=>{
@@ -179,6 +183,7 @@ function renderLesson(id,mode="reader") {
   updateLessonProgress();
   stageNavigation();
   studyPrompt();
+  document.getElementById("plan-review").onclick=()=>{S.planReview(id);showToast("已加入今天的複習清單");};
   document.getElementById("mark-read").onclick=()=>{
     S.markRead(id,!S.read().done[id]);updateLessonProgress();showToast(S.read().done[id]?"已標記閱讀":"已取消標記");
   };
