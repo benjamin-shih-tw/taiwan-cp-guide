@@ -35,6 +35,7 @@
     if (window.marked?.parse) {
       window.marked.setOptions({ gfm: true });
       host.innerHTML = window.marked.parse(markdown);
+      mirrorExpiredImages(host);
       // The Markdown comes from the project's own frozen Notion snapshots.
       // Do not rewrite the source. Embedded links remain normal hyperlinks.
       if (window.renderMathInElement) {
@@ -50,6 +51,19 @@
       pre.textContent = markdown;
       host.replaceChildren(pre);
     }
+  }
+  function mirrorExpiredImages(host) {
+    const mirror = window.NOTION_IMAGE_MIRROR || {};
+    host.querySelectorAll("img[src]").forEach(img => {
+      try {
+        const source = new URL(img.getAttribute("src"), location.href);
+        if (!source.hostname.startsWith("prod-files-secure.s3.")) return;
+        const imageId = source.pathname.match(/\/[0-9a-f-]{36}\/([0-9a-f-]{36})\/[^/]+$/i)?.[1]?.toLowerCase();
+        const local = mirror[imageId];
+        if (local) img.src = new URL("../v2/" + local, location.href).href;
+      } catch (_) {}
+      img.loading = "lazy";
+    });
   }
   function headings(host) {
     return Array.from(host.querySelectorAll("h1,h2,h3,.notion-h1,.notion-h2,.notion-h3"))
@@ -94,7 +108,21 @@
       host.className = "notion-live-host";
       const ok = window.NotionXBridge.render(host, payload.blockMap, {
         onReady: () => requestAnimationFrame(() => emit("ready", "live")),
-        onError: error => emit("render-error", error)
+        onError: error => {
+          if (current !== handle) return;
+          console.warn("[v3] React Notion renderer failed; switching to snapshot", error);
+          setTimeout(() => {
+            if (current !== handle) return;
+            window.NotionXBridge?.unmount(host);
+            if (lesson.fallback?.trim()) {
+              localMarkdown(host, lesson.fallback);
+              emit("ready", "snapshot");
+            } else {
+              host.innerHTML = '<div class="empty">教材渲染失敗，請開啟原始 Notion 連結。</div>';
+              emit("error", "renderer");
+            }
+          }, 0);
+        }
       });
       if (!ok) throw new Error("Notion renderer rejected the page");
     } catch (error) {
