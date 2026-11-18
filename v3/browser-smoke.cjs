@@ -45,7 +45,7 @@ async function main(){
     await page.locator("#plan-review").click();
     await page.locator("#mark-read").click();
     assert(await page.locator("#mark-read").textContent() !== "", "read completion controls");
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => ["Notion Live","本機快照","載入失敗","尚無內容"].includes(document.getElementById("source-status")?.textContent), null, { timeout: 20000 });
     assert(["Notion Live","本機快照","載入失敗","尚無內容"].includes(await page.locator("#source-status").textContent()),"original source status resolved");
     await page.goto(base+"/v3/#/problems",{waitUntil:"domcontentloaded"});
     await page.waitForSelector(".problem-row button[data-attempt]");
