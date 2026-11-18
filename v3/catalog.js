@@ -1,12 +1,26 @@
 (() => {
   "use strict";
   const snapshot = Array.isArray(window.NOTION_COURSES) ? window.NOTION_COURSES : [];
+  // The compact boot catalog contains titles while archived chunks contain the
+  // original Markdown. Merge metadata non-destructively, retaining catalog order.
+  const merged = new Map();
+  for (const item of snapshot) {
+    if (!item?.id) continue;
+    const previous = merged.get(item.id);
+    if (!previous) merged.set(item.id, { ...item });
+    else {
+      if (!previous.content && item.content) previous.content = item.content;
+      if (!previous.details && item.details) previous.details = item.details;
+      if (!previous.notionUrl && item.notionUrl) previous.notionUrl = item.notionUrl;
+    }
+  }
+  const canonical = [...merged.values()];
   const domainOrder = Array.isArray(window.NOTION_DOMAIN_ORDER) ? window.NOTION_DOMAIN_ORDER : [];
   const relations = window.NOTION_DOMAIN_RELATIONS || {};
   const ladders = Array.isArray(window.NOTION_LADDERS) ? window.NOTION_LADDERS : [];
   const roadmap = typeof ROADMAP_DATA !== "undefined" && Array.isArray(ROADMAP_DATA) ? ROADMAP_DATA : [];
   const courseIds = new Set();
-  const lessons = snapshot.filter(c => c && /^[a-f0-9]{32}$/i.test(c.id) && !courseIds.has(c.id) && courseIds.add(c.id)).map(c => ({
+  const lessons = canonical.filter(c => c && /^[a-f0-9]{32}$/i.test(c.id) && !courseIds.has(c.id) && courseIds.add(c.id)).map(c => ({
     id: c.id, title: String(c.title || "Untitled"), details: String(c.details || ""),
     difficulty: c.difficulty, notionUrl: c.notionUrl || "", fallback: String(c.content || ""),
     domain: (relations[c.id] || [c.domain])[0] || "未分類",
