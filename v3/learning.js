@@ -119,6 +119,30 @@
     });
     return ranked.sort((a, b) => b.score - a.score || a.index - b.index).slice(0, max);
   }
+  function importBackup(payload) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
+        (!payload.done && !payload.attempts && !payload.mastery)) {
+      throw new Error("不是 Coding Course 的學習備份");
+    }
+    const allowed = ["done","steps","mastery","reviews","attempts","notes","mistakes"];
+    const imported = read();
+    for (const section of allowed) {
+      const incoming = plain(payload[section]);
+      const clean = {};
+      for (const [id, value] of Object.entries(incoming)) {
+        if (!id || id.length > 220 || ["__proto__","constructor","prototype"].includes(id)) continue;
+        if (section === "notes") clean[id] = String(value || "").slice(0,10000);
+        else if (section === "done") clean[id] = typeof value === "string" ? value.slice(0,50) : "";
+        else if (section === "steps") clean[id] = Array.isArray(value) ? value.filter(x=>Number.isInteger(x)&&x>=0&&x<6).slice(0,6) : [];
+        else clean[id] = plain(value);
+      }
+      imported[section] = clean;
+    }
+    imported.last = typeof payload.last === "string" ? payload.last.slice(0,220) : "";
+    imported.legacyImported = true;
+    if (!write(imported)) throw new Error("瀏覽器未允許儲存資料");
+    return Object.keys(imported.done).length;
+  }
   function restoreLegacy() {
     const s = read();
     if (s.legacyImported) return;
@@ -131,7 +155,7 @@
   restoreLegacy();
   window.V3Store = Object.freeze({
     read, markRead, completeStep, setMastery, setNote, review, planReview,
-    recordAttempt, dueCourses, nextSuggestions, isoDate,
+    recordAttempt, dueCourses, nextSuggestions, isoDate, importBackup,
     dimensions: DIMENSIONS
   });
 })();
