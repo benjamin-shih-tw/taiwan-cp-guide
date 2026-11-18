@@ -29,7 +29,7 @@ async function main(){
     await page.route("https://benjaminshih.vercel.app/**",route=>route.fulfill({status:503,contentType:"application/json",body:"{}"}));
     await page.goto(base+"/v3/#/dashboard",{waitUntil:"domcontentloaded"});
     await page.waitForFunction(()=>window.V3Catalog?.lessons?.length >=70);
-    assert.match(await page.locator("#app h1").textContent(),/Learn/);
+    assert.match(await page.locator("#app h1").textContent(),/Coding Course/);
     await page.locator('.topbar nav a[href="#/courses"]').click();
     await page.waitForSelector("#course-results .catalog-card");
     await page.locator("#course-results .catalog-card").first().click();
@@ -37,18 +37,22 @@ async function main(){
     await page.locator(".grid.two-col > .card").first().click();
     await page.waitForSelector(".lesson-row");
     await page.locator(".lesson-row").first().click();
-    await page.waitForSelector("#study-panel");
-    assert.equal(await page.locator("#stage-nav .stage-link").count(),6,"six-section learning navigation");
-    await page.locator('[data-mode="interactive"]').click();
-    await page.locator("#self-check-note").fill("Testing self-check notes");
-    await page.locator("#complete-stage").check();
+    await page.waitForSelector("#source-content");
+    assert.equal(await page.locator("#study-panel,#stage-nav,[data-mode]").count(),0,"removed lesson panels and modes");
     await page.locator("#plan-review").click();
     await page.locator("#mark-read").click();
     assert(await page.locator("#mark-read").textContent() !== "", "read completion controls");
     await page.waitForFunction(() => ["Notion Live","本機快照","載入失敗","尚無內容"].includes(document.getElementById("source-status")?.textContent), null, { timeout: 20000 });
     assert(["Notion Live","本機快照","載入失敗","尚無內容"].includes(await page.locator("#source-status").textContent()),"original source status resolved");
     await page.goto(base+"/v3/#/problems",{waitUntil:"domcontentloaded"});
+    await page.waitForSelector(".unit-directory .unit-card");
+    assert.equal(await page.locator(".unit-card").count(),13,"problem subjects match courses");
+    await page.locator(".unit-card").filter({hasText:"08 Dynamic Programming"}).click();
     await page.waitForSelector(".problem-row button[data-attempt]");
+    assert(await page.locator('.problem-level[data-level]').count()>0,"difficulty groups within subject");
+    await page.locator("#problem-difficulty").selectOption("basic");
+    assert.equal(await page.locator('.problem-level:not([data-level="basic"])').count(),0,"difficulty filter");
+    await page.locator("#problem-difficulty").selectOption("");
     await page.locator(".problem-row button[data-attempt]").first().click();
     await page.locator('#attempt-form select[name="status"]').selectOption("wa");
     await page.locator('#attempt-form select[name="reason"]').selectOption("演算法觀念");
@@ -59,21 +63,26 @@ async function main(){
     await page.waitForSelector("[data-review]");
     await page.locator('[data-review][data-quality="4"]').first().click();
     await page.goto(base+"/v3/#/roadmap",{waitUntil:"domcontentloaded"});
-    await page.waitForSelector(".catalog-card");
-    await page.locator(".catalog-card").first().click();
-    assert(await page.locator("#app h1").textContent(),"knowledge map detail");
+    await page.waitForSelector("#roadmap-canvas");
+    assert.equal(await page.locator("#roadmap-canvas > *").count(),0,"dependency map is blank");
+    assert(!/啟航級|APCS|USACO/.test(await page.locator("#app").textContent()));
     await page.goto(base+"/v3/#/progress",{waitUntil:"domcontentloaded"});
-    assert.match(await page.locator("#app h1").textContent(),/學習掌握度/);
+    assert.match(await page.locator("#app h1").textContent(),/學習進度/);
     await page.locator("#export-progress").click();
     await page.setViewportSize({width:390,height:844});
     await page.goto(base+"/v3/#/dashboard",{waitUntil:"domcontentloaded"});
     const viewport=await page.evaluate(()=>({viewport:innerWidth,content:document.documentElement.scrollWidth}));
     assert(viewport.content <= viewport.viewport+12,"mobile dashboard should not overflow horizontally");
+    await page.goto(base+"/v3/#/problems",{waitUntil:"domcontentloaded"});
+    assert.equal(await page.locator(".unit-card").count(),13);
+    const phone=await page.evaluate(()=>({viewport:innerWidth,content:document.documentElement.scrollWidth}));
+    assert(phone.content<=phone.viewport+2,"mobile subject directory fits viewport");
     assert.deepEqual(errors,[],"browser page errors");
-    console.log("Browser smoke passed: navigation, lesson, source fallback, interactive notes, attempt dialog, reviews, roadmap, responsive layout");
+    console.log("Browser smoke passed: navigation, source fallback, removed panels, subject difficulty groups, attempts, reviews, blank roadmap, mobile layout");
   }finally{
     await browser.close();
     server.close();
   }
 }
 main().catch(error=>{console.error(error);server.close();process.exitCode=1;});
+

@@ -80,14 +80,15 @@
         count: (Number(old.count) || 0) + 1
       };
       s.attempts[problemId] = entry;
-      if (entry.status === "wa") {
-        s.mistakes[problemId] = {
-          reason: String(reason || "").slice(0, 120),
-          note: String(note || "").slice(0, 5000),
-          recorded: entry.updated, resolved: false
+      const previous=plain(s.mistakes[problemId]);
+      if(entry.status==="wa" || reason || note || Object.keys(previous).length){
+        s.mistakes[problemId]={
+          reason:String(reason||"").slice(0,120),
+          note:String(note||"").slice(0,5000),
+          recorded:entry.updated,
+          resolved:entry.status==="ac" || (entry.status!=="wa" && previous.resolved===true)
         };
       }
-      if (entry.status === "ac" && s.mistakes[problemId]) s.mistakes[problemId].resolved = true;
     });
   }
   function dueCourses(courses, at = isoDate(new Date())) {

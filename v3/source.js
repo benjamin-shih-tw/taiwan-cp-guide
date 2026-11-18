@@ -1,7 +1,33 @@
 (() => {
   "use strict";
   const API = "https://benjaminshih.vercel.app/api/coding-course";
-  let rendererPromise;
+  let rendererPromise, markdownPromise;
+  function loadScript(src) {
+    return new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      const timeout=setTimeout(()=>{script.remove();reject(new Error("Script load timed out"));},8000);
+      script.src=src;
+      script.onload=()=>{clearTimeout(timeout);resolve();};
+      script.onerror=()=>{clearTimeout(timeout);script.remove();reject(new Error("Script load failed"));};
+      document.head.appendChild(script);
+    });
+  }
+  function readyMarkdown() {
+    if(markdownPromise)return markdownPromise;
+    markdownPromise=(async()=>{
+      if(!window.marked?.parse)await loadScript("https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js");
+      if(!window.renderMathInElement){
+        if(!document.querySelector('link[data-v3-math]')){
+          const link=document.createElement("link");link.rel="stylesheet";
+          link.href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
+          link.dataset.v3Math="1";document.head.appendChild(link);
+        }
+        if(!window.katex)await loadScript("https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js");
+        await loadScript("https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js");
+      }
+    })().catch(error=>{markdownPromise=null;console.warn("[v3] snapshot formatting unavailable",error);});
+    return markdownPromise;
+  }
   let current = null;
   const cache = new Map();
   function ready() {
@@ -15,11 +41,7 @@
         link.dataset.v3Notion = "1";
         document.head.appendChild(link);
       }
-      const script = document.createElement("script");
-      script.src = "../v2/notion-renderer.js";
-      script.onload = () => window.NotionXBridge?.render ? resolve() : reject(new Error("Notion bridge missing"));
-      script.onerror = () => reject(new Error("Notion renderer bundle failed to load"));
-      document.body.appendChild(script);
+      loadScript("../v2/notion-renderer.js").then(()=>window.NotionXBridge?.render ? resolve() : reject(new Error("Notion bridge missing")),reject);
     }).catch(error => { rendererPromise = null; throw error; });
     return rendererPromise;
   }
@@ -29,7 +51,9 @@
     if (window.NotionXBridge?.unmount) window.NotionXBridge.unmount(current.host);
     current = null;
   }
-  function localMarkdown(host, source) {
+  async function localMarkdown(host, source, handle) {
+    await readyMarkdown();
+    if(current!==handle)return;
     const markdown = String(source || "");
     host.className = "markdown-body v3-markdown";
     if (window.marked?.parse) {
@@ -57,6 +81,7 @@
     host.querySelectorAll("img[src]").forEach(img => {
       try {
         const source = new URL(img.getAttribute("src"), location.href);
+        img.loading = "lazy";
         if (!source.hostname.startsWith("prod-files-secure.s3.")) return;
         const imageId = source.pathname.match(/\/[0-9a-f-]{36}\/([0-9a-f-]{36})\/[^/]+$/i)?.[1]?.toLowerCase();
         const local = mirror[imageId];
@@ -86,19 +111,22 @@
       if (kind === "ready") callbacks.onHeadings?.(headings(host));
     };
     try {
-      await ready();
-      if (controller.signal.aborted) return;
-      let payload = cache.get(lesson.id);
-      if (!payload) {
-        const response = await fetch(API + "/page/" + encodeURIComponent(lesson.id), {
-          signal: controller.signal, cache: "default"
-        });
-        if (!response.ok) throw new Error("Notion API " + response.status);
-        payload = await response.json();
-        if (!payload.blockMap?.block) throw new Error("Notion returned no block map");
-        cache.set(lesson.id, payload);
-        if (cache.size > 16) cache.delete(cache.keys().next().value);
-      }
+      // The API and renderer are independent: start both immediately.
+      const payloadPromise=(async()=>{
+        const saved=cache.get(lesson.id);
+        if(saved)return saved;
+        const timeout=setTimeout(()=>controller.abort(),12000);
+        try{
+          const response=await fetch(API+"/page/"+encodeURIComponent(lesson.id),{signal:controller.signal,cache:"default"});
+          if(!response.ok)throw new Error("Notion API "+response.status);
+          const data=await response.json();
+          if(!data.blockMap?.block)throw new Error("Notion returned no block map");
+          cache.set(lesson.id,data);
+          if(cache.size>16)cache.delete(cache.keys().next().value);
+          return data;
+        }finally{clearTimeout(timeout);}
+      })();
+      const [payload]=await Promise.all([payloadPromise,ready()]);
       if (controller.signal.aborted || current !== handle) return;
       if (payload.hasContent === false) {
         host.innerHTML = '<div class="empty">Notion 此頁目前沒有教材內文。</div>';
@@ -111,11 +139,11 @@
         onError: error => {
           if (current !== handle) return;
           console.warn("[v3] React Notion renderer failed; switching to snapshot", error);
-          setTimeout(() => {
+          setTimeout(async () => {
             if (current !== handle) return;
             window.NotionXBridge?.unmount(host);
             if (lesson.fallback?.trim()) {
-              localMarkdown(host, lesson.fallback);
+              await localMarkdown(host, lesson.fallback, handle);
               emit("ready", "snapshot");
             } else {
               host.innerHTML = '<div class="empty">教材渲染失敗，請開啟原始 Notion 連結。</div>';
@@ -126,10 +154,10 @@
       });
       if (!ok) throw new Error("Notion renderer rejected the page");
     } catch (error) {
-      if (controller.signal.aborted || current !== handle) return;
+      if (current !== handle) return;
       console.warn("[v3] live Notion content failed", lesson.id, error);
       if (lesson.fallback?.trim()) {
-        localMarkdown(host, lesson.fallback);
+        await localMarkdown(host, lesson.fallback, handle);
         emit("ready", "snapshot");
       } else {
         host.innerHTML = '<div class="empty">目前無法取得教材。請使用原始 Notion 或 v2 連結閱讀；教材沒有遺失或被改寫。</div>';
