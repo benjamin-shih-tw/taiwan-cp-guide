@@ -107,6 +107,29 @@
       });
     }
   }
+  const rawAssociations = window.V3_EXPLICIT_TOPIC_MAPPINGS || {};
+  const lessonTopics = new Map();
+  const topicLessons = new Map();
+  for (const [originalId, targets] of Object.entries(rawAssociations)) {
+    const id = originalId.replace(/-/g, "").toLowerCase();
+    if (!lessonById.has(id)) continue;
+    const valid = (Array.isArray(targets) ? targets : [targets]).filter(t => topicById.has(t));
+    if (!valid.length) continue;
+    lessonTopics.set(id, valid);
+    for (const topic of valid) {
+      const linked = topicLessons.get(topic) || [];
+      linked.push(id);
+      topicLessons.set(topic, linked);
+    }
+  }
+  function prerequisitesForLesson(id) {
+    const topics = lessonTopics.get(id) || [];
+    const dependencies = [...new Set(topics.flatMap(topic => topicById.get(topic)?.prerequisites || []))];
+    return dependencies.map(topicId => ({
+      topicId, title: topicById.get(topicId)?.title || topicId,
+      lessonId: (topicLessons.get(topicId) || [])[0] || ""
+    }));
+  }
   function chapterFor(id) {
     const lesson = lessonById.get(id); if (!lesson) return null;
     const c = courseById.get(lesson.domain);
@@ -124,6 +147,6 @@
   window.V3Catalog = Object.freeze({
     courses, lessons, problems, roadmap: topicGroups, edges, ladders: ownedLadders,
     lessonById, courseById, topicById, chapterFor, byLesson, byDomain, path,
-    setByLesson, setByDomain
+    setByLesson, setByDomain, lessonTopics, topicLessons, prerequisitesForLesson
   });
 })();
