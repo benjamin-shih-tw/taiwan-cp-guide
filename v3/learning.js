@@ -94,14 +94,24 @@
     const s = read();
     return courses.filter(c => s.reviews[c.id]?.due && s.reviews[c.id].due <= at);
   }
-  function nextSuggestions(courses, max = 8) {
+  function nextSuggestions(courses, max = 8, prerequisites = () => []) {
     const s = read(), today = isoDate(new Date());
+    const prerequisiteGaps = new Set();
+    for (const course of courses) {
+      if (s.done[course.id]) continue;
+      for (const dep of prerequisites(course.id)) {
+        if (dep.lessonId && !s.done[dep.lessonId]) prerequisiteGaps.add(dep.lessonId);
+      }
+    }
     const ranked = courses.map((c, i) => {
       const reviewState = s.reviews[c.id];
       const m = plain(s.mastery[c.id]);
       const weak = DIMENSIONS.filter(d => Number.isFinite(Number(m[d])) && m[d] !== undefined && m[d] !== null && Number(m[d]) <= 2);
       let score = 0, reason;
-      if (reviewState?.due && reviewState.due <= today) { score = 1000; reason = "複習到期"; }
+      const missing = prerequisites(c.id).filter(dep => dep.lessonId && !s.done[dep.lessonId]);
+      if (prerequisiteGaps.has(c.id) && !s.done[c.id]) { score = 1200; reason = "先修缺口：建議先完成此課"; }
+      else if (reviewState?.due && reviewState.due <= today) { score = 1000; reason = "複習到期"; }
+      else if (missing.length && !s.done[c.id]) { score = 20; reason = "先修尚未完成：" + missing.map(x => x.title).join("、"); }
       else if (weak.length) { score = 700; reason = "需要補強：" + weak.map(d => ({theory:"理論",implementation:"實作",recognition:"題型辨識",retention:"記憶"}[d])).join("、"); }
       else if (s.done[c.id]) { score = 30; reason = "已閱讀，可練習"; }
       else { score = 500 - i / 100; reason = "尚未閱讀的新課程"; }
